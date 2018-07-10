@@ -92,7 +92,7 @@ def overlap_airy_psfs(psf_loc_setpoint):
 
 
     ### iterate to try to get SX PSF on the same pixel
-    while True: 
+    while check_prereq_loops(): 
 
         ### locate SX PSF
         f=pi.getFITS("LMIRCAM.DisplayImage.File", "LMIRCAM.GetDisplayImage.Now", wait=True) # get what LMIR is seeing
@@ -119,8 +119,10 @@ def overlap_airy_psfs(psf_loc_setpoint):
         print(psf_loc_setpoint) 
         print('Current PSF loc:') 
         print(psf_loc)
-    
-        if (dist_pix(psf_loc,psf_loc_setpoint) < 5.):
+
+        # if PSFs are closer than N pixels from each other, break
+        N = 5.
+        if (dist_pix(psf_loc,psf_loc_setpoint) < N):
             print('-------------------')
             print('Done moving one side. Switching to the other side.')
             break 

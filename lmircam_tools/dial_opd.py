@@ -10,7 +10,7 @@ from lmircam_tools import * #process_readout
 
 # this was first tested in testing_dial_opd_grism.ipynb
 
-def dial_opd_fizeau_grism(psf_location):
+def optimize_opd_fizeau_grism(psf_location):
 
     ##'image' is from the science detector-- FILL IN!
 
@@ -70,4 +70,17 @@ def dial_opd_fizeau_grism(psf_location):
     # as last step, remove grism
 
 
-def dial_opd_fizeau_airy(psf_location):
+def optimize_opd_fizeau_airy(psf_location):
+    # this dials OPD until the center of the coherence envelope is found
+
+    # scan in OPD until there is a clear *global* maximum in the FFT_amp high-freq lobe amplitudes (i.e., the visibility of the fringes is highest)
+
+    ## ## 1. take FFT of science PSF
+    ## ## 2. measure amplitude of MTF high-freq node
+    ## ## 3. command: move HPC in piston
+    ## ## 4. repeat the above 3 steps, displaying the power each time and fitting a parabola to the data
+    ## ## 5. let user press a key for either of the following two eventualities:
+    ## ##    a. they are satisfied the fit is good, and command the HPC to go to the PL location of max power, or
+    ## ##    b. the PL scan seems to be going in the wrong direction, and command the HPC to go back to the starting point and scan anew
+
+    ## ## Last step: set FITS header flag 'FIZ_OPD_AIRY=1'

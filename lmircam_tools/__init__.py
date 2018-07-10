@@ -6,7 +6,6 @@ from numpy import ma
 ## ## pi = PyINDI(verbose=False)
 
 
-
 class fft_img:
     # take FFT of a 2D image
     
@@ -33,3 +32,19 @@ class fft_img:
         
         else:
             return AmpPE, ArgPE
+
+
+class check_ao_loops():
+    # check that the AO loops are closed
+
+    ## ## INDI COMMAND TO SEE LEFT AO STATUS, RIGHT AO STATUS
+
+
+class check_pc_loop(check_ao_loops):
+    # check that Phasecam loop is closed (inherits check of AO loops)
+
+    ## ## INDI COMMAND TO SEE PHASECAM STATUS
+
+    ## ## IF AO AND PC ARE ALL CLOSED, RETURN 2
+    ## ## IF AO ARE CLOSED BUT PC IS NOT, RETURN 1
+
