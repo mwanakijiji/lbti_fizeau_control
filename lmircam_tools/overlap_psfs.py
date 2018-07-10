@@ -1,7 +1,7 @@
-import sys, os, string, time, pdb, copy, pyfits
+import sys, os, string, time, pdb, copy## ##, pyfits
 import numpy as np
-import np.ma as ma
-from pyindi import *
+import numpy.ma as ma
+## ##from pyindi import *
 import scipy
 from scipy import ndimage, sqrt, stats, misc, signal
 import matplotlib.pyplot as plt
@@ -28,7 +28,7 @@ def find_airy_psf(image):
         '''
 
         imageG = ndimage.gaussian_filter(image, 6) # further remove effect of bad pixels (somewhat redundant?)
-        loc = numpy.argwhere(imageG==imageG.max())
+        loc = np.argwhere(imageG==imageG.max())
         cx = loc[0,1]
         cy = loc[0,0]
 
