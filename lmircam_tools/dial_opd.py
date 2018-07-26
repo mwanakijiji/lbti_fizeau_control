@@ -21,19 +21,11 @@ def optimize_opd_fizeau_grism(psf_location):
     
     # take FFT
     
-    # w/ padding
-    #padI = np.pad(img_before_padding_before_FT,int(len(img_before_padding_before_FT)),'constant',constant_values=10) 
-    # no padding
-    padI = img_before_padding_before_FT
+    # no padding for now
+    AmpPE, ArgPE = fft_img.fft(img_before_padding_before_FT)
 
-    PhaseExtract = np.fft.fft2(padI)
-    PhaseExtract = np.fft.fftshift(PhaseExtract)
-
-    AmpPE = np.absolute(PhaseExtract)
-    ArgPE = np.angle(PhaseExtract)
-    
-    #plt.tight_layout()
-    
+    #############################################################
+    ## ## BEGIN OPTIMIZATION OF PATHLENGTH BASED ON GRISM FFTS
     plt.suptitle(str("{:0>6d}".format(f)))
     
     # testing
@@ -66,7 +58,9 @@ def optimize_opd_fizeau_grism(psf_location):
     ## plt.ylabel('Median of Residuals Between Top and Bottom Halves of FFT')
 
     # find the minimum; set the HPC path length position accordingly 
-
+    ## ## END OPTIMIZATION OF PATHLENGTH
+    #########################################################
+    
     # as last step, remove grism
 
 
@@ -76,8 +70,14 @@ def optimize_opd_fizeau_airy(psf_location):
     # scan in OPD until there is a clear *global* maximum in the FFT_amp high-freq lobe amplitudes (i.e., the visibility of the fringes is highest)
 
     ## ## 1. take FFT of science PSF
+    AmpPE, ArgPE = fft_img.fft(img_before_padding_before_FT)
+    
     ## ## 2. measure amplitude of MTF high-freq node
+
+    
     ## ## 3. command: move HPC in piston
+
+
     ## ## 4. repeat the above 3 steps, displaying the power each time and fitting a parabola to the data
     ## ## 5. let user press a key for either of the following two eventualities:
     ## ##    a. they are satisfied the fit is good, and command the HPC to go to the PL location of max power, or

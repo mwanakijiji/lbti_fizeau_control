@@ -1,10 +1,8 @@
-import time
-## ## from pyindi import *
 import numpy as np
 from numpy import ma
+## ## from pyindi import *
 
 ## ## pi = PyINDI(verbose=False)
-
 
 class fft_img:
     # take FFT of a 2D image
@@ -34,8 +32,8 @@ class fft_img:
             return AmpPE, ArgPE
 
 '''
-class check_ao_loops():
-    # check that the AO loops are closed
+def check_ao_pc_loops():
+    # check that the AO and Phasecam loops are closed
 
     ## ## INDI COMMAND TO SEE LEFT AO STATUS, RIGHT AO STATUS
 
