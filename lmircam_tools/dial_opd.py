@@ -11,17 +11,25 @@ from lmircam_tools import * #process_readout
 # this was first tested in testing_dial_opd_grism.ipynb
 
 def optimize_opd_fizeau_grism(psf_location):
+    '''
+    Takes well-overlapped grism PSFs and dials the optical path
+    difference such that barber-pole fringes become vertical
+    '''
 
-    ##'image' is from the science detector-- FILL IN!
+    # get image from detector
+    f = pi.getFITS("LMIRCAM.DisplayImage.File", "LMIRCAM.GetDisplayImage.Now", wait=True) # get what LMIR is seeing
+    imgb4 = f[0].data
+    image = processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
+
+    # determine grism center
+    psf_loc = find_grism_psf(imgb4bk) # locate the grism PSF center (THIS IS IN OVERLAP_PSFS.PY; SHOULD IT BE IN INIT?)
 
     # cut out the grism image
     img_before_padding_before_FT = image[center_grism[0]-int(0.5*length_y):center_grism[0]+int(0.5*length_y),
                                      center_grism[1]-2*sig:center_grism[1]+2*sig]
     
     
-    # take FFT
-    
-    # no padding for now
+    # take FFT; no padding for now
     AmpPE, ArgPE = fft_img.fft(img_before_padding_before_FT)
 
     #############################################################

@@ -9,7 +9,7 @@ from lmircam_tools.change_tt import optimize_tt_fizeau_airy
 ############## BEGIN GROSS OVERLAP OF NON-FIZEAU AIRY PSFS
 
 psf_loc_setpoint = [1220,800]  # pixel location for PSFs to be at
-overlap_airy_psfs(psf_loc_setpoint)
+overlap_airy_psfs(psf_loc_setpoint) # filter-agnostic
 
 ############## END GROSS OVERLAP OF AIRY PSFS
 
@@ -17,6 +17,7 @@ overlap_airy_psfs(psf_loc_setpoint)
 
 ############## BEGIN PUT IN GRISM AND REFINE GRISM-PSF OVERLAP
 
+put_in_grism()
 overlap_grism_psfs(psf_loc_setpoint)
 
 ############## END PUT IN GRISM AND REFINE GRISM-PSF OVERLAP
