@@ -26,6 +26,7 @@ overlap_grism_psfs(psf_loc_setpoint)
 ############## BEGIN DIAL OPD WITH HPC AND FIND CENTER OF COHERENCE ENVELOPE, THEN REMOVE GRISM
 
 optimize_opd_fizeau_grism(psf_loc_setpoint) # might also use argument of the re-established Fizeau/grism PSF instead of the coordinate where it's supposed to be
+remove_grism()
 
 ############## END DIAL OPD WITH HPC AND FIND CENTER OF COHERENCE ENVELOPE, THEN REMOVE GRISM
 

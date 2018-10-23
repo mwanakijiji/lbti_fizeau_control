@@ -21,8 +21,8 @@ def optimize_opd_fizeau_grism(psf_location):
     imgb4 = f[0].data
     image = processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
 
-    # determine grism center
-    psf_loc = find_grism_psf(imgb4bk) # locate the grism PSF center (THIS IS IN OVERLAP_PSFS.PY; SHOULD IT BE IN INIT?)
+    # determine grism Fizeau PSF center
+    center_grism = find_grism_psf(image) # locate the grism PSF center (THIS IS IN OVERLAP_PSFS.PY; SHOULD IT BE IN INIT?)
 
     # cut out the grism image
     img_before_padding_before_FT = image[center_grism[0]-int(0.5*length_y):center_grism[0]+int(0.5*length_y),
@@ -34,25 +34,31 @@ def optimize_opd_fizeau_grism(psf_location):
 
     #############################################################
     ## ## BEGIN OPTIMIZATION OF PATHLENGTH BASED ON GRISM FFTS
-    plt.suptitle(str("{:0>6d}".format(f)))
+    #plt.suptitle(str("{:0>6d}".format(f)))
+
+    # if direction of fringes is apparent --> dial OPD until past the point
+    # where they are vertical, then fit a polynomial 
+
+    # [NOT IMPLEMENTED YET]:
+    # if no direction of fringes is apparent --> dial one way 10 microns, then jump back and go the other way 10 microns
     
-    # testing
-    to_corr = np.sum(AmpPE[:,int(0.5*img_before_padding_before_FT.shape[1]):], axis=1)
+    to_corr = np.sum(AmpPE[:,int(0.5*img_before_padding_before_FT.shape[1]):], axis=1) # take right-hand side of FFT, integrate in x
     to_corr_masked = np.copy(to_corr)
-    to_corr_masked[98:102] = 0
-    test_symm = signal.correlate(to_corr_masked, to_corr_masked[::-1], mode='same')
+    to_corr_masked[98:102] = 0 # mask low frequency power
+    test_symm = signal.correlate(to_corr_masked, to_corr_masked[::-1], mode='same') # take cross-correlation
     
     leftHalf = test_symm[:int(0.5*len(test_symm))]
     rightHalf = test_symm[int(0.5*len(test_symm)):]
-    resid = leftHalf-rightHalf[::-1]
-    plt.plot(resid)
-    frameArray = np.concatenate((frameArray,[f]))
+    resid = leftHalf-rightHalf[::-1] # find residuals of the cross-correlation sides
+    
+    #plt.plot(resid)
+    #frameArray = np.concatenate((frameArray,[f]))
     testArray = np.concatenate((testArray,[np.median(resid)]))
     plArray = np.concatenate((plArray,[int(header['SPCTRANS'])]))
     #plt.show()
     
     #plt.savefig("images/psf_altair_corr2_"+str("{:0>6d}".format(f))+".png", overwrite=False)
-    plt.clf()
+    #plt.clf()
 
     # fit a 2nd-order polynomial to the residuals as fcn of SPC position
     coeffs = np.polyfit(plArray,testArray, 2)

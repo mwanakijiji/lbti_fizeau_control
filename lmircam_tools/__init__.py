@@ -37,6 +37,14 @@ def put_in_grism():
     '''
     pi.setINDI("Lmir.lmir_FW3.command", "Lgrism6AR", timeout=45, wait=True)
     pi.setINDI("Lmir.lmir_FW25.command", "Lspec2.8-4.0", timeout=45, wait=True) # blocks some extraneous light
+
+    
+def remove_grism():
+    '''
+    Inserts the LMIR grism
+    '''
+    pi.setINDI("Lmir.lmir_FW3.command", "## WHATEVER FILTER GOES HERE ##", timeout=45, wait=True)
+    pi.setINDI("Lmir.lmir_FW25.command", "## WHATEVER FILTER GOES HERE ##", timeout=45, wait=True) # blocks some extraneous light
     
         
 '''
