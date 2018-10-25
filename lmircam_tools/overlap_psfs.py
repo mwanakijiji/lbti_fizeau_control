@@ -27,6 +27,7 @@ def find_airy_psf(image):
             imageThis[:,0:1024] = 0
         '''
 
+        image[np.isnan(image)] = np.nanmedian(image) # if there are NaNs, replace them with the median image value
         imageG = ndimage.gaussian_filter(image, 6) # further remove effect of bad pixels (somewhat redundant?)
         loc = np.argwhere(imageG==imageG.max())
         cx = loc[0,1]
