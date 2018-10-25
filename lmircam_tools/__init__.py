@@ -31,6 +31,22 @@ class fft_img:
         else:
             return AmpPE, ArgPE
 
+def put_in_grism():
+    '''
+    Inserts the LMIR grism
+    '''
+    pi.setINDI("Lmir.lmir_FW3.command", "Lgrism6AR", timeout=45, wait=True)
+    pi.setINDI("Lmir.lmir_FW25.command", "Lspec2.8-4.0", timeout=45, wait=True) # blocks some extraneous light
+
+    
+def remove_grism():
+    '''
+    Inserts the LMIR grism
+    '''
+    pi.setINDI("Lmir.lmir_FW3.command", "## WHATEVER FILTER GOES HERE ##", timeout=45, wait=True)
+    pi.setINDI("Lmir.lmir_FW25.command", "## WHATEVER FILTER GOES HERE ##", timeout=45, wait=True) # blocks some extraneous light
+    
+        
 '''
 def check_ao_pc_loops():
     # check that the AO and Phasecam loops are closed

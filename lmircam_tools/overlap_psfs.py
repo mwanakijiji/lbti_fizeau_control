@@ -154,7 +154,7 @@ def overlap_airy_psfs(psf_loc_setpoint):
         f=pi.getFITS("LMIRCAM.DisplayImage.File", "LMIRCAM.GetDisplayImage.Now", wait=True) # get what LMIR is seeing
         imgb4 = f[0].data
         imgb4bk = processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
-        psf_loc = find_airy_psf(imgb4bk) # locate the PSF
+        psf_loc = find_airy_psf(imgb4bk) # locate the PSF (y,x)
     
         print('-------------------')
         print('PSF location setpoint:')
@@ -183,7 +183,7 @@ def overlap_grism_psfs(psf_loc_setpoint):
     sig = 5 # sigma of Gaussian profile in x (in pix)
     length_y = 200 # length in y of the psf (in pix)
 
-    # define a Gaussian for correlating it to a grism-ed PSF in x
+    # define a Gaussian for correlating it to a grism-ed PSF in x dimension
     def gaussian_x(x, mu, sig):    
         shape_gaussian = np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.)))
         return shape_gaussian
@@ -202,7 +202,7 @@ def overlap_grism_psfs(psf_loc_setpoint):
 
         imgb4bk = processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
 
-        psf_loc = find_grism_psf(imgb4bk) # locate the PSF
+        psf_loc = find_grism_psf(imgb4bk) # locate the grism PSF center
 
         ### move FPC in one step to move PSF to right location
         vector_move_pix = np.subtract(psf_loc_setpoint,psf_loc) # vector of required movement in pixel space
@@ -213,7 +213,7 @@ def overlap_grism_psfs(psf_loc_setpoint):
         f=pi.getFITS("LMIRCAM.DisplayImage.File", "LMIRCAM.GetDisplayImage.Now", wait=True) # get what LMIR is seeing
         imgb4 = f[0].data
         imgb4bk = processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
-        psf_loc = find_grism_psf(imgb4bk) # locate the PSF
+        psf_loc = find_grism_psf(imgb4bk) # locate the PSF (y,x)
  
         print('-------------------')
         print('PSF location setpoint:')
