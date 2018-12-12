@@ -1,8 +1,8 @@
 import numpy as np
 from numpy import ma
-## ## from pyindi import *
+from pyindi import *
 
-## ## pi = PyINDI(verbose=False)
+pi = PyINDI(verbose=False)
 
 class fft_img:
     # take FFT of a 2D image

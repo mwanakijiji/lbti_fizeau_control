@@ -3,7 +3,7 @@ import sys, os, string, time, pdb, copy, pyfits
 import numpy as np
 from pyindi import * 
 from scipy import ndimage, sqrt, stats
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 # do simple for-loops to move the FPC and HPC
 
@@ -45,7 +45,8 @@ for step in range(0,4):
 # w = edge px on either side
 def bkgdsub(image, method):
 
-    image[image==0] = numpy.nan
+    ## ## found the below line; not sure what it was for
+    ## ##image[image==0] = numpy.nan
 
     ctr = int( np.floor( image.shape[0] / 2. ) ) # half-width
 
@@ -57,18 +58,21 @@ def bkgdsub(image, method):
         rowbkgd = np.nanmean(tmpimg,1)
     elif method == 'median':
         rowbkgd = np.nanmedian(tmpimg,1)
-    rowbkgd2d = np.tile(np.reshape(rowbkgd,[len(rowbkgd),1]),[1,image.shape[0]]) # paint this column of median values into a 2048x2048 array
-    tmpimg = tmpimg - rowbkgd2d # simple form of background subtraction (vertical striping between columns will still be there)
+        rowbkgd2d = np.tile(np.reshape(rowbkgd,[len(rowbkgd),1]),[1,image.shape[1]]) # paint this column of median values into a 2048x2048 array
+    print(np.shape(rowbkgd2d))
+    tmpimg = np.subtract(tmpimg,rowbkgd2d) # simpl
+    pdb.set_trace()
 
     # do same as above, but for the columns
     if method == 'mean':
         colbkgd = np.nanmean(tmpimg,0)
     elif method == 'median':
         colbkgd = np.nanmedian(tmpimg,0)
-    colbkgd2d = numpy.tile(np.reshape(colbkgd,[1,len(colbkgd)]),[image.shape[1],1])
-    image = image - rowbkgd2d - colbkgd2d
+        colbkgd2d = np.tile(np.reshape(colbkgd,[1,len(colbkgd)]),[image.shape[0],1])
+        image = np.subtract(np.subtract(image,rowbkgd2d),colbkgd2d)
 
     image[np.isnan(image)] = 0
+    pdb.set_trace()
 
     # image now should have a nice flat background, but bad pixels will remain
     return image

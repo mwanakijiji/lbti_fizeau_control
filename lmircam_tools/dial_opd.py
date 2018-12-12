@@ -1,11 +1,11 @@
 import sys, os, string, time, pdb, copy, pyfits
 import numpy as np
-import np.ma as ma
+#import np.ma as ma
 from pyindi import *
 import scipy
-from scipy import ndimage, sqrt, stats, misc, signal
-import matplotlib.pyplot as plt
-from astropy.io import fits
+## ## from scipy import ndimage, sqrt, stats, misc, signal
+#import matplotlib.pyplot as plt
+import pyfits
 from lmircam_tools import * #process_readout
 
 # this was first tested in testing_dial_opd_grism.ipynb
