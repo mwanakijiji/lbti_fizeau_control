@@ -3,7 +3,7 @@ import numpy as np
 import numpy.ma as ma
 ## ##from pyindi import *
 import scipy
-from scipy import ndimage, sqrt, misc, stats #,signal
+from scipy import ndimage, sqrt, misc, stats,signal
 #import matplotlib.pyplot as plt
 import pyfits
 from lmircam_tools import *
@@ -16,6 +16,11 @@ autoFindStar = True  # auto-detect star in frame?
 ###### TO DO: THE OVERLAP FUNCTIONS HAVE A LOT OF SHARED FUNCTIONALITY; MAKE A CLASS STRUCTURE!
 # SEE https://jeffknupp.com/blog/2014/06/18/improve-your-python-python-classes-and-object-oriented-programming/
 ######################################################################################
+
+# define 2D gaussian for fitting PSFs
+def gaussian_x(x, mu, sig):    
+    shape_gaussian = np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.)))
+    return shape_gaussian
 
 # find star and return coordinates [y,x]
 def find_airy_psf(image):
@@ -51,7 +56,9 @@ def find_grism_psf(image):
         
         # generate the Gaussian to correlate with the image
         mu_x_center = 0.5*image.shape[1] # initially center the probe shape for correlation
-        x_probe_gaussian = gaussian_x(np.arange(image.shape[1]), mu_x_center, sig)
+        sig = 5 # ersatz for now
+	length_y = 40 # ersatz for now
+	x_probe_gaussian = gaussian_x(np.arange(image.shape[1]), mu_x_center, sig)
 
         # generate a top hat for correlating it to a grism-ed PSF in y
         y_abcissa = np.arange(image.shape[0])
@@ -100,13 +107,20 @@ def overlap_airy_psfs(psf_loc_setpoint):
 
         ### locate SX PSF
 
-	# get what LMIR is seeing
+	# obtain new frame from LMIR
 	print('this is a test')
-	#f = pi.getFITS("LMIRCAM.DisplayImage.File", "LMIRCAM.acquire.enable_bg=0;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=60)
+	# allow aquisition from ROI box (keep smaller than 512x512!)
+	pi.setINDI("LMIRCAM.fizRun.value=On")
+	# take a background
+	print("Taking a background")
+	f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=0;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=60)
+	# take a frame with background subtracting
+	print("Taking a frame to analyze")
+	f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=60)
 	
 	## ## BEGIN TEST
 	## ## read in fake FITS file
-	f = pyfits.open("test_frame.fits")
+	#f = pyfits.open("test_frame.fits")
 	## ## END TEST
 
 	imgb4 = f[0].data
@@ -120,6 +134,7 @@ def overlap_airy_psfs(psf_loc_setpoint):
 	print('-------------')
 	print('SX PSF located at') 
 	print(psf_loc) 
+	pdb.set_trace()
 
         ### move FPC in one step to move PSF to right location
         vector_move_pix = np.subtract(psf_loc_setpoint,psf_loc) # vector of required movement in pixel space
@@ -202,9 +217,6 @@ def overlap_grism_psfs(psf_loc_setpoint):
     length_y = 200 # length in y of the psf (in pix)
 
     # define a Gaussian for correlating it to a grism-ed PSF in x dimension
-    def gaussian_x(x, mu, sig):    
-        shape_gaussian = np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.)))
-        return shape_gaussian
 
     ### move in half-moon to see SX first
     pi.setINDI("Lmir.lmir_FW2.command", 'SX-Half-moon', wait=True)#, timeout=45, wait=True)
@@ -213,6 +225,8 @@ def overlap_grism_psfs(psf_loc_setpoint):
     while True: 
 
         ### locate SX PSF
+	print("Turning on fizRun")
+	pi.setINDI("LMIRCAM.fizRun.value=On")
         f=pi.getFITS("LMIRCAM.DisplayImage.File", "LMIRCAM.GetDisplayImage.Now", wait=True) # get what LMIR is seeing
         imgb4 = f[0].data
         #imgb4bk = bkgdsub(imgb4,'median') # simple background smoothing
