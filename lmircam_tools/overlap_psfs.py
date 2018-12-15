@@ -98,6 +98,13 @@ def dist_pix(current,goal):
 
 def overlap_airy_psfs(psf_loc_setpoint):
 
+    # take a background
+    print("Moving in a blank to take a background")
+    pi.setINDI("Lmir.lmir_FW4.command", "Blank", wait=True)
+    print("Taking a background")
+    f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=0;int_time=%i;is_bg=1;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=60)
+
+
     ### move in half-moon to see SX first
     pi.setINDI("Lmir.lmir_FW2.command", 'SX-Half-moon', timeout=45, wait=True)
 
@@ -107,100 +114,116 @@ def overlap_airy_psfs(psf_loc_setpoint):
 
         ### locate SX PSF
 
+	## ## NEED TO PUT IN A BLANK FOR A BACKGROUND
+
 	# obtain new frame from LMIR
-	print('this is a test')
+	print("Setting ROI aquisition flag")
 	# allow aquisition from ROI box (keep smaller than 512x512!)
 	pi.setINDI("LMIRCAM.fizRun.value=On")
-	# take a background
-	print("Taking a background")
-	f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=0;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=60)
+
 	# take a frame with background subtracting
 	print("Taking a frame to analyze")
 	f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=60)
-	
+
 	## ## BEGIN TEST
 	## ## read in fake FITS file
-	#f = pyfits.open("test_frame.fits")
+	f = pyfits.open("test_frame.fits")
 	## ## END TEST
 
 	imgb4 = f[0].data
-        ## ## test line below
-	print(imgb4)
-	pdb.set_trace()
 	imgb4bk = process_readout.processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
 
 	# locate the PSF
         psf_loc = find_grism_psf(imgb4bk)
 	print('-------------')
-	print('SX PSF located at') 
-	print(psf_loc) 
-	pdb.set_trace()
+	print('SX PSF located at')
+	print(psf_loc)
 
         ### move FPC in one step to move PSF to right location
         vector_move_pix = np.subtract(psf_loc_setpoint,psf_loc) # vector of required movement in pixel space
         vector_move_asec = np.multiply(vector_move_pix,0.0107) # convert to asec
-        pdb.set_trace()
+        print("SX vector movement in pix:")
+	print(vector_move_pix)
+	print("SX vector movement in asec:")
+	print(vector_move_asec)
+	print("Making FPC movement")
 	pi.setINDI("Acromag.FPC.Tip="+'{0:.1f}'.format(vector_move_asec[0])+";Tilt="+'{0:.1f}'.format(vector_move_asec[1])+";Piston=0;Mode=1")
 
         ### re-locate SX PSF; correction needed?
-        f=pi.getFITS("LMIRCAM.DisplayImage.File", "LMIRCAM.GetDisplayImage.Now", wait=True) # get what LMIR is seeing
-        imgb4 = f[0].data
-        imgb4bk = processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
-        psf_loc = find_airy_psf(imgb4bk) # locate the PSF
- 
+        pi.setINDI("LMIRCAM.fizRun.value=On")
+        # take a background
+        print("Using the same background as before")
+        #f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=0;int_time=%i;is_bg=1;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=60)
+        # take a frame with background subtracting
+        print("Taking a frame to analyze")
+        f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=60)
+
         print('-------------------')
-        print('PSF location setpoint:')
-        print(psf_loc_setpoint) 
-        print('Current PSF loc:') 
+        print('Fizeau PSF location setpoint:')
+        print(psf_loc_setpoint)
+        print('Current SX PSF loc:')
         print(psf_loc)
 
         # if PSFs are closer than N pixels from each other, break
-        N = 5.
+        ## ## TOLERANCE ON SKY SHOULD BE N=5
+	N = 50.
         if (dist_pix(psf_loc,psf_loc_setpoint) < N):
             print('-------------------')
-            print('Done moving one side. Switching to the other side.')
+            print('Done moving SX. Switching to DX.')
             break 
 
-        print('Moving PSF again...')
-    
-    
+        print('Moving SX PSF again...')
+
+
     ### MOVE IN HALF-MOON TO SEE DX NEXT
     pi.setINDI("Lmir.lmir_FW2.command", 'DX-Half-moon', wait=True)
-   
-    
+
+
     ### NEW FOR-LOOP HERE
     while True: # do three iterations to try to get SX PSF on the same pixel
-    
+
         # locate DX PSF
-        f=pi.getFITS("LMIRCAM.DisplayImage.File", "LMIRCAM.GetDisplayImage.Now", wait=True) # get what LMIR is seeing
-        imgb4 = f[0].data
-                        
-        imgb4bk = processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
+        pi.setINDI("LMIRCAM.fizRun.value=On")
+        # take a background
+        print("Taking a background")
+        f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=0;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=60)
+        # take a frame with background subtracting
+        print("Taking a frame to analyze")
+        f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=60)
+
+        imgb4bk =process_readout.processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
         psf_loc = find_airy_psf(imgb4bk) # locate the PSF
-                                
+
         ### MOVE HPC IN ONE STEP TO MOVE PSF TO RIGHT LOCATION
         vector_move_pix = np.subtract(psf_loc_setpoint,psf_loc) # vector of required movement in pixel space
         vector_move_asec = np.multiply(vector_move_pix,0.0107) # convert to asec
         pi.setINDI("Acromag.HPC.Tip="+'{0:.1f}'.format(vector_move_asec[0])+";Tilt="+'{0:.1f}'.format(vector_move_asec[1])+";Piston=0;Mode=1")
-                                                
-        ### RE-LOCATE SX PSF; CORRECTION NEEDED?
-        f=pi.getFITS("LMIRCAM.DisplayImage.File", "LMIRCAM.GetDisplayImage.Now", wait=True) # get what LMIR is seeing
-        imgb4 = f[0].data
-        imgb4bk = processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
-        psf_loc = find_airy_psf(imgb4bk) # locate the PSF (y,x)
-    
+
+        ### RE-LOCATE DX PSF; CORRECTION NEEDED?
+        ## ## COMMENTED OUT TO BE PASSIVE
+        ## ## COMMENTING OUT THE BELOW TO RUN TESTS
+        pi.setINDI("LMIRCAM.fizRun.value=On")
+        # take a background
+        print("Taking a background")
+        f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=0;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=60)
+        # take a frame with background subtracting
+        print("Taking a frame to analyze")
+        f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=60)
+
         print('-------------------')
-        print('PSF location setpoint:')
-        print(psf_loc_setpoint) 
+        print('Fizeau PSF location setpoint:')
+        print(psf_loc_setpoint)
         print('Current DX PSF loc:')
         print(psf_loc)
-                                                                            
-        if (dist_pix(psf_loc,psf_loc_setpoint) < 5.):
+
+	## ## TOLERANCE ON SKY SHOULD BE N=5
+	N = 50
+        if (dist_pix(psf_loc,psf_loc_setpoint) < 50.):
             print('-------------------')
-            print('Done moving DX. Switching to the other side.')
+            print('Done moving DX.')
             break
-                                                                                                    
-        print('Moving DX again...')    
+
+        print('Moving DX again...')
 
 
     print('Done moving PSFs. Reopening LMIR FW2.')
@@ -232,7 +255,7 @@ def overlap_grism_psfs(psf_loc_setpoint):
         #imgb4bk = bkgdsub(imgb4,'median') # simple background smoothing
         #imgb4bk -= numpy.median(imgb4bk) # subtract residual background
 
-        imgb4bk = processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
+        imgb4bk =process_readout.processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
 
         psf_loc = find_grism_psf(imgb4bk) # locate the grism PSF center
 
@@ -244,7 +267,7 @@ def overlap_grism_psfs(psf_loc_setpoint):
         ### re-locate SX PSF; correction needed?
         f=pi.getFITS("LMIRCAM.DisplayImage.File", "LMIRCAM.GetDisplayImage.Now", wait=True) # get what LMIR is seeing
         imgb4 = f[0].data
-        imgb4bk = processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
+        imgb4bk =process_readout.processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
         psf_loc = find_grism_psf(imgb4bk) # locate the PSF (y,x)
  
         print('-------------------')
@@ -262,8 +285,7 @@ def overlap_grism_psfs(psf_loc_setpoint):
     
     
     ### MOVE IN HALF-MOON TO SEE DX NEXT
-    pi.setINDI("Lmir.lmir_FW2.command", 'DX-Half-moon', wait=True)
-   
+    pi.setINDI("Lmir.lmir_FW2.command", 'DX-Half-moon', timeout=45, wait=True)
     
     ### NEW FOR-LOOP HERE
     while True: # do three iterations to try to get SX PSF on the same pixel
@@ -272,7 +294,7 @@ def overlap_grism_psfs(psf_loc_setpoint):
         f=pi.getFITS("LMIRCAM.DisplayImage.File", "LMIRCAM.GetDisplayImage.Now", wait=True) # get what LMIR is seeing
         imgb4 = f[0].data
                         
-        imgb4bk = processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
+        imgb4bk =process_readout.processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
         psf_loc = find_grism_psf(imgb4bk) # locate the PSF
                                 
         ### MOVE HPC IN ONE STEP TO MOVE PSF TO RIGHT LOCATION
@@ -283,7 +305,7 @@ def overlap_grism_psfs(psf_loc_setpoint):
         ### RE-LOCATE SX PSF; CORRECTION NEEDED?
         f=pi.getFITS("LMIRCAM.DisplayImage.File", "LMIRCAM.GetDisplayImage.Now", wait=True) # get what LMIR is seeing
         imgb4 = f[0].data
-        imgb4bk = processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
+        imgb4bk =process_readout.processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
         psf_loc = find_grism_psf(imgb4bk) # locate the PSF
     
         print('-------------------')

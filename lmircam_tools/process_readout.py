@@ -61,7 +61,6 @@ def bkgdsub(image, method):
         rowbkgd2d = np.tile(np.reshape(rowbkgd,[len(rowbkgd),1]),[1,image.shape[1]]) # paint this column of median values into a 2048x2048 array
     print(np.shape(rowbkgd2d))
     tmpimg = np.subtract(tmpimg,rowbkgd2d) # simpl
-    pdb.set_trace()
 
     # do same as above, but for the columns
     if method == 'mean':
@@ -72,7 +71,6 @@ def bkgdsub(image, method):
         image = np.subtract(np.subtract(image,rowbkgd2d),colbkgd2d)
 
     image[np.isnan(image)] = 0
-    pdb.set_trace()
 
     # image now should have a nice flat background, but bad pixels will remain
     return image
