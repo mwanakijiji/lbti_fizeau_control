@@ -4,6 +4,33 @@ from pyindi import *
 
 pi = PyINDI(verbose=False)
 
+def find_airy_psf(image):
+    if autoFindStar:
+
+        #imageThis = numpy.copy(image)
+
+        '''
+        if (PSFside == 'left'):
+            imageThis[:,1024:-1] = 0
+        elif (PSFside == 'right'):
+            imageThis[:,0:1024] = 0
+        '''
+
+        image[np.isnan(image)] = np.nanmedian(image) # if there are NaNs, replace them with the median image value
+        imageG = ndimage.gaussian_filter(image, 6) # further remove effect of bad pixels (somewhat redundant?)
+        loc = np.argwhere(imageG==imageG.max())
+        cx = loc[0,1]
+        cy = loc[0,0]
+
+        #plt.imshow(imageG, origin="lower")
+        #
+        #plt.scatter([cx,cx],[cy,cy], c='r', s=50)
+        #plt.colorbar()
+        #plt.show()
+        #print [cy, cx] # check
+
+    return [cy, cx]
+
 class fft_img:
     # take FFT of a 2D image
     

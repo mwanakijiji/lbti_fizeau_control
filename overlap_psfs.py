@@ -130,7 +130,8 @@ def overlap_airy_psfs(psf_loc_setpoint):
 
 	## ## BEGIN TEST
 	## ## read in fake FITS file
-	#f = pyfits.open("test_frame.fits")
+	#f = pyfits.open("test_frame_fiz_large.fits")
+	f = pyfits.open("test_frame_fiz_small.fits")
 	## ## END TEST
 
 	imgb4 = f[0].data
