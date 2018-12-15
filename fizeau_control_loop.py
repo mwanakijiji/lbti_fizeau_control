@@ -9,7 +9,7 @@ from lmircam_tools.dial_opd import optimize_opd_fizeau_grism, optimize_opd_fizea
 
 ############## BEGIN GROSS OVERLAP OF NON-FIZEAU AIRY PSFS
 
-psf_loc_setpoint = [123,854]  # pixel location for PSFs to be at (y,x)
+psf_loc_setpoint = [150,40]  # pixel location for PSFs to be at (y,x), zeroed to the ROI region
 overlap_airy_psfs(psf_loc_setpoint) # filter-agnostic
 
 ############## END GROSS OVERLAP OF AIRY PSFS
