@@ -4,13 +4,13 @@ import pdb
 from lmircam_tools import *
 from lmircam_tools.overlap_psfs import overlap_airy_psfs, overlap_grism_psfs
 from lmircam_tools.dial_opd import optimize_opd_fizeau_grism, optimize_opd_fizeau_airy
-from lmircam_tools.change_tt import optimize_tt_fizeau_airy
+#from lmircam_tools.change_tt import optimize_tt_fizeau_airy
 
 
 ############## BEGIN GROSS OVERLAP OF NON-FIZEAU AIRY PSFS
 
 psf_loc_setpoint = [150,40]  # pixel location for PSFs to be at (y,x), zeroed to the ROI region
-overlap_airy_psfs(psf_loc_setpoint) # filter-agnostic
+#overlap_airy_psfs(psf_loc_setpoint) # filter-agnostic
 
 ############## END GROSS OVERLAP OF AIRY PSFS
 
@@ -26,7 +26,7 @@ overlap_airy_psfs(psf_loc_setpoint) # filter-agnostic
 
 ############## BEGIN DIAL OPD WITH HPC AND FIND CENTER OF COHERENCE ENVELOPE, THEN REMOVE GRISM
 
-#optimize_opd_fizeau_grism(psf_loc_setpoint) # might also use argument of the re-established Fizeau/grism PSF instead of the coordinate where it's supposed to be
+optimize_opd_fizeau_grism(psf_loc_setpoint) # might also use argument of the re-established Fizeau/grism PSF instead of the coordinate where it's supposed to be
 #remove_grism()
 
 ############## END DIAL OPD WITH HPC AND FIND CENTER OF COHERENCE ENVELOPE, THEN REMOVE GRISM

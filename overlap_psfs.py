@@ -18,6 +18,7 @@ autoFindStar = True  # auto-detect star in frame?
 ######################################################################################
 
 # define 2D gaussian for fitting PSFs
+## ## ONE COPY OF THIS FCN IS ALSO IN __INIT__; NEED TO CHANGE TO BE USING ONLY THE INIT VERSION
 def gaussian_x(x, mu, sig):
     shape_gaussian = np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.)))
     return shape_gaussian
@@ -51,13 +52,12 @@ def find_airy_psf(image):
     return [cy, cx]
 
 
-def find_grism_psf(image):
+## ## THIS HAS ANOTHER COPY IN __INIT__; CHANGE TO ONLY USE __INIT__ COPY
+def find_grism_psf(image, sig, length_y):
     if autoFindStar:
 
         # generate the Gaussian to correlate with the image
         mu_x_center = 0.5*image.shape[1] # initially center the probe shape for correlation
-        sig = 5 # ersatz for now
-	length_y = 40 # ersatz for now
 	x_probe_gaussian = gaussian_x(np.arange(image.shape[1]), mu_x_center, sig)
 
         # generate a top hat for correlating it to a grism-ed PSF in y
@@ -116,14 +116,11 @@ def overlap_airy_psfs(psf_loc_setpoint):
 
         ### locate SX PSF
 
-	## ## NEED TO PUT IN A BLANK FOR A BACKGROUND
-
 	# obtain new frame from LMIR
 	print("Setting ROI aquisition flag")
 	# allow aquisition from ROI box (keep smaller than 512x512!)
 	## ## PASSIVE MODE pi.setINDI("LMIRCAM.fizRun.value=On")
 
-	
 	# take a frame with background subtracting
 	print("Taking a background-subtracted frame")
 	## ## PASSIVE MODE f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=60)
@@ -137,15 +134,13 @@ def overlap_airy_psfs(psf_loc_setpoint):
 	imgb4 = f[0].data
 	imgb4bk = process_readout.processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
 
-	
 	# locate the PSF
 	## ## DO I REALLY WANT TO USE FIND_GRISM?
-        psf_loc = find_grism_psf(imgb4bk)
+        psf_loc = find_grism_psf(imgb4bk, 5, 5)
 	print('-------------')
 	print('SX PSF located at')
 	print(psf_loc)
 
-	
         ### move FPC in one step to move PSF to right location
         vector_move_pix = np.subtract(psf_loc_setpoint,psf_loc) # vector of required movement in pixel space
         vector_move_asec = np.multiply(vector_move_pix,0.0107) # convert to asec
@@ -156,7 +151,6 @@ def overlap_airy_psfs(psf_loc_setpoint):
 	print("Making FPC movement")
 	## ## PASSIVE MODE pi.setINDI("Acromag.FPC.Tip="+'{0:.1f}'.format(vector_move_asec[0])+";Tilt="+'{0:.1f}'.format(vector_move_asec[1])+";Piston=0;Mode=1")
 
-	
         ### re-locate SX PSF; correction needed?
         ## ## PASSIVE MODE pi.setINDI("LMIRCAM.fizRun.value=On")
         # take a frame with background subtracting
@@ -165,10 +159,9 @@ def overlap_airy_psfs(psf_loc_setpoint):
 	imgb4 = f[0].data
         imgb4bk = process_readout.processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
 
-	
 	# locate the PSF
         ## ## DO I REALLY WANT TO USE FIND_GRISM?
-        psf_loc = find_grism_psf(imgb4bk)
+        psf_loc = find_grism_psf(imgb4bk, 5, 5)
 
         print('-------------------')
         print('Fizeau PSF location setpoint:')
@@ -176,7 +169,6 @@ def overlap_airy_psfs(psf_loc_setpoint):
         print('Current SX PSF loc:')
         print(psf_loc)
 
-	
         # if PSFs are closer than N pixels from each other, break
         ## ## TOLERANCE ON SKY SHOULD BE N=5
 	N = 50.
@@ -204,7 +196,7 @@ def overlap_airy_psfs(psf_loc_setpoint):
         print("Taking a frame to analyze")
         ## ## PASSIVE MODE f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=60)
 
-        imgb4bk =process_readout.processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
+        imgb4bk = process_readout.processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
         psf_loc = find_airy_psf(imgb4bk) # locate the PSF
 
         ### MOVE HPC IN ONE STEP TO MOVE PSF TO RIGHT LOCATION
@@ -250,87 +242,135 @@ def overlap_grism_psfs(psf_loc_setpoint):
     sig = 5 # sigma of Gaussian profile in x (in pix)
     length_y = 200 # length in y of the psf (in pix)
 
-    # define a Gaussian for correlating it to a grism-ed PSF in x dimension
+    # take a background
+    # allow aquisition from ROI box (keep smaller than 512x512!)
+    ## ## PASSIVE MODE pi.setINDI("LMIRCAM.fizRun.value=On")
+    print("Moving in a blank to take a background")
+    ## ## PASSIVE MODE pi.setINDI("Lmir.lmir_FW4.command", "Blank", wait=True)
+    print("Taking a background")
+    ## ## PASSIVE MODE f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=0;int_time=%i;is_bg=1;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=60)
+
 
     ### move in half-moon to see SX first
-    ## ## PASSIVE MODE pi.setINDI("Lmir.lmir_FW2.command", 'SX-Half-moon', wait=True)#, timeout=45, wait=True)
+    ## ## PASSIVE MODE pi.setINDI("Lmir.lmir_FW2.command", 'SX-Half-moon', timeout=45, wait=True)
+
 
     ### iterate to try to get SX PSF on the same pixel
-    while True: 
+    while True: #check_prereq_loops():
 
         ### locate SX PSF
-	print("Turning on fizRun")
-	## ## PASSIVE MODE pi.setINDI("LMIRCAM.fizRun.value=On")
-        ## ## PASSIVE MODE f=pi.getFITS("LMIRCAM.DisplayImage.File", "LMIRCAM.GetDisplayImage.Now", wait=True) # get what LMIR is seeing
+
+        # obtain new frame from LMIR
+        print("Setting ROI aquisition flag")
+        # allow aquisition from ROI box (keep smaller than 512x512!)
+        ## ## PASSIVE MODE pi.setINDI("LMIRCAM.fizRun.value=On")
+
+        # take a frame with background subtracting
+        print("Taking a background-subtracted frame")
+        ## ## PASSIVE MODE f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=$
+
+        ## ## BEGIN TEST
+        ## ## read in fake FITS file
+        #f = pyfits.open("test_frame_fiz_large.fits")
+        f = pyfits.open("test_frame_grismFiz_small.fits")
+        ## ## END TEST
+
         imgb4 = f[0].data
-        #imgb4bk = bkgdsub(imgb4,'median') # simple background smoothing
-        #imgb4bk -= numpy.median(imgb4bk) # subtract residual background
+        imgb4bk = process_readout.processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
 
-        imgb4bk =process_readout.processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
-
-        psf_loc = find_grism_psf(imgb4bk) # locate the grism PSF center
+        # locate the PSF
+        ## ## DO I REALLY WANT TO USE FIND_GRISM?
+        psf_loc = find_grism_psf(imgb4bk, sig, length_y)
+        print('-------------')
+        print('SX PSF located at')
+        print(psf_loc)
 
         ### move FPC in one step to move PSF to right location
         vector_move_pix = np.subtract(psf_loc_setpoint,psf_loc) # vector of required movement in pixel space
         vector_move_asec = np.multiply(vector_move_pix,0.0107) # convert to asec
+        print("SX vector movement in pix:")
+        print(vector_move_pix)
+        print("SX vector movement in asec:")
+        print(vector_move_asec)
+        print("Making FPC movement")
         ## ## PASSIVE MODE pi.setINDI("Acromag.FPC.Tip="+'{0:.1f}'.format(vector_move_asec[0])+";Tilt="+'{0:.1f}'.format(vector_move_asec[1])+";Piston=0;Mode=1")
 
         ### re-locate SX PSF; correction needed?
-        ## ## PASSIVE MODE f=pi.getFITS("LMIRCAM.DisplayImage.File", "LMIRCAM.GetDisplayImage.Now", wait=True) # get what LMIR is seeing
+        ## ## PASSIVE MODE pi.setINDI("LMIRCAM.fizRun.value=On")
+        # take a frame with background subtracting
+        print("Taking a background-subtracted frame")
+        ## ## PASSIVE MODE f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=$
         imgb4 = f[0].data
-        imgb4bk =process_readout.processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
-        psf_loc = find_grism_psf(imgb4bk) # locate the PSF (y,x)
- 
-        print('-------------------')
-        print('PSF location setpoint:')
-        print(psf_loc_setpoint) 
-        print('Current PSF loc:') 
-        print(psf_loc)
-    
-        if (dist_pix(psf_loc,psf_loc_setpoint) < 5.):
-            print('-------------------')
-            print('Done moving one side. Switching to the other side.')
-            break 
+        imgb4bk = process_readout.processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
 
-        print('Moving PSF again...')
-    
-    
+        # locate the PSF
+        ## ## DO I REALLY WANT TO USE FIND_GRISM?
+        psf_loc = find_grism_psf(imgb4bk, sig, length_y)
+
+        print('-------------------')
+        print('Fizeau PSF location setpoint:')
+        print(psf_loc_setpoint)
+        print('Current SX PSF loc:')
+        print(psf_loc)
+
+        # if PSFs are closer than N pixels from each other, break
+        ## ## TOLERANCE ON SKY SHOULD BE N=5
+        N = 50.
+        if (dist_pix(psf_loc,psf_loc_setpoint) < N):
+            print('-------------------')
+            print('Done moving SX. Switching to DX.')
+            break
+
+        print('Moving SX PSF again...')
+
+
     ### MOVE IN HALF-MOON TO SEE DX NEXT
-    ## ## PASSIVE MODE pi.setINDI("Lmir.lmir_FW2.command", 'DX-Half-moon', timeout=45, wait=True)
-    
+    ## ## PASSIVE MODE pi.setINDI("Lmir.lmir_FW2.command", 'DX-Half-moon', wait=True)
+
+
     ### NEW FOR-LOOP HERE
     while True: # do three iterations to try to get SX PSF on the same pixel
-    
+
         # locate DX PSF
-        ## ## PASSIVE MODE f=pi.getFITS("LMIRCAM.DisplayImage.File", "LMIRCAM.GetDisplayImage.Now", wait=True) # get what LMIR is seeing
-        imgb4 = f[0].data
-                        
+        ## ## PASSIVE MODE pi.setINDI("LMIRCAM.fizRun.value=On")
+        # take a background
+        print("Taking a background")
+        ## ## PASSIVE MODE f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=0;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=$
+        # take a frame with background subtracting
+        print("Taking a frame to analyze")
+        ## ## PASSIVE MODE f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=$
+
         imgb4bk =process_readout.processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
-        psf_loc = find_grism_psf(imgb4bk) # locate the PSF
-                                
+        psf_loc = find_airy_psf(imgb4bk) # locate the PSF
+
         ### MOVE HPC IN ONE STEP TO MOVE PSF TO RIGHT LOCATION
         vector_move_pix = np.subtract(psf_loc_setpoint,psf_loc) # vector of required movement in pixel space
         vector_move_asec = np.multiply(vector_move_pix,0.0107) # convert to asec
         ## ## PASSIVE MODE pi.setINDI("Acromag.HPC.Tip="+'{0:.1f}'.format(vector_move_asec[0])+";Tilt="+'{0:.1f}'.format(vector_move_asec[1])+";Piston=0;Mode=1")
-                                                
-        ### RE-LOCATE SX PSF; CORRECTION NEEDED?
-        ## ## PASSIVE MODE f=pi.getFITS("LMIRCAM.DisplayImage.File", "LMIRCAM.GetDisplayImage.Now", wait=True) # get what LMIR is seeing
-        imgb4 = f[0].data
-        imgb4bk =process_readout.processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
-        psf_loc = find_grism_psf(imgb4bk) # locate the PSF
-    
+
+        ### RE-LOCATE DX PSF; CORRECTION NEEDED?
+        ## ## PASSIVE MODE pi.setINDI("LMIRCAM.fizRun.value=On")
+        # take a background
+        print("Taking a background")
+        ## ## PASSIVE MODE f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=0;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=$
+        # take a frame with background subtracting
+        print("Taking a frame to analyze")
+        ## ## PASSIVE MODE f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=$
+
         print('-------------------')
-        print('PSF location setpoint:')
-        print(psf_loc_setpoint) 
+        print('Fizeau PSF location setpoint:')
+        print(psf_loc_setpoint)
         print('Current DX PSF loc:')
         print(psf_loc)
-                                                                            
-        if (dist_pix(psf_loc,psf_loc_setpoint) < 5.):
+
+        ## ## TOLERANCE ON SKY SHOULD BE N=5
+        N = 50
+        if (dist_pix(psf_loc,psf_loc_setpoint) < 50.):
             print('-------------------')
-            print('Done moving DX. Switching to the other side.')
+            print('Done moving DX.')
             break
-                                                                                                    
-        print('Moving DX again...')    
+
+        print('Moving DX again...')
 
 
     print('Done moving PSFs. Reopening LMIR FW2.')
