@@ -197,6 +197,12 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
     normVec_lowFreqPerfect = normalVector(sciImg3)
     normVec_rect = normalVector(sciImg4)
 
+    # return stdev in each region
+    std_highFreqPerfect_L = np.nanstd(sciImg1)
+    std_highFreqPerfect_R = np.nanstd(sciImg2)
+    std_lowFreqPerfect = np.nanstd(sciImg3)
+    std_rect = np.nanstd(sciImg4)
+
     # generate images showing footprints of regions of interest
     # (comment this bit in/out as desired)
 
@@ -250,11 +256,11 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
     # the FFT amplitude OR the FFT phase, depending on what
     # the 'sciImg' is
     dictFFTstuff = {}
-
-    # median of high-freq lobe on left side, within circular region centered around
+    
+    # median of high-freq lobe on left side, within circular region centered around 
     # where a perfect high-freq lobe would be
     dictFFTstuff["med_highFreqPerfect_L"] = med_highFreqPerfect_L
-
+    
     # median of right-side high-freq lobe
     dictFFTstuff["med_highFreqPerfect_R"] = med_highFreqPerfect_R
 
@@ -264,7 +270,19 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
     # median of rectangle that is drawn to contain both high- and low-freq lobes
     dictFFTstuff["med_rect"] = med_rect
 
-    # normal vectors to the high- and low- frequency
+    # stdev of the same regions
+    dictFFTstuff["std_highFreqPerfect_L"] = std_highFreqPerfect_L
+
+    # median of right-side high-freq lobe
+    dictFFTstuff["std_highFreqPerfect_R"] = std_highFreqPerfect_R
+
+    # median of low-frequency lobe
+    dictFFTstuff["std_lowFreqPerfect"] = std_lowFreqPerfect
+
+    # median of rectangle that is drawn to contain both high- and low-freq lobes
+    dictFFTstuff["std_rect"] = std_rect
+
+    # normal vectors to the high- and low- frequency 
     # note vectors are [a,b,c] corresponding to the eqn Z = a*X + b*Y + c
     dictFFTstuff["normVec_highFreqPerfect_L"] = normVec_highFreqPerfect_L
     dictFFTstuff["normVec_highFreqPerfect_R"] = normVec_highFreqPerfect_R
@@ -300,7 +318,7 @@ f = pyfits.open("test_frame_fiz_small.fits")
 image = f[0].data
 ## ## END TEST
 
-for f in range(startFrame,stopFrame+1):  # full Altair dataset: 4249,11497
+for f in range(0,10): # just 10 samples for now
 
     start = time.time() # start timer
 
@@ -352,6 +370,47 @@ for f in range(startFrame,stopFrame+1):  # full Altair dataset: 4249,11497
     hdulist = pyfits.HDUList([hdu])
     hdu.writeto('junk_test_arg.fits', clobber=True)
 
+    ## take info from the FFTs to send corrective movements
+
+    # thresholds
+    fft_ampl_high_freq_lowlimit = 2.4e5 # for good fringe visibility
+    fft_ampl_low_freq_lowlimit = 1.4e6 # for acceptable AO correction
+    fft_phase_vec_high_freq_highlimit = 5 # for Airy overlap
+    std_lowFreqPerfect_lowlimit = 10 # for Airy overlap
+    phase_normVec_highFreqPerfect_R_x # for phase of high-freq fringes
+
+    # poor overlap of the Airy PSFs?
+    print("--------------------------")
+    print("Std of phase of low freq lobe:")
+    print(fftInfo_arg["std_lowFreqPerfect"])
+    ## HOW DOES IT COMPARE WITH std_lowFreqPerfect_lowlimit ?
+
+    # poor fringe visibility
+    print("Median of ampl of high freq lobe:")
+    print(fftInfo_amp["med_highFreqPerfect_R"])
+    ## HOW DOES IT COMPARE W fft_ampl_high_freq_lowlimit
+
+    # high-freq fringes have strange phase
+    ## ## change FPC TT until phase gradients in PTF are removed
+    ## ## 1. Differential tip: phase gradient is all up-down, and the low-freq node in FT amplitude takes on a crushed ellipticity.
+    ## ## 2. Differentia tilt: phase gradient is left-right, but it is not continuous– it is divided among the three nodes.
+    print("Phase gradient in x of high freq in PTF:")
+    print(fftInfo_arg["phase_normVec_highFreqPerfect_R"][0])
+    print("Phase gradient in y of high freq in PTF:")
+    print(fftInfo_arg["phase_normVec_highFreqPerfect_R"][1])
+
+    # all together now, lets make corrective movements
+    # for better Airy overlap: tip-tilt the FPC
+    ## ## PASSIVE MODE pi.setINDI("Acromag.FPC.Tip="+'{0:.1f}'.format(vector_move_asec[0])+";Tilt="+'{0:.1f}'.format(vector_move_asec[1])+";Piston=0;Mode=1")
+
+    # for better fringe visibility: move the FPC or HPC in piston
+    stepSize = 5. # (um, total OPD)
+    # big steps, translation stage: Ubcs.SPC_Trans.command=>5
+    ## ## pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(10*0.5*stepSize)) # factor of 10 bcz command is in 0.1 um
+    # small steps, piezos: Acromag.HPC.Tip=0;Tilt=0;Piston=[stepSize];Mode=1
+    ## ## pi.setINDI("Acromag.HPC.Tip=0;Tilt=0;Piston="+'{0:.1f}'.format(stepSize)+";Mode=1")
+    ## ## pi.setINDI("Acromag.FPC.Tip=0;Tilt=0;Piston="+'{0:.1f}'.format(stepSize)+";Mode=1")
+
     # save a fyi PNG file
     ''' 
     fig, (ax0, ax1, ax2) = plt.subplots(ncols=3,figsize=(20,5))
@@ -383,26 +442,3 @@ for f in range(startFrame,stopFrame+1):  # full Altair dataset: 4249,11497
     print('-----')
     break
 
-############ PRE-EXISTING CODE BELOW #############
-''' 
-import sys, os, string, time, pdb, copy, pyfits
-import numpy as np
-import np.ma as ma
-from pyindi import *
-import scipy
-#from scipy import ndimage, sqrt, stats, misc, signal
-import matplotlib.pyplot as plt
-import pyfits
-from lmircam_tools import * #process_readout
-'''
-
-''' 
-def optimize_tt_fizeau_airy(psf_location):
-    # this changes the tip-tilt setpoints until the Fizeau Airy PSF looks good
-
-    ## ## change FPC TT until phase gradients in PTF are removed
-    ## ## 1. Differential tip: phase gradient is all up-down, and the low-freq node in FT amplitude takes on a crushed ellipticity.
-    ## ## 2. Differentia tilt: phase gradient is left-right, but it is not continuous– it is divided among the three nodes.
-
-    ## ## Last step: set FITS header flag 'FIZ_TT_AIRY=1'
-'''
