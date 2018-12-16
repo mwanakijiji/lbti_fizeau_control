@@ -44,7 +44,6 @@ max3 = 2.679
 min3 = 3.238
 max4 = 3.699
 
-pdb.set_trace()
 
 def findFFTloc(baseline,imageShapeAlong1Axis,wavel_lambda,plateScale,lOverD=1.):
     ''' 
@@ -66,7 +65,6 @@ def findFFTloc(baseline,imageShapeAlong1Axis,wavel_lambda,plateScale,lOverD=1.):
 
     return line_diam_pixOnFFT_L, line_diam_pixOnFFT_H # the lower and higher values around freq of zero
 
-pdb.set_trace()
 
 def normalVector(sciImg):
     ''' 
@@ -111,7 +109,6 @@ def normalVector(sciImg):
 
     return normVec
 
-pdb.set_trace()
 
 def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
     ''' 
@@ -289,157 +286,102 @@ counter_num = 0
 startFrame = 5038
 stopFrame = 11497 # (inclusive)
 
+# read in a Fizeau PSF image
+## ## PASSIVE MODE pi.setINDI("LMIRCAM.fizRun.value=On")
+print("Moving in a blank to take a background")
+## ## PASSIVE MODE pi.setINDI("Lmir.lmir_FW4.command", "Blank", wait=True)
+print("Taking a background")
+## ## PASSIVE MODE f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=0;int_time=%i;is_bg=1;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=60)
+
+## ## BEGIN TEST
+## ## read in fake FITS file
+#f = pyfits.open("test_frame_fiz_large.fits")
+f = pyfits.open("test_frame_fiz_small.fits")
+image = f[0].data
+## ## END TEST
+
 for f in range(startFrame,stopFrame+1):  # full Altair dataset: 4249,11497
 
     start = time.time() # start timer
 
-    #filename_str = stem+'lm_180507_'+str("{:0>6d}".format(f))+'_nPCA164.fits'
+    print('Working on frame '+str("{:0>6d}".format(f))+' ...')
 
-    if os.path.isfile(filename_str): # if FITS file exists in the first place
+    ## ##image, header = fits.getdata(filename_str,0,header=True)
 
-        print('Working on frame '+str("{:0>6d}".format(f))+' ...')
+    # locate PSF
+    psf_loc = overlap_psfs.find_airy_psf(image)
 
-        image, header = fits.getdata(filename_str,0,header=True)
+    # size of cookie cut-out (measured center-to-edge)
+    cookie_size = 100 # maximum control radius as of 2018 July corresponds to 130.0 pixels
 
-        # test: a perfect PSF
-        #image, header = fits.getdata('perfect_psf.fits',0,header=True)
+    # take FFT
+    cookie_cut = image[psf_loc[0]-cookie_size:psf_loc[0]+cookie_size,psf_loc[1]-cookie_size:psf_loc[1]+cookie_size]
+    amp, arg = fft_img(cookie_cut).fft(padding=int(5*cookie_size), mask_thresh=1e5)
 
-        #plt.imshow(image)
-        #plt.show()
-
-        # locate PSF
-        psf_loc = overlap_psfs.find_airy_psf(image)
-
-        # size of cookie cut-out (measured center-to-edge)
-        cookie_size = 100 # maximum control radius as of 2018 July corresponds to 130.0 pixels
-
-        # take FFT
-        cookie_cut = image[psf_loc[0]-cookie_size:psf_loc[0]+cookie_size,psf_loc[1]-cookie_size:psf_loc[1]+cookie_size]
-        amp, arg = fft_img(cookie_cut).fft(padding=int(5*cookie_size), mask_thresh=1e5)
-
-        # test: image with a perfect slope
-        ''' 
-        testing, header = fits.getdata('slope_test_psf.fits',0,header=True)
-        cookie_cut_testing = testing[psf_loc[0]-cookie_size:psf_loc[0]+
+    # test: image with a perfect slope
+    ''' 
+    testing, header = fits.getdata('slope_test_psf.fits',0,header=True)
+    cookie_cut_testing = testing[psf_loc[0]-cookie_size:psf_loc[0]+
                                    cookie_size,psf_loc[1]-cookie_size:psf_loc[1]+cookie_size]
-        #sciImg = ma.asarray(sciImg)
-        amp[np.isfinite(amp)] = -1 #cookie_cut_testing[np.isfinite(amp)]
-        '''
+    #sciImg = ma.asarray(sciImg)
+    amp[np.isfinite(amp)] = -1 #cookie_cut_testing[np.isfinite(amp)]
+    '''
 
-        # sanity check (and to avoid getting for loop stuck)
-        if (np.shape(amp)[0]!=np.shape(amp)[1]): # if the FFT doesn't make sense (i.e., if PSF was not found)
-            print('PSF does not make sense ... aborting this one ...')
-            continue
+    # sanity check (and to avoid getting for loop stuck)
+    if (np.shape(amp)[0]!=np.shape(amp)[1]): # if the FFT doesn't make sense (i.e., if PSF was not found)
+        print('PSF does not make sense ... aborting this one ...')
+        continue
 
-        # analyze FFTs
-        fftInfo_amp = fftMask(amp,wavel_lambda,plateScale,
+    print(amp.data)
+    print(arg.data)
+
+    # analyze FFTs
+    fftInfo_amp = fftMask(amp,wavel_lambda,plateScale,
                               fyi_string=str("{:0>6d}".format(f))+' FFT amp')
-        fftInfo_arg = fftMask(arg,wavel_lambda,plateScale,
+    fftInfo_arg = fftMask(arg,wavel_lambda,plateScale,
                               fyi_string=str("{:0>6d}".format(f))+' FFT phase')
 
-        # save a fyi PNG file
-        ''' 
-        fig, (ax0, ax1, ax2) = plt.subplots(ncols=3,figsize=(20,5))
-        im0 = ax0.imshow(cookie_cut, origin="lower")
-        ax0.plot([int(0.5*np.shape(cookie_cut)[0]),int(0.5*np.shape(cookie_cut)[0])],
+    print(fftInfo_amp)
+    print(fftInfo_arg)
+
+    # save fyi FITS files
+    hdu = pyfits.PrimaryHDU(amp.data)
+    hdulist = pyfits.HDUList([hdu])
+    hdu.writeto('junk_test_amp.fits', clobber=True)
+    hdu = pyfits.PrimaryHDU(arg.data)
+    hdulist = pyfits.HDUList([hdu])
+    hdu.writeto('junk_test_arg.fits', clobber=True)
+
+    # save a fyi PNG file
+    ''' 
+    fig, (ax0, ax1, ax2) = plt.subplots(ncols=3,figsize=(20,5))
+    im0 = ax0.imshow(cookie_cut, origin="lower")
+    ax0.plot([int(0.5*np.shape(cookie_cut)[0]),int(0.5*np.shape(cookie_cut)[0])],
                  [int(0.5*np.shape(cookie_cut)[0]),int(0.5*np.shape(cookie_cut)[0])],
                  marker="+", color="r") # put red cross at center
-        ax0.set_xlim([0,np.shape(cookie_cut)[0]])
-        ax0.set_ylim([0,np.shape(cookie_cut)[0]])
-        im1 = ax1.imshow(amp, origin="lower")
-        im2 = ax2.imshow(arg, origin="lower")
-        fig.colorbar(im0, ax=ax0)
-        fig.colorbar(im1, ax=ax1)
-        fig.colorbar(im2, ax=ax2)
-        ax0.set_xlabel('Physical PSF (color = counts)')
-        ax1.set_xlabel('FFT Ampl (color = relative)')
-        ax2.set_xlabel('FFT Phase (color = degrees)')
-        if (header['PCCLOSED']==1): # if Phasecam loop was closed
-            pc_string = 'PC **CLOSED**'
-        else:
-            pc_string = 'PC OPEN'
-        plt.suptitle(str("{:0>6d}".format(f)) + ', ' + pc_string)
-        plt.savefig(stem+"png_thumbnails/test_data_"+str("{:0>6d}".format(f))+".png", dpi=300, overwrite=True)
-        plt.clf()
-        '''
-
-	''' 
-        # write data to text file
-        # CAUTION IF EDITING THE BELOW; NEED TO
-        # MAKE SURE COLUMN HEADERS AND DATA AGREE
-
-        # this snippet can be commented out if you
-        # dont want to erase a pre-existing csv file
-        if (f==startFrame): # write column headers in file
-            colheaders = ["framenum",
-                          "ampl_med_highFreqPerfect_L",
-                          "ampl_med_highFreqPerfect_R",
-                          "ampl_med_lowFreqPerfect",
-                          "ampl_med_rect",
-                          "ampl_normVec_highFreqPerfect_L_x",
-                          "ampl_normVec_highFreqPerfect_L_y",
-                          "ampl_normVec_highFreqPerfect_R_x",
-                          "ampl_normVec_highFreqPerfect_R_y",
-                          "ampl_normVec_lowFreqPerfect_x",
-                          "ampl_normVec_lowFreqPerfect_y",
-                          "ampl_normVec_rect_x",
-                          "ampl_normVec_rect_y",
-                          "phase_med_highFreqPerfect_L",
-                          "phase_med_highFreqPerfect_R",
-                          "phase_med_lowFreqPerfect",
-                          "phase_med_rect",
-                          "phase_normVec_highFreqPerfect_L_x",
-                          "phase_normVec_highFreqPerfect_L_y",
-                          "phase_normVec_highFreqPerfect_R_x",
-                          "phase_normVec_highFreqPerfect_R_y",
-                          "phase_normVec_lowFreqPerfect_x",
-                          "phase_normVec_lowFreqPerfect_y",
-                          "phase_normVec_rect_x",
-                          "phase_normVec_rect_y"]
-            with open(r'test.csv', 'w') as csvfile:
-                writer = csv.writer(csvfile)
-                writer.writerow(colheaders)
-
-        # append to file:
-        # [0]: frame number
-        # [1-12]: FFT amplitude data
-        # [13-24]: FFT phase data
-        fields=[str("{:0>6d}".format(f)),
-                fftInfo_amp["med_highFreqPerfect_L"],
-                fftInfo_amp["med_highFreqPerfect_R"],
-                fftInfo_amp["med_lowFreqPerfect"],
-                fftInfo_amp["med_rect"],
-                fftInfo_amp["normVec_highFreqPerfect_L"][0],
-                fftInfo_amp["normVec_highFreqPerfect_L"][1],
-                fftInfo_amp["normVec_highFreqPerfect_R"][0],
-                fftInfo_amp["normVec_highFreqPerfect_R"][1],
-                fftInfo_amp["normVec_lowFreqPerfect"][0],
-                fftInfo_amp["normVec_lowFreqPerfect"][1],
-                fftInfo_amp["normVec_rect"][0],
-                fftInfo_amp["normVec_rect"][1],
-                fftInfo_arg["med_highFreqPerfect_L"],
-                fftInfo_arg["med_highFreqPerfect_R"],
-                fftInfo_arg["med_lowFreqPerfect"],
-                fftInfo_arg["med_rect"],
-                fftInfo_arg["normVec_highFreqPerfect_L"][0],
-                fftInfo_arg["normVec_highFreqPerfect_L"][1],
-                fftInfo_arg["normVec_highFreqPerfect_R"][0],
-                fftInfo_arg["normVec_highFreqPerfect_R"][1],
-                fftInfo_arg["normVec_lowFreqPerfect"][0],
-                fftInfo_arg["normVec_lowFreqPerfect"][1],
-                fftInfo_arg["normVec_rect"][0],
-                fftInfo_arg["normVec_rect"][1]]
-        with open(r'test.csv', 'a') as csvfile:
-            writer = csv.writer(csvfile)
-            writer.writerow(fields)
-
-    else: # if file does not exist
-        print('Frame '+str("{:0>6d}".format(f))+' not found.')
+    ax0.set_xlim([0,np.shape(cookie_cut)[0]])
+    ax0.set_ylim([0,np.shape(cookie_cut)[0]])
+    im1 = ax1.imshow(amp, origin="lower")
+    im2 = ax2.imshow(arg, origin="lower")
+    fig.colorbar(im0, ax=ax0)
+    fig.colorbar(im1, ax=ax1)
+    fig.colorbar(im2, ax=ax2)
+    ax0.set_xlabel('Physical PSF (color = counts)')
+    ax1.set_xlabel('FFT Ampl (color = relative)')
+    ax2.set_xlabel('FFT Phase (color = degrees)')
+    if (header['PCCLOSED']==1): # if Phasecam loop was closed
+        pc_string = 'PC **CLOSED**'
+    else:
+        pc_string = 'PC OPEN'
+    plt.suptitle(str("{:0>6d}".format(f)) + ', ' + pc_string)
+    plt.savefig("junk.png", dpi=300, overwrite=True)
+    plt.clf()
+    '''
 
     end = time.time()
     print(end - start)
     print('-----')
-    '''
+    break
 
 ############ PRE-EXISTING CODE BELOW #############
 ''' 
