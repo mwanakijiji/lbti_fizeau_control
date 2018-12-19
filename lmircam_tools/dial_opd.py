@@ -3,62 +3,110 @@ import numpy as np
 #import np.ma as ma
 from pyindi import *
 import scipy
-## ## from scipy import ndimage, sqrt, stats, misc, signal
+from scipy import ndimage, sqrt, stats, misc, signal
 #import matplotlib.pyplot as plt
 import pyfits
 from lmircam_tools import * #process_readout
+from lmircam_tools import process_readout
 
 # this was first tested in testing_dial_opd_grism.ipynb
 
 def optimize_opd_fizeau_grism(psf_location):
-    '''
+    ''' 
     Takes well-overlapped grism PSFs and dials the optical path
     difference such that barber-pole fringes become vertical
     '''
 
-    # get image from detector
-    f = pi.getFITS("LMIRCAM.DisplayImage.File", "LMIRCAM.GetDisplayImage.Now", wait=True) # get what LMIR is seeing
-    imgb4 = f[0].data
-    image = processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
+    # set some approximate parameters of the observed grism PSF
+    sig = 5 # sigma of Gaussian profile in x (in pix)
+    length_y = 200 # length in y of the psf (in pix)
 
-    # determine grism Fizeau PSF center
-    center_grism = find_grism_psf(image) # locate the grism PSF center (THIS IS IN OVERLAP_PSFS.PY; SHOULD IT BE IN INIT?)
+    # take a background
+    # allow aquisition from ROI box (keep smaller than 512x512!)
+    ## ## PASSIVE MODE pi.setINDI("LMIRCAM.fizRun.value=On")
+    print("Moving in a blank to take a background")
+    ## ## PASSIVE MODE pi.setINDI("Lmir.lmir_FW4.command", "Blank", wait=True)
+    print("Taking a background")
+    ## ## PASSIVE MODE f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=0;int_time=%i;is_bg=1;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=60)
 
-    # cut out the grism image
-    img_before_padding_before_FT = image[center_grism[0]-int(0.5*length_y):center_grism[0]+int(0.5*length_y),
+    # loop over some frames, and each time take FFT and move FPC in one direction
+    for t in range(0,20):
+        # take a frame with background subtracting
+        print("Taking a background-subtracted frame")
+        ## ## PASSIVE MODE f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=$
+
+        ## ## BEGIN TEST
+        ## ## read in fake FITS file
+        #f = pyfits.open("test_frame_fiz_large.fits")
+        f = pyfits.open("test_frame_grismFiz_small.fits")
+        ## ## END TEST
+
+        imgb4 = f[0].data
+        image = process_readout.processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
+
+        # determine grism Fizeau PSF center
+        center_grism = find_grism_psf(image, sig, length_y) # locate the grism PSF center (THIS IS IN OVERLAP_PSFS.PY; SHOULD IT BE IN INIT?)
+
+        # cut out the grism image
+        img_before_padding_before_FT = image[center_grism[0]-int(0.5*length_y):center_grism[0]+int(0.5*length_y),
                                      center_grism[1]-2*sig:center_grism[1]+2*sig]
-    
-    
-    # take FFT; no padding for now
-    AmpPE, ArgPE = fft_img.fft(img_before_padding_before_FT)
+	print(img_before_padding_before_FT)
+	print(np.shape(img_before_padding_before_FT))
 
-    #############################################################
-    ## ## BEGIN OPTIMIZATION OF PATHLENGTH BASED ON GRISM FFTS
-    #plt.suptitle(str("{:0>6d}".format(f)))
+        # take FFT; no padding for now
+        ## ## DO I WANT A SMALL CUTOUT OR THE ORIGINAL IMAGE?
+	## ## AmpPE, ArgPE = fft_img(img_before_padding_before_FT).fft(padding=0)
+	AmpPE, ArgPE = fft_img(image).fft(padding=0)
 
-    # if direction of fringes is apparent --> dial OPD until past the point
-    # where they are vertical, then fit a polynomial 
+	# save fyi FITS files
+        hdu = pyfits.PrimaryHDU(image)
+        hdulist = pyfits.HDUList([hdu])
+        hdu.writeto('junk_test_original_grism.fits', clobber=True)
+    	hdu = pyfits.PrimaryHDU(AmpPE.data)
+    	hdulist = pyfits.HDUList([hdu])
+    	hdu.writeto('junk_test_amp_grism.fits', clobber=True)
+    	hdu = pyfits.PrimaryHDU(ArgPE.data)
+    	hdulist = pyfits.HDUList([hdu])
+    	hdu.writeto('junk_test_arg_grism.fits', clobber=True)
 
-    # [NOT IMPLEMENTED YET]:
-    # if no direction of fringes is apparent --> dial one way 10 microns, then jump back and go the other way 10 microns
-    
-    to_corr = np.sum(AmpPE[:,int(0.5*img_before_padding_before_FT.shape[1]):], axis=1) # take right-hand side of FFT, integrate in x
-    to_corr_masked = np.copy(to_corr)
-    to_corr_masked[98:102] = 0 # mask low frequency power
-    test_symm = signal.correlate(to_corr_masked, to_corr_masked[::-1], mode='same') # take cross-correlation
-    
-    leftHalf = test_symm[:int(0.5*len(test_symm))]
-    rightHalf = test_symm[int(0.5*len(test_symm)):]
-    resid = leftHalf-rightHalf[::-1] # find residuals of the cross-correlation sides
-    
-    #plt.plot(resid)
-    #frameArray = np.concatenate((frameArray,[f]))
-    testArray = np.concatenate((testArray,[np.median(resid)]))
-    plArray = np.concatenate((plArray,[int(header['SPCTRANS'])]))
-    #plt.show()
-    
-    #plt.savefig("images/psf_altair_corr2_"+str("{:0>6d}".format(f))+".png", overwrite=False)
-    #plt.clf()
+	pdb.set_trace()
+        #############################################################
+        ## ## BEGIN OPTIMIZATION OF PATHLENGTH BASED ON GRISM FFTS
+        #plt.suptitle(str("{:0>6d}".format(f)))
+
+        # if direction of fringes is apparent --> dial OPD until past the point
+        # where they are vertical, then fit a polynomial
+
+        # [NOT IMPLEMENTED YET]:
+        # if no direction of fringes is apparent --> dial one way 10 microns, then jump back and go the other way 10 microns
+
+        to_corr = np.sum(AmpPE[:,int(0.5*img_before_padding_before_FT.shape[1]):], axis=1) # take right-hand side of FFT, integrate in x
+        to_corr_masked = np.copy(to_corr)
+        to_corr_masked[int(0.5*len(to_corr_masked))-2:int(0.5*len(to_corr_masked))+2] = 0 # mask low frequency power
+        test_symm = signal.correlate(to_corr_masked, to_corr_masked[::-1], mode='same') # take cross-correlation
+	pdb.set_trace()
+
+        leftHalf = test_symm[:int(0.5*len(test_symm))]
+        rightHalf = test_symm[int(0.5*len(test_symm)):]
+        resid = leftHalf-rightHalf[::-1] # find residuals of the cross-correlation sides
+	pdb.set_trace()
+
+        #plt.plot(resid)
+        #frameArray = np.concatenate((frameArray,[f]))
+        testArray = np.concatenate((testArray,[np.median(resid)])) # median of residuals array
+        plArray = np.concatenate((plArray,[int(header['SPCTRANS'])])) # pathlength array
+        #plt.show()
+	pdb.set_trace()
+
+        #plt.savefig("images/psf_altair_corr2_"+str("{:0>6d}".format(f))+".png", overwrite=False)
+        #plt.clf()
+
+	# now move the HPC
+	stepSize = 5. # (um, total OPD)
+	# big steps, translation stage: Ubcs.SPC_Trans.command=>5
+	## ## pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(10*0.5*stepSize)) # factor of 10 bcz command is in 0.1 um
+	# small steps, piezos: Acromag.HPC.Tip=0;Tilt=0;Piston=[stepSize];Mode=1
+	## ## pi.setINDI("Acromag.HPC.Tip=0;Tilt=0;Piston="+'{0:.1f}'.format(stepSize)+";Mode=1")
 
     # fit a 2nd-order polynomial to the residuals as fcn of SPC position
     coeffs = np.polyfit(plArray,testArray, 2)
@@ -71,11 +119,15 @@ def optimize_opd_fizeau_grism(psf_location):
     ## plt.xlabel('SPCTRANS')
     ## plt.ylabel('Median of Residuals Between Top and Bottom Halves of FFT')
 
-    # find the minimum; set the HPC path length position accordingly 
-    ## ## END OPTIMIZATION OF PATHLENGTH
+    # find the minimum; set the HPC path length position accordingly
+    y_series = coeffs[2] + coeffs[1]*plArray+coeffs[0]*plArray**2 
+    max_y = min(y_series)  # find the minimum y-value
+    max_x = x[y_series.index(max_y)] # find the x-value corresponding to min y-value
+
     #########################################################
-    
+
     # as last step, remove grism
+    raw_input("PRESS ENTER AFTER REMOVING GRISM AND INSERTING OBSERVING FILTERS")
 
 
 def optimize_opd_fizeau_airy(psf_location):
@@ -85,7 +137,7 @@ def optimize_opd_fizeau_airy(psf_location):
 
     ## ## 1. take FFT of science PSF
     AmpPE, ArgPE = fft_img.fft(img_before_padding_before_FT)
-    
+
     ## ## 2. measure amplitude of MTF high-freq node
 
     

@@ -399,6 +399,10 @@ for f in range(0,10): # just 10 samples for now
     print("Phase gradient in y of high freq in PTF:")
     print(fftInfo_arg["phase_normVec_highFreqPerfect_R"][1])
 
+    # other quality control metrics from Phasecam (email from D. Defrere, 2018 Dec 17)
+    # PCMSNR: S/N of K-band fringes
+    # PCPHSTD: noise of phase in the integration time of NOMIC
+
     # all together now, lets make corrective movements
     # for better Airy overlap: tip-tilt the FPC
     ## ## PASSIVE MODE pi.setINDI("Acromag.FPC.Tip="+'{0:.1f}'.format(vector_move_asec[0])+";Tilt="+'{0:.1f}'.format(vector_move_asec[1])+";Piston=0;Mode=1")

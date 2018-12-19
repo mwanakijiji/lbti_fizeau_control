@@ -1,8 +1,77 @@
 import numpy as np
 from numpy import ma
 from pyindi import *
+from scipy import ndimage, sqrt, stats, misc, signal
 
 pi = PyINDI(verbose=False)
+
+
+# define 2D gaussian for fitting PSFs
+def gaussian_x(x, mu, sig):
+    shape_gaussian = np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.)))
+    return shape_gaussian
+
+def find_airy_psf(image):
+    if autoFindStar:
+
+        #imageThis = numpy.copy(image)
+
+        '''
+        if (PSFside == 'left'):
+            imageThis[:,1024:-1] = 0
+        elif (PSFside == 'right'):
+            imageThis[:,0:1024] = 0
+        '''
+
+        image[np.isnan(image)] = np.nanmedian(image) # if there are NaNs, replace them with the median image value
+        imageG = ndimage.gaussian_filter(image, 6) # further remove effect of bad pixels (somewhat redundant?)
+        loc = np.argwhere(imageG==imageG.max())
+        cx = loc[0,1]
+        cy = loc[0,0]
+
+        #plt.imshow(imageG, origin="lower")
+        #
+        #plt.scatter([cx,cx],[cy,cy], c='r', s=50)
+        #plt.colorbar()
+        #plt.show()
+        #print [cy, cx] # check
+
+    return [cy, cx]
+
+def find_grism_psf(image, sig, length_y):
+    #if autoFindStar:
+    if True:
+
+        # generate the Gaussian to correlate with the image
+        mu_x_center = 0.5*image.shape[1] # initially center the probe shape for correlation
+        x_probe_gaussian = gaussian_x(np.arange(image.shape[1]), mu_x_center, sig)
+
+        # generate a top hat for correlating it to a grism-ed PSF in y
+        y_abcissa = np.arange(image.shape[0])
+        y_probe_tophat = np.zeros(image.shape[0])
+        y_probe_tophat[np.logical_and(y_abcissa > 0.5*image.shape[0]-0.5*length_y,
+                          y_abcissa <= 0.5*image.shape[0]+0.5*length_y)] = 1
+
+        # dampen edge effects
+        repl_val = np.median(image)
+        image[0:4,:] = repl_val
+        image[-5:-1,:] = repl_val
+        image[:,0:4] = repl_val
+        image[:,-5:-1] = repl_val
+
+        # correlate real PSF and probe shape in x
+        corr_x = signal.correlate(np.sum(image,axis=0), x_probe_gaussian, mode='same')
+
+        # correlate real PSF and probe shape in y
+        # (first, we have to integrate along x and subtract the background shape)
+        profile_y = np.subtract(np.sum(image,axis=1), image.shape[1]*np.median(image,axis=1)) 
+        corr_y = signal.correlate(profile_y, y_probe_tophat, mode='same')
+
+        # find centers of psfs
+        psf_center_x = np.argmax(corr_x)
+        psf_center_y = np.argmax(corr_y)
+
+    return [psf_center_y, psf_center_x]
 
 class fft_img:
     # take FFT of a 2D image
@@ -32,7 +101,7 @@ class fft_img:
             return AmpPE, ArgPE
 
 def put_in_grism():
-    '''
+    ''' 
     Inserts the LMIR grism
     '''
     pi.setINDI("Lmir.lmir_FW3.command", "Lgrism6AR", timeout=45, wait=True)
@@ -40,8 +109,8 @@ def put_in_grism():
 
     
 def remove_grism():
-    '''
-    Inserts the LMIR grism
+    ''' 
+    Removes the LMIR grism
     '''
     pi.setINDI("Lmir.lmir_FW3.command", "## WHATEVER FILTER GOES HERE ##", timeout=45, wait=True)
     pi.setINDI("Lmir.lmir_FW25.command", "## WHATEVER FILTER GOES HERE ##", timeout=45, wait=True) # blocks some extraneous light

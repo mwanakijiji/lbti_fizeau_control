@@ -42,6 +42,7 @@ for step in range(0,4):
 # START NEW CODE
 
 # subtract mean or median (method) of the image
+# this is good as a fallback background subtraction method
 # w = edge px on either side
 def bkgdsub(image, method):
 
@@ -59,7 +60,6 @@ def bkgdsub(image, method):
     elif method == 'median':
         rowbkgd = np.nanmedian(tmpimg,1)
         rowbkgd2d = np.tile(np.reshape(rowbkgd,[len(rowbkgd),1]),[1,image.shape[1]]) # paint this column of median values into a 2048x2048 array
-    print(np.shape(rowbkgd2d))
     tmpimg = np.subtract(tmpimg,rowbkgd2d) # simpl
 
     # do same as above, but for the columns
@@ -77,8 +77,9 @@ def bkgdsub(image, method):
 
 
 # process the image (background-subtract and bad pix fix)
+## ## ADD A FLAG TO ENABLE QUICK-AND-DIRTY BACKGROUND SUBTRACTION, WHICH HAS BEEN LEFT IN FOR NOW (EVEN THOUGH WE MAY BE SUBTRACTING ALREADY FROM THE WEB GUI)
 def processImg(imgDummy, methodDummy):
-    
+
     # bias level correction
     imgSub = bkgdsub(imgDummy,methodDummy) # simple background smoothing
     imgSub -= np.median(imgSub) # subtract residual background
