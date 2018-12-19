@@ -4,42 +4,39 @@ import numpy as np
 from pyindi import *
 import scipy
 from scipy import ndimage, sqrt, stats, misc, signal
-#import matplotlib.pyplot as plt
 import pyfits
-from lmircam_tools import * #process_readout
+from lmircam_tools import *
 from lmircam_tools import process_readout
 
-# this was first tested in testing_dial_opd_grism.ipynb
 
-def optimize_opd_fizeau_grism(psf_location):
+def optimize_opd_fizeau_grism(psf_location, mode = "science"):
     ''' 
     Takes well-overlapped grism PSFs and dials the optical path
     difference such that barber-pole fringes become vertical
+
+    INPUTS: 
+    psf_location: location of the Fizeau grism PSF
+    mode: "fake_fits": read in fake FITS files (but continue sending LMIR and mirror commands)
+          "artif_source": use an artificial source (either laser or pinhole)
+          "science": on-sky
     '''
 
     # set some approximate parameters of the observed grism PSF
     sig = 5 # sigma of Gaussian profile in x (in pix)
     length_y = 200 # length in y of the psf (in pix)
 
-    # take a background
-    # allow aquisition from ROI box (keep smaller than 512x512!)
-    ## ## PASSIVE MODE pi.setINDI("LMIRCAM.fizRun.value=On")
-    print("Moving in a blank to take a background")
-    ## ## PASSIVE MODE pi.setINDI("Lmir.lmir_FW4.command", "Blank", wait=True)
-    print("Taking a background")
-    ## ## PASSIVE MODE f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=0;int_time=%i;is_bg=1;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=60)
+    take_roi_background()
 
     # loop over some frames, and each time take FFT and move FPC in one direction
     for t in range(0,20):
-        # take a frame with background subtracting
-        print("Taking a background-subtracted frame")
-        ## ## PASSIVE MODE f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=$
 
-        ## ## BEGIN TEST
-        ## ## read in fake FITS file
-        #f = pyfits.open("test_frame_fiz_large.fits")
-        f = pyfits.open("test_frame_grismFiz_small.fits")
-        ## ## END TEST
+	take_roi_background()
+
+        print("Taking a background-subtracted frame")
+        f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=$
+
+	if (mode == "fake_fits"):
+            f = pyfits.open("test_frame_grismFiz_small.fits")
 
         imgb4 = f[0].data
         image = process_readout.processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
@@ -50,13 +47,10 @@ def optimize_opd_fizeau_grism(psf_location):
         # cut out the grism image
         img_before_padding_before_FT = image[center_grism[0]-int(0.5*length_y):center_grism[0]+int(0.5*length_y),
                                      center_grism[1]-2*sig:center_grism[1]+2*sig]
-	print(img_before_padding_before_FT)
-	print(np.shape(img_before_padding_before_FT))
 
         # take FFT; no padding for now
         ## ## DO I WANT A SMALL CUTOUT OR THE ORIGINAL IMAGE?
-	## ## AmpPE, ArgPE = fft_img(img_before_padding_before_FT).fft(padding=0)
-	AmpPE, ArgPE = fft_img(image).fft(padding=0)
+	AmpPE, ArgPE = fft_img(img_before_padding_before_FT).fft(padding=0)
 
 	# save fyi FITS files
         hdu = pyfits.PrimaryHDU(image)
@@ -69,21 +63,22 @@ def optimize_opd_fizeau_grism(psf_location):
     	hdulist = pyfits.HDUList([hdu])
     	hdu.writeto('junk_test_arg_grism.fits', clobber=True)
 
-	pdb.set_trace()
         #############################################################
         ## ## BEGIN OPTIMIZATION OF PATHLENGTH BASED ON GRISM FFTS
-        #plt.suptitle(str("{:0>6d}".format(f)))
 
+	# LATER DO THE FOLLOWING; FOR NOW, JUST DIAL IN BOTH DIRECTIONS AND FIT A POLYNOMIAL
         # if direction of fringes is apparent --> dial OPD until past the point
         # where they are vertical, then fit a polynomial
+        # if no direction of fringes is apparent --> dial one way 10 microns, then
+	# jump back and go the other way 10 microns
 
-        # [NOT IMPLEMENTED YET]:
-        # if no direction of fringes is apparent --> dial one way 10 microns, then jump back and go the other way 10 microns
-
-        to_corr = np.sum(AmpPE[:,int(0.5*img_before_padding_before_FT.shape[1]):], axis=1) # take right-hand side of FFT, integrate in x
+	# take right-hand side of FFT, integrate in x for detecting asymmetries
+        to_corr = np.sum(AmpPE[:,int(0.5*img_before_padding_before_FT.shape[1]):], axis=1) 
         to_corr_masked = np.copy(to_corr)
-        to_corr_masked[int(0.5*len(to_corr_masked))-2:int(0.5*len(to_corr_masked))+2] = 0 # mask low frequency power
-        test_symm = signal.correlate(to_corr_masked, to_corr_masked[::-1], mode='same') # take cross-correlation
+	# mask the strong low-frequency power
+	to_corr_masked[int(0.5*len(to_corr_masked))-2:int(0.5*len(to_corr_masked))+2] = 0 
+	# take cross-correlation
+        test_symm = signal.correlate(to_corr_masked, to_corr_masked[::-1], mode='same') 
 	pdb.set_trace()
 
         leftHalf = test_symm[:int(0.5*len(test_symm))]
