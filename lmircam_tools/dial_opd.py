@@ -9,7 +9,7 @@ from lmircam_tools import *
 from lmircam_tools import process_readout
 
 
-def optimize_opd_fizeau_grism(psf_location, mode = "science"):
+def optimize_opd_fizeau_grism(mode = "science"):
     ''' 
     Takes well-overlapped grism PSFs and dials the optical path
     difference such that barber-pole fringes become vertical
@@ -27,13 +27,15 @@ def optimize_opd_fizeau_grism(psf_location, mode = "science"):
 
     take_roi_background()
 
-    # loop over some frames, and each time take FFT and move FPC in one direction
-    for t in range(0,20):
+    # loop over OPD steps (unitless here) around where we start
+    for opd_step in range(-20,20):
+
+	step_size = 1. # step size per opd_step count (um, total OPD)
 
 	take_roi_background()
 
         print("Taking a background-subtracted frame")
-        f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=$
+        f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=60)
 
 	if (mode == "fake_fits"):
             f = pyfits.open("test_frame_grismFiz_small.fits")
@@ -72,36 +74,44 @@ def optimize_opd_fizeau_grism(psf_location, mode = "science"):
         # if no direction of fringes is apparent --> dial one way 10 microns, then
 	# jump back and go the other way 10 microns
 
-	# take right-hand side of FFT, integrate in x for detecting asymmetries
+	# The idea here is to
+	# 1. Integrate over one side (left or right) of the 2D FFT of the grism image
+	# 2. Take the cross-correlation of the upper and lower part of the above
+	# 3. Subtract one side of the correlation from the other, to find asymmetries
+	# 4. Insert the median value of the residual to an array
+	# 5. Move to the next OPD position and re-take measurements
+	# 6. After going through a given range of movement, fit a polynomial to the 
+	#     residuals as a function of OPD
+
+	# take right-hand side of FFT, integrate in x
         to_corr = np.sum(AmpPE[:,int(0.5*img_before_padding_before_FT.shape[1]):], axis=1) 
         to_corr_masked = np.copy(to_corr)
 	# mask the strong low-frequency power
 	to_corr_masked[int(0.5*len(to_corr_masked))-2:int(0.5*len(to_corr_masked))+2] = 0 
 	# take cross-correlation
         test_symm = signal.correlate(to_corr_masked, to_corr_masked[::-1], mode='same') 
-	pdb.set_trace()
-
+	# separate into halves
         leftHalf = test_symm[:int(0.5*len(test_symm))]
         rightHalf = test_symm[int(0.5*len(test_symm)):]
-        resid = leftHalf-rightHalf[::-1] # find residuals of the cross-correlation sides
-	pdb.set_trace()
+        # find residuals between the halves of the cross-correlation
+	resid = leftHalf-rightHalf[::-1]
 
-        #plt.plot(resid)
-        #frameArray = np.concatenate((frameArray,[f]))
-        testArray = np.concatenate((testArray,[np.median(resid)])) # median of residuals array
-        plArray = np.concatenate((plArray,[int(header['SPCTRANS'])])) # pathlength array
-        #plt.show()
-	pdb.set_trace()
+	# add median of residuals, and pathlength (HPC) position, to arrays
+        testArray = np.concatenate((testArray,[np.median(resid)]))
+	spc_trans_position = pi.getINDI("Ubcs.SPC_Trans_status.PosNum") # translation stage (absolute position, 0.1 um)
+        spc_piezo_position = pi.getINDI("Acromag.HPC_status.Piston") # piezo piston (absolute position, um)
+	plArray = np.concatenate((plArray,[int(spc_position)])) # pathlength array
 
-        #plt.savefig("images/psf_altair_corr2_"+str("{:0>6d}".format(f))+".png", overwrite=False)
-        #plt.clf()
+	# now move the HPC to the next step (small steps with piezos)
+        # small steps, piezos: Acromag.HPC.Tip=0;Tilt=0;Piston=[step_size];Mode=1
+        hpc_small_step = 0.5*step_size # half the OPD (relative step)
+	hpc_piezo_next_pos = np.add(spc_piezo_position, opd_step*hpc_small_step) # piezo command is in absolute position, units of um
+	pi.setINDI("Acromag.HPC.Tip=0;Tilt=0;Piston="+'{0:.1f}'.format(hpc_piezo_next_pos)+";Mode=1")
 
-	# now move the HPC
-	stepSize = 5. # (um, total OPD)
+	### IF WE CANT FIND ANYTHING AT ALL, TAKE BIG STEPS WITH THE TRANSLATION STAGE
 	# big steps, translation stage: Ubcs.SPC_Trans.command=>5
-	## ## pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(10*0.5*stepSize)) # factor of 10 bcz command is in 0.1 um
-	# small steps, piezos: Acromag.HPC.Tip=0;Tilt=0;Piston=[stepSize];Mode=1
-	## ## pi.setINDI("Acromag.HPC.Tip=0;Tilt=0;Piston="+'{0:.1f}'.format(stepSize)+";Mode=1")
+	# note factor of 10; command is in relative movement of 0.1 um
+	## ## pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(10*0.5*stepSize))
 
     # fit a 2nd-order polynomial to the residuals as fcn of SPC position
     coeffs = np.polyfit(plArray,testArray, 2)
@@ -115,17 +125,21 @@ def optimize_opd_fizeau_grism(psf_location, mode = "science"):
     ## plt.ylabel('Median of Residuals Between Top and Bottom Halves of FFT')
 
     # find the minimum; set the HPC path length position accordingly
-    y_series = coeffs[2] + coeffs[1]*plArray+coeffs[0]*plArray**2 
+    y_series = coeffs[2] + coeffs[1]*plArray+coeffs[0]*plArray**2
     max_y = min(y_series)  # find the minimum y-value
-    max_x = x[y_series.index(max_y)] # find the x-value corresponding to min y-value
+    zero_pl = pl_array[y_series.index(max_y)] # find the x-value (pathlength) corresponding to min y-value (residuals)
+    # is the curve concave up?
+    if (coeffs[0] < 0):
+	print("Line fit to residuals is not concave up!!")
 
-    #########################################################
+    # command the HPC to move to that minimum
+    pi.setINDI("Acromag.HPC.Tip=0;Tilt=0;Piston="+'{0:.1f}'.format(max_x)+";Mode=1")
 
     # as last step, remove grism
     raw_input("PRESS ENTER AFTER REMOVING GRISM AND INSERTING OBSERVING FILTERS")
 
 
-def optimize_opd_fizeau_airy(psf_location):
+def optimize_opd_fizeau_airy():
     # this dials OPD until the center of the coherence envelope is found
 
     # scan in OPD until there is a clear *global* maximum in the FFT_amp high-freq lobe amplitudes (i.e., the visibility of the fringes is highest)

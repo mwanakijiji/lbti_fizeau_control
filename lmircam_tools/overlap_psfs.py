@@ -46,7 +46,7 @@ def centroid_and_move(side, tolerance = 5, mode = "science", psf_type = "airy"):
 	x_side = "DX"
     else:
 	print("Side not defined!")
-	break
+	return
 
     if (psf_type == "airy"):
 	sig = 5

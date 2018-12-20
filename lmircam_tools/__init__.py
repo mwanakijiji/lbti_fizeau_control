@@ -149,7 +149,7 @@ def take_roi_background():
     print("Moving in a blank to take a background")
     pi.setINDI("Lmir.lmir_FW4.command", "Blank", wait=True)
     print("Taking a background")
-    f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=0;int_time=%i;is_bg=1;is_cont=0;num_$
+    f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=0;int_time=%i;is_bg=1;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=60)
 
     return
 
@@ -158,34 +158,10 @@ def put_in_grism():
     ''' 
     Inserts the LMIR grism
     '''
-    pi.setINDI("Lmir.lmir_FW3.command", "Lgrism6AR", timeout=45, wait=True)
-    pi.setINDI("Lmir.lmir_FW25.command", "Lspec2.8-4.0", timeout=45, wait=True) # blocks some extraneous light
+    fw25_selection = "Lspec2.8-4.0"
+    fw3_selection = "Lgrism6AR"
+    print("Entering grism mode: putting in "+fw25_selection+" and "+fw3_selection)
+    pi.setINDI("Lmir.lmir_FW3.command", fw3_selection, timeout=45, wait=True)
+    pi.setINDI("Lmir.lmir_FW25.command", fw25_selection, timeout=45, wait=True) # blocks some extraneous light
 
     return
-
-
-def remove_grism():
-    ''' 
-    Removes the LMIR grism
-    '''
-    pi.setINDI("Lmir.lmir_FW3.command", "## WHATEVER FILTER GOES HERE ##", timeout=45, wait=True)
-    pi.setINDI("Lmir.lmir_FW25.command", "## WHATEVER FILTER GOES HERE ##", timeout=45, wait=True) # blocks some extraneous light
-
-    return
-
-'''
-def check_ao_pc_loops():
-    # check that the AO and Phasecam loops are closed
-
-    ## ## INDI COMMAND TO SEE LEFT AO STATUS, RIGHT AO STATUS
-
-
-class check_pc_loop(check_ao_loops):
-    # check that Phasecam loop is closed (inherits check of AO loops)
-    
-    ## ## INDI COMMAND TO SEE PHASECAM STATUS
-
-    ## ## IF AO AND PC ARE ALL CLOSED, RETURN 2
-    ## ## IF AO ARE CLOSED BUT PC IS NOT, RETURN 1
-
-'''
