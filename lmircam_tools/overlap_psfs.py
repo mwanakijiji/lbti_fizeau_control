@@ -6,8 +6,6 @@ from scipy import ndimage, sqrt, misc, stats,signal
 from lmircam_tools import *
 from lmircam_tools import pi, process_readout, gaussian_x, find_airy_psf, find_grism_psf
 
-autoFindStar = True  # auto-detect star in frame?
-
 
 ###### TO DO: THE OVERLAP FUNCTIONS HAVE A LOT OF SHARED FUNCTIONALITY; MAKE A CLASS STRUCTURE!
 # SEE https://jeffknupp.com/blog/2014/06/18/improve-your-python-python-classes-and-object-oriented-programming/
@@ -56,6 +54,7 @@ def centroid_and_move(side, tolerance = 5, mode = "science", psf_type = "airy"):
 	length_y = 200
 
     ### move in half-moon to see the Airy PSF of one side
+    print("Putting in "+half_moon_filter+" to see "+x_side)
     pi.setINDI("Lmir.lmir_FW2.command", half_moon_filter, timeout=45, wait=True)
 
     ### iterate to try to get Airy PSF on the same pixel
@@ -67,9 +66,9 @@ def centroid_and_move(side, tolerance = 5, mode = "science", psf_type = "airy"):
 
 	if ((mode == "fake_fits") and (psf_type == "airy")):
             #f = pyfits.open("test_frame_fiz_large.fits")
-            f = pyfits.open("test_frame_fiz_small.fits")
+            f = pyfits.open("test_fits_files/test_frame_fiz_small.fits")
 	elif ((mode == "fake_fits") and (psf_type == "grism")):
-	    f = pyfits.open("test_frame_grismFiz_small.fits")
+	    f = pyfits.open("test_fits_files/test_frame_grismFiz_small.fits")
 
         imgb4 = f[0].data
         imgb4bk = process_readout.processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
@@ -100,7 +99,7 @@ def centroid_and_move(side, tolerance = 5, mode = "science", psf_type = "airy"):
 	f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=60)
 
 	if (test_mode == "fake_fits"):
-	    f = pyfits.open("test_frame_fiz_small.fits")
+	    f = pyfits.open("test_fits_files/test_frame_fiz_small.fits")
 
 	imgb4 = f[0].data
         imgb4bk = process_readout.processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
@@ -128,6 +127,7 @@ def centroid_and_move(side, tolerance = 5, mode = "science", psf_type = "airy"):
             	print("Moving SX PSF again, now with FPC movement")
             	pi.setINDI("Acromag.FPC.Tip="+'{0:.1f}'.format(vector_move_asec[0])+";Tilt="+'{0:.1f}'.format(vector_move_asec[1])+";Piston=0;Mode=1")
 	    elif (side == "right"):
+		print("Moving DX PSF again, now with HPC movement")
 		pi.setINDI("Acromag.HPC.Tip="+'{0:.1f}'.format(vector_move_asec[0])+";Tilt="+'{0:.1f}'.format(vector_move_asec[1])+";Piston=0;Mode=1")
 
 	if (mode == "fake_fits"):
@@ -135,17 +135,17 @@ def centroid_and_move(side, tolerance = 5, mode = "science", psf_type = "airy"):
 	    break
 
 
-def overlap_psfs(psf_loc_setpoint, psf_type = "airy"):
+def overlap_psfs(psf_loc_setpoint, mode = "science", psf_type = "airy"):
 
     take_roi_background()
 
     raw_input("User: remove the Blank in FW4, then press return when done")
 
-    centroid_and_move(side = "left", psf_type = psf_type)
+    centroid_and_move(side = "left", mode = mode, psf_type = psf_type)
 
     take_roi_background()
 
-    centroid_and_move(side = "right", psf_type = psf_type)
+    centroid_and_move(side = "right", mode = mode, psf_type = psf_type)
 
     print('Done moving PSFs. Reopening LMIR FW2.')
     pi.setINDI("Lmir.lmir_FW2.command", 'Open', wait=True)

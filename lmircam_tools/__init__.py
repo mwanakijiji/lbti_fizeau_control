@@ -13,7 +13,7 @@ def gaussian_x(x, mu, sig):
 
 
 def find_airy_psf(image):
-    if autoFindStar:
+    if True:
 
         #imageThis = numpy.copy(image)
 
@@ -40,7 +40,6 @@ def find_airy_psf(image):
     return [cy, cx]
 
 def find_grism_psf(image, sig, length_y):
-    #if autoFindStar:
     if True:
 
         # generate the Gaussian to correlate with the image
@@ -110,7 +109,7 @@ def gaussian_x(x, mu, sig):
 
 # find star and return coordinates [y,x]
 def find_airy_psf(image):
-    if autoFindStar:
+    if True:
 
         #imageThis = numpy.copy(image)
 

@@ -38,7 +38,7 @@ def optimize_opd_fizeau_grism(mode = "science"):
         f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=60)
 
 	if (mode == "fake_fits"):
-            f = pyfits.open("test_frame_grismFiz_small.fits")
+            f = pyfits.open("test_fits_files/test_frame_grismFiz_small.fits")
 
         imgb4 = f[0].data
         image = process_readout.processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
@@ -106,11 +106,15 @@ def optimize_opd_fizeau_grism(mode = "science"):
         # small steps, piezos: Acromag.HPC.Tip=0;Tilt=0;Piston=[step_size];Mode=1
         hpc_small_step = 0.5*step_size # half the OPD (relative step)
 	hpc_piezo_next_pos = np.add(spc_piezo_position, opd_step*hpc_small_step) # piezo command is in absolute position, units of um
+	print("----------------------------------------------------------------")
+	print("Moving HPC for small OPD movement to position "+hpc_piezo_next_pos)
 	pi.setINDI("Acromag.HPC.Tip=0;Tilt=0;Piston="+'{0:.1f}'.format(hpc_piezo_next_pos)+";Mode=1")
 
 	### IF WE CANT FIND ANYTHING AT ALL, TAKE BIG STEPS WITH THE TRANSLATION STAGE
 	# big steps, translation stage: Ubcs.SPC_Trans.command=>5
 	# note factor of 10; command is in relative movement of 0.1 um
+        #print("----------------------------------------------------------------")
+        #print("Moving HPC for large OPD movement of "+str(int(10*0.5*stepSize))+" um")
 	## ## pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(10*0.5*stepSize))
 
     # fit a 2nd-order polynomial to the residuals as fcn of SPC position
@@ -132,6 +136,12 @@ def optimize_opd_fizeau_grism(mode = "science"):
     if (coeffs[0] < 0):
 	print("Line fit to residuals is not concave up!!")
 
+    # write data to file for copying and plotting on local machine
+    file_name = "resids_test.csv"
+    resids_df = pd.DataFrame(np.transpose([plArray,testArray]), columns=["pl","resid"])
+    no_return = resids_df.to_csv(file_name)
+    raw_input("Plot "+file_name+" on a local machine to see if OPD of zero has been found. Then proceed with [Enter]. Otherwise, break.")
+
     # command the HPC to move to that minimum
     pi.setINDI("Acromag.HPC.Tip=0;Tilt=0;Piston="+'{0:.1f}'.format(max_x)+";Mode=1")
 
@@ -139,7 +149,7 @@ def optimize_opd_fizeau_grism(mode = "science"):
     raw_input("PRESS ENTER AFTER REMOVING GRISM AND INSERTING OBSERVING FILTERS")
 
 
-def optimize_opd_fizeau_airy():
+def optimize_opd_fizeau_airy(mode = "science"):
     # this dials OPD until the center of the coherence envelope is found
 
     # scan in OPD until there is a clear *global* maximum in the FFT_amp high-freq lobe amplitudes (i.e., the visibility of the fringes is highest)
