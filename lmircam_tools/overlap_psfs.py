@@ -2,6 +2,7 @@ import sys, os, string, time, pdb, copy, pyfits
 import numpy as np
 import numpy.ma as ma
 import scipy
+import time
 from scipy import ndimage, sqrt, misc, stats,signal
 from lmircam_tools import *
 from lmircam_tools import pi, process_readout, gaussian_x, find_airy_psf, find_grism_psf
@@ -19,7 +20,7 @@ def dist_pix(current,goal):
     return dist
 
 
-def centroid_and_move(side, tolerance = 5, mode = "science", psf_type = "airy"):
+def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_type = "airy"):
     ''' 
     Find the PSF and move telescope side or UBC mirror to place it at the setpoint
 
@@ -81,7 +82,7 @@ def centroid_and_move(side, tolerance = 5, mode = "science", psf_type = "airy"):
         print(psf_loc)
 
         ### figure out required movement of PSF to right location
-        vector_move_pix = np.subtract(psf_loc_setpoint,psf_loc) # vector of required movement in pixel space
+        vector_move_pix = np.subtract(psf_loc_setpt,psf_loc) # vector of required movement in pixel space
         vector_move_asec = np.multiply(vector_move_pix,0.0107) # convert to asec
         print(x_side + " required vector movement in pix:")
         print(vector_move_pix)
@@ -98,7 +99,7 @@ def centroid_and_move(side, tolerance = 5, mode = "science", psf_type = "airy"):
         print("Taking a background-subtracted frame")
 	f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=60)
 
-	if (test_mode == "fake_fits"):
+	if (mode == "fake_fits"):
 	    f = pyfits.open("test_fits_files/test_frame_fiz_small.fits")
 
 	imgb4 = f[0].data
@@ -109,14 +110,14 @@ def centroid_and_move(side, tolerance = 5, mode = "science", psf_type = "airy"):
 
         print("-------------------")
         print("Fizeau PSF location setpoint:")
-        print(psf_loc_setpoint)
+        print()
         print("Current " + x_side + " PSF loc:")
         print(psf_loc)
 
         # if PSFs are closer than N pixels from each other, break
         ## ## TOLERANCE ON SKY SHOULD BE N=5 OR BETTER
         N = tolerance
-        if (dist_pix(psf_loc,psf_loc_setpoint) < tolerance):
+        if (dist_pix(psf_loc,psf_loc_setpt) < tolerance):
             print("-------------------")
             print("Done moving " + x_side)
             break
@@ -135,17 +136,17 @@ def centroid_and_move(side, tolerance = 5, mode = "science", psf_type = "airy"):
 	    break
 
 
-def overlap_psfs(psf_loc_setpoint, mode = "science", psf_type = "airy"):
+def overlap_psfs(fiz_lmir_sweet_spot, mode = "science", psf_type = "airy"):
+
+    start_time = time.time()
 
     take_roi_background()
 
     raw_input("User: remove the Blank in FW4, then press return when done")
 
-    centroid_and_move(side = "left", mode = mode, psf_type = psf_type)
+    centroid_and_move(fiz_lmir_sweet_spot, side = "left", mode = mode, psf_type = psf_type)
 
-    take_roi_background()
-
-    centroid_and_move(side = "right", mode = mode, psf_type = psf_type)
+    centroid_and_move(fiz_lmir_sweet_spot, side = "right", mode = mode, psf_type = psf_type)
 
     print('Done moving PSFs. Reopening LMIR FW2.')
     pi.setINDI("Lmir.lmir_FW2.command", 'Open', wait=True)
@@ -153,5 +154,10 @@ def overlap_psfs(psf_loc_setpoint, mode = "science", psf_type = "airy"):
     # turn off fizeau flag to avoid problems with other observations
     print("De-activating ROI aquisition flag")
     pi.setINDI("LMIRCAM.fizRun.value=Off")
+
+    end_time = time.time()
+    print("PSF overlapping done in")
+    print(end_time - start_time)
+    print("-------------------")
 
     return

@@ -23,10 +23,12 @@ fiz_lmir_sweet_spot = [200,100]
 # Is this script being run as a test, or are we doing on-sky science?
 # Options: "fake_fits", "science"
 print("----------------------------------------------------------------------------------")
-mode_choice = "fake_fits"
+mode_choice = "artif_source"
 print("This optimization code is running in mode " + mode_choice)
+print("Stop continuous aquisition of the camera.")
+print("----------------------------------------------------------------------------------")
 
-pdf.set_trace()
+pdb.set_trace()
 overlap_psfs(fiz_lmir_sweet_spot, mode = mode_choice, psf_type = "airy") # filter-agnostic
 
 ## ## see old sweet spots (can also locate them on NOMIC, and then see where they are on LMIR)
