@@ -78,15 +78,15 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
         ## ## DO I REALLY WANT TO USE FIND_GRISM?
         psf_loc = find_grism_psf(imgb4bk, sig = sig, length_y = length_y)
         print('-------------')
-        print(x_side + " PSF located at (ROI coords)")
+        print(x_side + " PSF located at ROI coords (y,x) in pix")
         print(psf_loc)
 
         ### figure out required movement of PSF to right location
         vector_move_pix = np.subtract(psf_loc_setpt,psf_loc) # vector of required movement in pixel space
         vector_move_asec = np.multiply(vector_move_pix,0.0107) # convert to asec
-        print(x_side + " required vector movement in pix:")
+        print(x_side + " required vector movement in (y,x) pix:")
         print(vector_move_pix)
-        print(x_side + " required vector movement in asec:")
+        print(x_side + " required vector movement in (y,x) asec:")
         print(vector_move_asec)
 
         # do a first movement with the telescope itself
@@ -109,9 +109,9 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
         psf_loc = find_grism_psf(imgb4bk, sig = sig, length_y = length_y) # find PSF
 
         print("-------------------")
-        print("Fizeau PSF location setpoint:")
-        print()
-        print("Current " + x_side + " PSF loc:")
+        print("Fizeau PSF location setpoint in (y,x) pix:")
+        print(psf_loc_setpt)
+        print("Current " + x_side + " PSF loc in (y,x) pix:")
         print(psf_loc)
 
         # if PSFs are closer than N pixels from each other, break
@@ -151,12 +151,15 @@ def overlap_psfs(fiz_lmir_sweet_spot, mode = "science", psf_type = "airy"):
     print('Done moving PSFs. Reopening LMIR FW2.')
     pi.setINDI("Lmir.lmir_FW2.command", 'Open', wait=True)
 
+    # take a new frame to see what things look like now
+    f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=60)
+
     # turn off fizeau flag to avoid problems with other observations
     print("De-activating ROI aquisition flag")
     pi.setINDI("LMIRCAM.fizRun.value=Off")
 
     end_time = time.time()
-    print("PSF overlapping done in")
+    print("PSF overlapping done in (secs)")
     print(end_time - start_time)
     print("-------------------")
 

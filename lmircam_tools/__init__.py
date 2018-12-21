@@ -1,4 +1,5 @@
 import numpy as np
+import time
 from numpy import ma
 from pyindi import *
 from scipy import ndimage, sqrt, stats, misc, signal
@@ -153,14 +154,36 @@ def take_roi_background():
     return
 
 
-def put_in_grism():
+def put_in_grism(image = "yes"):
     ''' 
     Inserts the LMIR grism
     '''
+
+    start_time = time.time()
+
     fw25_selection = "Lspec2.8-4.0"
     fw3_selection = "Lgrism6AR"
     print("Entering grism mode: putting in "+fw25_selection+" and "+fw3_selection)
     pi.setINDI("Lmir.lmir_FW3.command", fw3_selection, timeout=45, wait=True)
     pi.setINDI("Lmir.lmir_FW25.command", fw25_selection, timeout=45, wait=True) # blocks some extraneous light
+
+
+    if image:
+
+        # turn on fizeau flag
+        print("Activating ROI aquisition flag")
+        pi.setINDI("LMIRCAM.fizRun.value=On")
+
+    	# take a new frame to see what things look like now
+    	f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=60)
+
+    	# turn off fizeau flag to avoid problems with other observations
+    	print("De-activating ROI aquisition flag")
+    	pi.setINDI("LMIRCAM.fizRun.value=Off")
+
+    	end_time = time.time()
+    	print("Grism put in in (secs)")
+    	print(end_time - start_time)
+    	print("-------------------")	
 
     return

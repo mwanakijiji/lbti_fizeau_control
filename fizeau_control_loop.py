@@ -44,6 +44,8 @@ overlap_psfs(fiz_lmir_sweet_spot, mode = mode_choice, psf_type = "grism")
 
 ## ## remove psf_loc_setpoint from func; obsolete optim airy fcn
 ## ## add length of scan (in total OPD?)
+## ## sometimes new HPC movement causes grisms to separate; may need to re-overlap them each time
+## ## insert all hpc, fpc piston and TT statuses into headers
 optimize_opd_fizeau_grism(mode = mode_choice) # might also use argument of the re-established Fizeau/grism PSF instead of the coordinate where it's supposed to be
 remove_grism()
 print("----------------------------------------------------------------------------------")
