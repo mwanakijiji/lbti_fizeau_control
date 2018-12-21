@@ -148,6 +148,12 @@ def optimize_opd_fizeau_grism(mode = "science"):
     # as last step, remove grism
     raw_input("PRESS ENTER AFTER REMOVING GRISM AND INSERTING OBSERVING FILTERS")
 
+    # turn off fizeau flag to avoid problems with other observations
+    print("De-activating ROI aquisition flag")
+    pi.setINDI("LMIRCAM.fizRun.value=Off")
+
+    return
+
 
 def optimize_opd_fizeau_airy(mode = "science"):
     # this dials OPD until the center of the coherence envelope is found

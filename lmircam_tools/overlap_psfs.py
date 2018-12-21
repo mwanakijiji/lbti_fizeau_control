@@ -150,4 +150,8 @@ def overlap_psfs(psf_loc_setpoint, mode = "science", psf_type = "airy"):
     print('Done moving PSFs. Reopening LMIR FW2.')
     pi.setINDI("Lmir.lmir_FW2.command", 'Open', wait=True)
 
+    # turn off fizeau flag to avoid problems with other observations
+    print("De-activating ROI aquisition flag")
+    pi.setINDI("LMIRCAM.fizRun.value=Off")
+
     return
