@@ -40,7 +40,7 @@ def optimize_opd_fizeau_grism(mode = "science"):
 				'resid'])
 
     # loop over OPD steps (unitless here) around where we start
-    for opd_step in range(-20,20):
+    for opd_step in range(-2,2):
 
 	step_size_opd = 1. # step size per opd_step count (um, total OPD)
 
@@ -161,12 +161,13 @@ def optimize_opd_fizeau_grism(mode = "science"):
 	pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(50*0.5*step_size_opd))
 
     # write data to file for copying and plotting on local machine
+    pdb.set_trace()
     file_name = "resids_test.csv"
     #resids_df = pd.DataFrame(np.transpose([pl_array,resid_array]), columns=["pl","resid"])
     no_return = df.to_csv(file_name)
 
     # fit a 2nd-order polynomial to the residuals as fcn of SPC position
-    coeffs = np.polyfit(df["spc_trans_position"],df["resid"], 2)
+    coeffs = np.polyfit(df["spc_trans_position"], df["resid"], 2)
     print("coeffs")
     print(coeffs)
 
@@ -182,19 +183,30 @@ def optimize_opd_fizeau_grism(mode = "science"):
 
     # find the minimum; set the HPC path length position accordingly
     y_series = coeffs[2] + coeffs[1]*df["spc_trans_position"]+coeffs[0]*df["spc_trans_position"]**2
-    max_y = min(y_series)  # find the minimum y-value
-    zero_pl = df["spc_trans_position"][y_series.index(max_y)] # find the x-value (pathlength) corresponding to min y-value (residuals)
+    min_y = min(y_series)  # find the minimum y-value
+    print(y_series)
+    print(min_y)
+    zero_opd_spc_trans_pos = df.loc[y_series == np.min(y_series)]["spc_trans_position"].values[0] # find the x-value (pathlength) corresponding to min y-value (residuals)
     # is the curve concave up?
     if (coeffs[0] < 0):
 	print("Line fit to residuals is not concave up!!")
 
     raw_input("Plot "+file_name+" on a local machine to see if OPD of zero has been found. Then proceed with [Enter]. Otherwise, break.")
 
+    # command the SPC_Trans to move to that minimum
+    spc_trans_position_now = pi.getINDI("Ubcs.SPC_Trans_status.PosNum") # re-obtain translation stage position
+    spc_trans_command = np.subtract(zero_opd_spc_trans_pos,spc_trans_position_now)
+    print("spc_trans_position_now")
+    print(spc_trans_position_now)
+    print("spc_trans_command")
+    print(spc_trans_command)
+    pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(spc_trans_command))
+
     # command the HPC to move to that minimum
-    pi.setINDI("Acromag.HPC.Tip=0;Tilt=0;Piston="+'{0:.1f}'.format(max_x)+";Mode=1")
+    #pi.setINDI("Acromag.HPC.Tip=0;Tilt=0;Piston="+'{0:.1f}'.format(max_x)+";Mode=1")
 
     # as last step, remove grism
-    raw_input("PRESS ENTER AFTER REMOVING GRISM AND INSERTING OBSERVING FILTERS")
+    raw_input("User: remove grism, insert observing filters, and press [Enter]")
 
     # turn off fizeau flag to avoid problems with other observations
     print("De-activating ROI aquisition flag")

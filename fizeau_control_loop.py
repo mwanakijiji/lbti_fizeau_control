@@ -21,7 +21,7 @@ raw_input("Place an ROI, no larger than 512x512, over the Phasecam sweet spot fo
 fiz_lmir_sweet_spot = [200,100] 
 
 # Is this script being run as a test, or are we doing on-sky science?
-# Options: "fake_fits", "science"
+# Options: "fake_fits", "artif_source", "science"
 print("----------------------------------------------------------------------------------")
 mode_choice = "artif_source"
 print("This optimization code is running in mode " + mode_choice)
@@ -47,7 +47,6 @@ overlap_psfs(fiz_lmir_sweet_spot, mode = mode_choice, psf_type = "grism")
 ## ## sometimes new HPC movement causes grisms to separate; may need to re-overlap them each time
 ## ## insert all hpc, fpc piston and TT statuses into headers
 optimize_opd_fizeau_grism(mode = mode_choice) # might also use argument of the re-established Fizeau/grism PSF instead of the coordinate where it's supposed to be
-remove_grism()
 print("----------------------------------------------------------------------------------")
 raw_input("Now align Phasecam and close the phase loop")
 
