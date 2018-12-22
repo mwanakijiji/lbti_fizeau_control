@@ -1,4 +1,5 @@
 import numpy as np
+import time
 from numpy import ma
 from pyindi import *
 from scipy import ndimage, sqrt, stats, misc, signal
@@ -11,8 +12,9 @@ def gaussian_x(x, mu, sig):
     shape_gaussian = np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.)))
     return shape_gaussian
 
+
 def find_airy_psf(image):
-    if autoFindStar:
+    if True:
 
         #imageThis = numpy.copy(image)
 
@@ -39,7 +41,6 @@ def find_airy_psf(image):
     return [cy, cx]
 
 def find_grism_psf(image, sig, length_y):
-    #if autoFindStar:
     if True:
 
         # generate the Gaussian to correlate with the image
@@ -75,13 +76,13 @@ def find_grism_psf(image, sig, length_y):
 
 class fft_img:
     # take FFT of a 2D image
-    
+
     def __init__(self, image):
         self.image = image
 
     def fft(self, padding=int(0), pad_mode='constant', mask_thresh=1e-10, mask=True):
 
-        padI = np.pad(self.image, padding, pad_mode) 
+        padI = np.pad(self.image, padding, pad_mode)
 	# arguments: image, pad size, pad mode, threshold for masking, mask flag
 
         padI = np.fft.fftshift(padI)
@@ -96,39 +97,93 @@ class fft_img:
             AmpPE_masked = ma.masked_where(AmpPE < mask_thresh, AmpPE, copy=False)
             ArgPE_masked = ma.masked_where(AmpPE < mask_thresh, ArgPE, copy=False)
             return AmpPE_masked, ArgPE_masked
-        
+
         else:
             return AmpPE, ArgPE
 
-def put_in_grism():
+
+# define 2D gaussian for fitting PSFs
+def gaussian_x(x, mu, sig):
+    shape_gaussian = np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.)))
+    return shape_gaussian
+
+
+# find star and return coordinates [y,x]
+def find_airy_psf(image):
+    if True:
+
+        #imageThis = numpy.copy(image)
+
+        '''
+        if (PSFside == 'left'):
+            imageThis[:,1024:-1] = 0
+        elif (PSFside == 'right'):
+            imageThis[:,0:1024] = 0
+        '''
+
+        image[np.isnan(image)] = np.nanmedian(image) # if there are NaNs, replace them with the median image v$
+        imageG = ndimage.gaussian_filter(image, 6) # further remove effect of bad pixels (somewhat redundant?)
+        loc = np.argwhere(imageG==imageG.max())
+        cx = loc[0,1]
+        cy = loc[0,0]
+
+        #plt.imshow(imageG, origin="lower")
+        #
+        #plt.scatter([cx,cx],[cy,cy], c='r', s=50)
+        #plt.colorbar()
+        #plt.show()
+        #print [cy, cx] # check
+
+    return [cy, cx]
+
+
+def take_roi_background():
+    ''' 
+    This flips the Fizeau PSF flag to on, and takes a new background for that ROI
+    '''
+
+    # take a background
+    # allow aquisition from ROI box (keep smaller than 512x512!)
+    print("Setting ROI aquisition flag")
+    pi.setINDI("LMIRCAM.fizRun.value=On")
+    print("Moving in a blank to take a background")
+    pi.setINDI("Lmir.lmir_FW4.command", "Blank", wait=True)
+    print("Taking a background")
+    f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=0;int_time=%i;is_bg=1;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=60)
+
+    return
+
+
+def put_in_grism(image = "yes"):
     ''' 
     Inserts the LMIR grism
     '''
-    pi.setINDI("Lmir.lmir_FW3.command", "Lgrism6AR", timeout=45, wait=True)
-    pi.setINDI("Lmir.lmir_FW25.command", "Lspec2.8-4.0", timeout=45, wait=True) # blocks some extraneous light
 
-    
-def remove_grism():
-    ''' 
-    Removes the LMIR grism
-    '''
-    pi.setINDI("Lmir.lmir_FW3.command", "## WHATEVER FILTER GOES HERE ##", timeout=45, wait=True)
-    pi.setINDI("Lmir.lmir_FW25.command", "## WHATEVER FILTER GOES HERE ##", timeout=45, wait=True) # blocks some extraneous light
-    
-        
-'''
-def check_ao_pc_loops():
-    # check that the AO and Phasecam loops are closed
+    start_time = time.time()
 
-    ## ## INDI COMMAND TO SEE LEFT AO STATUS, RIGHT AO STATUS
+    fw25_selection = "Lspec2.8-4.0"
+    fw3_selection = "Lgrism6AR"
+    print("Entering grism mode: putting in "+fw25_selection+" and "+fw3_selection)
+    pi.setINDI("Lmir.lmir_FW3.command", fw3_selection, timeout=45, wait=True)
+    pi.setINDI("Lmir.lmir_FW25.command", fw25_selection, timeout=45, wait=True) # blocks some extraneous light
 
 
-class check_pc_loop(check_ao_loops):
-    # check that Phasecam loop is closed (inherits check of AO loops)
-    
-    ## ## INDI COMMAND TO SEE PHASECAM STATUS
+    if image:
 
-    ## ## IF AO AND PC ARE ALL CLOSED, RETURN 2
-    ## ## IF AO ARE CLOSED BUT PC IS NOT, RETURN 1
+        # turn on fizeau flag
+        print("Activating ROI aquisition flag")
+        pi.setINDI("LMIRCAM.fizRun.value=On")
 
-'''
+    	# take a new frame to see what things look like now
+    	f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=60)
+
+    	# turn off fizeau flag to avoid problems with other observations
+    	print("De-activating ROI aquisition flag")
+    	pi.setINDI("LMIRCAM.fizRun.value=Off")
+
+    	end_time = time.time()
+    	print("Grism put in in (secs)")
+    	print(end_time - start_time)
+    	print("-------------------")	
+
+    return

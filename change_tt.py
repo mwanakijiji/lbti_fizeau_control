@@ -1,14 +1,9 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*- 
-
 import numpy as np
-#import matplotlib.pyplot as plt
 import scipy
 import numpy.ma as ma
 import os.path
 from scipy import misc, signal, ndimage
 import pyfits
-#from matplotlib.colors import LogNorm
 from astropy.coordinates import Angle, SkyCoord
 from astropy.nddata.utils import extract_array
 from regions import PixCoord, CircleSkyRegion, CirclePixelRegion, PolygonPixelRegion
@@ -36,6 +31,7 @@ asecInRad = 206264.81 # (asec/rad)
 
 
 # locations of Airy minima/maxima (units lambda/D)
+# (might use these later)
 max1 = 0
 min1 = 1.220
 max2 = 1.635
@@ -182,9 +178,6 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
     sciImg4 = np.multiply(sciImg4,sciImg) # 'transmit' the original science image through the mask
     sciImg4 = sciImg4.filled(fill_value=np.nan) # turn all masked '--' elements to nans
 
-    ## ## TEST
-    #sciImg3 = np.multiply(sciImg3,zv_right[0:1200,0:1200])
-
     # return medians of regions under masks
     med_highFreqPerfect_L = np.nanmedian(sciImg1)
     med_highFreqPerfect_R = np.nanmedian(sciImg2)
@@ -206,61 +199,16 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
     # generate images showing footprints of regions of interest
     # (comment this bit in/out as desired)
 
-    ''' 
-    %matplotlib auto
-    plt.imshow(sciImg1, origin='lower')
-    plt.colorbar()
-    plt.show()
-
-    plt.imshow(sciImg2, origin='lower')
-    plt.title('Region 2, frame '+fyi_string)
-    plt.colorbar()
-    plt.show()
-
-    plt.imshow(sciImg3, origin='lower')
-    plt.title('Region 3, frame '+fyi_string)
-    plt.colorbar()
-    plt.show()
-
-    plt.imshow(sciImg4, origin='lower')
-    plt.title('Region 4, frame '+fyi_string)
-    plt.colorbar()
-    plt.show()
-    '''
-
-    # generate image with lines denoting regions
-    # (comment this in/out as desired)
-    ''' 
-    plt.clf()
-    fig = plt.figure()
-    ax = fig.add_subplot(1, 1, 1)
-    cax = ax.imshow(sciImg, origin="lower")
-    ax.axhline(line_M1diam_pixOnFFT[0])
-    ax.axhline(line_M1diam_pixOnFFT[1])
-    ax.axvline(line_M1diam_pixOnFFT[0])
-    ax.axvline(line_M1diam_pixOnFFT[1])
-    ax.axvline(line_center2center_pixOnFFT[0])
-    ax.axvline(line_center2center_pixOnFFT[1])
-    ax.axvline(line_edge2edge_pixOnFFT[0])
-    ax.axvline(line_edge2edge_pixOnFFT[1])
-    ax.add_patch(circle_highFreqPerfect_L.as_patch(facecolor='none', edgecolor='blue'))
-    ax.add_patch(circle_highFreqPerfect_R.as_patch(facecolor='none', edgecolor='blue'))
-    ax.add_patch(circle_lowFreqPerfect.as_patch(facecolor='none', edgecolor='blue'))
-    ax.add_patch(rect_pix.as_patch(facecolor='none', edgecolor='red'))
-    cbar = fig.colorbar(cax)
-    plt.savefig("junk.pdf")
-    '''
-
     # initialize dictionary to contain FFT data
     # N.b. all the info in this dictionary is EITHER for
     # the FFT amplitude OR the FFT phase, depending on what
     # the 'sciImg' is
     dictFFTstuff = {}
-    
+
     # median of high-freq lobe on left side, within circular region centered around 
     # where a perfect high-freq lobe would be
     dictFFTstuff["med_highFreqPerfect_L"] = med_highFreqPerfect_L
-    
+
     # median of right-side high-freq lobe
     dictFFTstuff["med_highFreqPerfect_R"] = med_highFreqPerfect_R
 
@@ -292,157 +240,136 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
     return dictFFTstuff
 
 
-# for loop over science images to take FFT and analyze it
-
-ampArray = []
-framenumArray = []
-
-counter_num = 0
-
-#datafilename = "test.csv"
-
-startFrame = 5038
-stopFrame = 11497 # (inclusive)
-
-# read in a Fizeau PSF image
-## ## PASSIVE MODE pi.setINDI("LMIRCAM.fizRun.value=On")
-print("Moving in a blank to take a background")
-## ## PASSIVE MODE pi.setINDI("Lmir.lmir_FW4.command", "Blank", wait=True)
-print("Taking a background")
-## ## PASSIVE MODE f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=0;int_time=%i;is_bg=1;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=60)
-
-## ## BEGIN TEST
-## ## read in fake FITS file
-#f = pyfits.open("test_frame_fiz_large.fits")
-f = pyfits.open("test_frame_fiz_small.fits")
-image = f[0].data
-## ## END TEST
-
-for f in range(0,10): # just 10 samples for now
-
-    start = time.time() # start timer
-
-    print('Working on frame '+str("{:0>6d}".format(f))+' ...')
-
-    ## ##image, header = fits.getdata(filename_str,0,header=True)
-
-    # locate PSF
-    psf_loc = overlap_psfs.find_airy_psf(image)
-
-    # size of cookie cut-out (measured center-to-edge)
-    cookie_size = 100 # maximum control radius as of 2018 July corresponds to 130.0 pixels
-
-    # take FFT
-    cookie_cut = image[psf_loc[0]-cookie_size:psf_loc[0]+cookie_size,psf_loc[1]-cookie_size:psf_loc[1]+cookie_size]
-    amp, arg = fft_img(cookie_cut).fft(padding=int(5*cookie_size), mask_thresh=1e5)
-
-    # test: image with a perfect slope
+def get_pc_setpts(log_name = "setpt_log.csv", mode = "science"):
     ''' 
-    testing, header = fits.getdata('slope_test_psf.fits',0,header=True)
-    cookie_cut_testing = testing[psf_loc[0]-cookie_size:psf_loc[0]+
-                                   cookie_size,psf_loc[1]-cookie_size:psf_loc[1]+cookie_size]
-    #sciImg = ma.asarray(sciImg)
-    amp[np.isfinite(amp)] = -1 #cookie_cut_testing[np.isfinite(amp)]
+    Take FFT of PSF, and calculate new Phasecam PL and TT setpoints
+    
+    INPUTS:
+    log_name: name of the csv file to which FFT information will be printed
+    mode: "fake_fits": read in fake FITS files (but continue sending LMIR and mirror commands)
+          "artif_source": use an artificial source (either laser or pinhole)
+          "science": on-sky
     '''
 
-    # sanity check (and to avoid getting for loop stuck)
-    if (np.shape(amp)[0]!=np.shape(amp)[1]): # if the FFT doesn't make sense (i.e., if PSF was not found)
-        print('PSF does not make sense ... aborting this one ...')
-        continue
+    ampArray = []
 
-    print(amp.data)
-    print(arg.data)
+    counter_num = 0
 
-    # analyze FFTs
-    fftInfo_amp = fftMask(amp,wavel_lambda,plateScale,
-                              fyi_string=str("{:0>6d}".format(f))+' FFT amp')
-    fftInfo_arg = fftMask(arg,wavel_lambda,plateScale,
-                              fyi_string=str("{:0>6d}".format(f))+' FFT phase')
+    take_roi_background()
 
-    print(fftInfo_amp)
-    print(fftInfo_arg)
+    if (mode == "fake_fits"):
+        #f = pyfits.open("test_fits_files/test_frame_fiz_large.fits")
+        f = pyfits.open("test_fits_files/test_frame_fiz_small.fits")
+    elif (mode == "science"):
+        # take a frame with background subtracting
+        print("Taking a background-subtracted frame")
+        f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=60)
 
-    # save fyi FITS files
-    hdu = pyfits.PrimaryHDU(amp.data)
-    hdulist = pyfits.HDUList([hdu])
-    hdu.writeto('junk_test_amp.fits', clobber=True)
-    hdu = pyfits.PrimaryHDU(arg.data)
-    hdulist = pyfits.HDUList([hdu])
-    hdu.writeto('junk_test_arg.fits', clobber=True)
+    image = f[0].data
 
-    ## take info from the FFTs to send corrective movements
+    for f in range(0,1): # just 1 sample for now
 
-    # thresholds
-    fft_ampl_high_freq_lowlimit = 2.4e5 # for good fringe visibility
-    fft_ampl_low_freq_lowlimit = 1.4e6 # for acceptable AO correction
-    fft_phase_vec_high_freq_highlimit = 5 # for Airy overlap
-    std_lowFreqPerfect_lowlimit = 10 # for Airy overlap
-    phase_normVec_highFreqPerfect_R_x # for phase of high-freq fringes
+        start = time.time() # start timer
 
-    # poor overlap of the Airy PSFs?
-    print("--------------------------")
-    print("Std of phase of low freq lobe:")
-    print(fftInfo_arg["std_lowFreqPerfect"])
-    ## HOW DOES IT COMPARE WITH std_lowFreqPerfect_lowlimit ?
 
-    # poor fringe visibility
-    print("Median of ampl of high freq lobe:")
-    print(fftInfo_amp["med_highFreqPerfect_R"])
-    ## HOW DOES IT COMPARE W fft_ampl_high_freq_lowlimit
+        ## ##image, header = fits.getdata(filename_str,0,header=True)
 
-    # high-freq fringes have strange phase
-    ## ## change FPC TT until phase gradients in PTF are removed
-    ## ## 1. Differential tip: phase gradient is all up-down, and the low-freq node in FT amplitude takes on a crushed ellipticity.
-    ## ## 2. Differentia tilt: phase gradient is left-right, but it is not continuous– it is divided among the three nodes.
-    print("Phase gradient in x of high freq in PTF:")
-    print(fftInfo_arg["phase_normVec_highFreqPerfect_R"][0])
-    print("Phase gradient in y of high freq in PTF:")
-    print(fftInfo_arg["phase_normVec_highFreqPerfect_R"][1])
+        # locate PSF
+        psf_loc = overlap_psfs.find_airy_psf(image)
 
-    # other quality control metrics from Phasecam (email from D. Defrere, 2018 Dec 17)
-    # PCMSNR: S/N of K-band fringes
-    # PCPHSTD: noise of phase in the integration time of NOMIC
+        # size of cookie cut-out (measured center-to-edge)
+        #cookie_size = 100 # maximum control radius as of 2018 July corresponds to 130.0 pixels
 
-    # all together now, lets make corrective movements
-    # for better Airy overlap: tip-tilt the FPC
-    ## ## PASSIVE MODE pi.setINDI("Acromag.FPC.Tip="+'{0:.1f}'.format(vector_move_asec[0])+";Tilt="+'{0:.1f}'.format(vector_move_asec[1])+";Piston=0;Mode=1")
+        # take FFT
+        # cookie_cut = image[psf_loc[0]-cookie_size:psf_loc[0]+cookie_size,psf_loc[1]-cookie_size:psf_loc[1]+cookie_size]
+        cookie_cut = np.copy(image)
+        amp, arg = fft_img(cookie_cut).fft(padding=int(5*cookie_size), mask_thresh=1e5)
 
-    # for better fringe visibility: move the FPC or HPC in piston
-    stepSize = 5. # (um, total OPD)
-    # big steps, translation stage: Ubcs.SPC_Trans.command=>5
-    ## ## pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(10*0.5*stepSize)) # factor of 10 bcz command is in 0.1 um
-    # small steps, piezos: Acromag.HPC.Tip=0;Tilt=0;Piston=[stepSize];Mode=1
-    ## ## pi.setINDI("Acromag.HPC.Tip=0;Tilt=0;Piston="+'{0:.1f}'.format(stepSize)+";Mode=1")
-    ## ## pi.setINDI("Acromag.FPC.Tip=0;Tilt=0;Piston="+'{0:.1f}'.format(stepSize)+";Mode=1")
+        # test: image with a perfect slope
+        ''' 
+        testing, header = fits.getdata('slope_test_psf.fits',0,header=True)
+        cookie_cut_testing = testing[psf_loc[0]-cookie_size:psf_loc[0]+
+                                     cookie_size,psf_loc[1]-cookie_size:psf_loc[1]+cookie_size]
+        #sciImg = ma.asarray(sciImg)
+        amp[np.isfinite(amp)] = -1 #cookie_cut_testing[np.isfinite(amp)]
+        '''
 
-    # save a fyi PNG file
-    ''' 
-    fig, (ax0, ax1, ax2) = plt.subplots(ncols=3,figsize=(20,5))
-    im0 = ax0.imshow(cookie_cut, origin="lower")
-    ax0.plot([int(0.5*np.shape(cookie_cut)[0]),int(0.5*np.shape(cookie_cut)[0])],
-                 [int(0.5*np.shape(cookie_cut)[0]),int(0.5*np.shape(cookie_cut)[0])],
-                 marker="+", color="r") # put red cross at center
-    ax0.set_xlim([0,np.shape(cookie_cut)[0]])
-    ax0.set_ylim([0,np.shape(cookie_cut)[0]])
-    im1 = ax1.imshow(amp, origin="lower")
-    im2 = ax2.imshow(arg, origin="lower")
-    fig.colorbar(im0, ax=ax0)
-    fig.colorbar(im1, ax=ax1)
-    fig.colorbar(im2, ax=ax2)
-    ax0.set_xlabel('Physical PSF (color = counts)')
-    ax1.set_xlabel('FFT Ampl (color = relative)')
-    ax2.set_xlabel('FFT Phase (color = degrees)')
-    if (header['PCCLOSED']==1): # if Phasecam loop was closed
-        pc_string = 'PC **CLOSED**'
-    else:
-        pc_string = 'PC OPEN'
-    plt.suptitle(str("{:0>6d}".format(f)) + ', ' + pc_string)
-    plt.savefig("junk.png", dpi=300, overwrite=True)
-    plt.clf()
-    '''
+        # sanity check (and to avoid getting for loop stuck)
+        if (np.shape(amp)[0]!=np.shape(amp)[1]): # if the FFT doesn't make sense (i.e., if PSF was not found)
+            print('PSF does not make sense ... aborting this one ...')
+            continue
 
-    end = time.time()
-    print(end - start)
-    print('-----')
-    break
+        print(amp.data)
+        print(arg.data)
 
+        # analyze FFTs
+        fftInfo_amp = fftMask(amp,wavel_lambda,plateScale,
+                                  fyi_string=str("{:0>6d}".format(f))+' FFT amp')
+        fftInfo_arg = fftMask(arg,wavel_lambda,plateScale,
+                                  fyi_string=str("{:0>6d}".format(f))+' FFT phase')
+
+        print(fftInfo_amp)
+        print(fftInfo_arg)
+
+        # save fyi FITS files
+        hdu = pyfits.PrimaryHDU(amp.data)
+        hdulist = pyfits.HDUList([hdu])
+        hdu.writeto('junk_test_amp.fits', clobber=True)
+        hdu = pyfits.PrimaryHDU(arg.data)
+        hdulist = pyfits.HDUList([hdu])
+        hdu.writeto('junk_test_arg.fits', clobber=True)
+
+        ## take info from the FFTs to send corrective movements
+
+        # thresholds
+        fft_ampl_high_freq_lowlimit = 2.4e5 # for good fringe visibility
+        fft_ampl_low_freq_lowlimit = 1.4e6 # for acceptable AO correction
+        fft_phase_vec_high_freq_highlimit = 5 # for Airy overlap
+        std_lowFreqPerfect_lowlimit = 10 # for Airy overlap
+        phase_normVec_highFreqPerfect_R_x # for phase of high-freq fringes
+
+        # poor overlap of the Airy PSFs?
+        print("--------------------------")
+        print("Std of phase of low freq lobe:")
+        print(fftInfo_arg["std_lowFreqPerfect"])
+        ## HOW DOES IT COMPARE WITH std_lowFreqPerfect_lowlimit ?
+
+        # poor fringe visibility
+        print("Median of ampl of high freq lobe:")
+        print(fftInfo_amp["med_highFreqPerfect_R"])
+        ## HOW DOES IT COMPARE W fft_ampl_high_freq_lowlimit
+
+        # high-freq fringes have strange phase
+        ## ## change FPC TT until phase gradients in PTF are removed
+        ## ## 1. Differential tip: phase gradient is all up-down, and the low-freq node in FT amplitude takes on a crushed ellipticity.
+        ## ## 2. Differentia tilt: phase gradient is left-right, but it is not continuous; it is divided among the three nodes.
+        print("Phase gradient in x of high freq in PTF:")
+        print(fftInfo_arg["phase_normVec_highFreqPerfect_R"][0])
+        print("Phase gradient in y of high freq in PTF:")
+        print(fftInfo_arg["phase_normVec_highFreqPerfect_R"][1])
+
+        # other quality control metrics from Phasecam (email from D. Defrere, 2018 Dec 17)
+        # PCMSNR: S/N of K-band fringes
+        # PCPHSTD: noise of phase in the integration time of NOMIC
+
+        # all together now, lets make corrective movements
+        # for better Airy overlap: tip-tilt the FPC
+        pi.setINDI("Acromag.FPC.Tip="+'{0:.1f}'.format(vector_move_asec[0])+";Tilt="+'{0:.1f}'.format(vector_move_asec[1])+";Piston=0;Mode=1")
+
+        # for better fringe visibility: move the FPC or HPC in piston
+        stepSize = 5. # (um, total OPD)
+        # big steps, translation stage: Ubcs.SPC_Trans.command=>5
+        pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(10*0.5*stepSize)) # factor of 10 bcz command is in 0.1 um
+        # small steps, piezos: Acromag.HPC.Tip=0;Tilt=0;Piston=[stepSize];Mode=1
+        ## ## pi.setINDI("Acromag.HPC.Tip=0;Tilt=0;Piston="+'{0:.1f}'.format(stepSize)+";Mode=1")
+        ## ## pi.setINDI("Acromag.FPC.Tip=0;Tilt=0;Piston="+'{0:.1f}'.format(stepSize)+";Mode=1")
+
+        end = time.time()
+        print(end - start)
+        print('-----')
+
+        # turn off fizeau flag to avoid problems with other observations
+        print("De-activating ROI aquisition flag")
+        pi.setINDI("LMIRCAM.fizRun.value=Off")
+
+        return
