@@ -240,7 +240,7 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
     return dictFFTstuff
 
 
-def get_pc_setpts(log_name = "setpt_log.csv", mode = "science"):
+def print_write_fft_info(log_name = "fft_log.csv", mode = "science"):
     ''' 
     Take FFT of PSF, and calculate new Phasecam PL and TT setpoints
     
@@ -275,7 +275,9 @@ def get_pc_setpts(log_name = "setpt_log.csv", mode = "science"):
         ## ##image, header = fits.getdata(filename_str,0,header=True)
 
         # locate PSF
-        psf_loc = overlap_psfs.find_airy_psf(image)
+        psf_loc = find_grism_psf(image, sig=5, length_y=5)
+        ## ## if time, test the following line
+        #psf_loc = find_airy_psf(image)
 
         # size of cookie cut-out (measured center-to-edge)
         #cookie_size = 100 # maximum control radius as of 2018 July corresponds to 130.0 pixels
@@ -299,7 +301,10 @@ def get_pc_setpts(log_name = "setpt_log.csv", mode = "science"):
             print('PSF does not make sense ... aborting this one ...')
             continue
 
+        print("------------------")
+        print("FFT ampl:")
         print(amp.data)
+        print("FFT phase:")
         print(arg.data)
 
         # analyze FFTs
@@ -308,7 +313,10 @@ def get_pc_setpts(log_name = "setpt_log.csv", mode = "science"):
         fftInfo_arg = fftMask(arg,wavel_lambda,plateScale,
                                   fyi_string=str("{:0>6d}".format(f))+' FFT phase')
 
+        print("------------------")
+        print("FFT info ampl:")
         print(fftInfo_amp)
+        print("FFT info phase:")
         print(fftInfo_arg)
 
         # save fyi FITS files
@@ -322,54 +330,121 @@ def get_pc_setpts(log_name = "setpt_log.csv", mode = "science"):
         ## take info from the FFTs to send corrective movements
 
         # thresholds
-        fft_ampl_high_freq_lowlimit = 2.4e5 # for good fringe visibility
-        fft_ampl_low_freq_lowlimit = 1.4e6 # for acceptable AO correction
-        fft_phase_vec_high_freq_highlimit = 5 # for Airy overlap
-        std_lowFreqPerfect_lowlimit = 10 # for Airy overlap
-        phase_normVec_highFreqPerfect_R_x # for phase of high-freq fringes
+        fft_ampl_high_freq_lowlimit = 2.4e5 # min threshold for good fringe visibility
+        fft_ampl_low_freq_lowlimit = 1.4e6 # min threshold for acceptable AO correction
+        fft_phase_vec_high_freq_highlimit = 5 # max threshold for Airy overlap
+        std_lowFreqPerfect_lowlimit = 10 # max threshold for Airy overlap
+        phase_normVec_highFreqPerfect_R_x = 100 # max threshold for phase of high-freq fringes
 
-        # poor overlap of the Airy PSFs?
+
+        ## MONITOR REALTIME STATUS OF PSF QUALITY CRITERIA
+        
+        # Overlap of the Airy PSFs?
         print("--------------------------")
         print("Std of phase of low freq lobe:")
         print(fftInfo_arg["std_lowFreqPerfect"])
-        ## HOW DOES IT COMPARE WITH std_lowFreqPerfect_lowlimit ?
-
-        # poor fringe visibility
+        # TO CORRECT: TT THE HPC TO TRANSLATE DX AIRY PSF
+        ## ## (MAYBE TRY TTING THE FPC LATER?)
+        
+        # High-freq fringe visibility (median)
+        print("--------------------------")
         print("Median of ampl of high freq lobe:")
         print(fftInfo_amp["med_highFreqPerfect_R"])
-        ## HOW DOES IT COMPARE W fft_ampl_high_freq_lowlimit
+        # TO CORRECT: MOVE THE SPC_TRANS TO FIND CENTER OF COHERENCE ENVELOPE
 
-        # high-freq fringes have strange phase
-        ## ## change FPC TT until phase gradients in PTF are removed
-        ## ## 1. Differential tip: phase gradient is all up-down, and the low-freq node in FT amplitude takes on a crushed ellipticity.
-        ## ## 2. Differentia tilt: phase gradient is left-right, but it is not continuous; it is divided among the three nodes.
+        # High-freq phase gradient
+        print("--------------------------")
         print("Phase gradient in x of high freq in PTF:")
         print(fftInfo_arg["phase_normVec_highFreqPerfect_R"][0])
         print("Phase gradient in y of high freq in PTF:")
         print(fftInfo_arg["phase_normVec_highFreqPerfect_R"][1])
+        print("--------------------------")
+        # TO CORRECT: TT THE FPC? (NOT SURE HERE...)
+        ## ## N.B. 1. Differential tip: phase gradient is all up-down, and the low-freq node in FT amplitude takes on a crushed ellipticity.
+        ## ## N.B. 2. Differential tilt: phase gradient is left-right, but it is not continuous; it is divided among the three nodes.
+        
+        ## HOW DO THE ABOVE PRINTED QUANTITIES COMPARE WITH THE THRESHOLDS? 
 
         # other quality control metrics from Phasecam (email from D. Defrere, 2018 Dec 17)
         # PCMSNR: S/N of K-band fringes
         # PCPHSTD: noise of phase in the integration time of NOMIC
 
-        # all together now, lets make corrective movements
-        # for better Airy overlap: tip-tilt the FPC
-        pi.setINDI("Acromag.FPC.Tip="+'{0:.1f}'.format(vector_move_asec[0])+";Tilt="+'{0:.1f}'.format(vector_move_asec[1])+";Piston=0;Mode=1")
+        ## APPEND time.time(), fftInfo_amp, fftInfo_arg TO FILE HERE
 
-        # for better fringe visibility: move the FPC or HPC in piston
-        stepSize = 5. # (um, total OPD)
-        # big steps, translation stage: Ubcs.SPC_Trans.command=>5
-        pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(10*0.5*stepSize)) # factor of 10 bcz command is in 0.1 um
-        # small steps, piezos: Acromag.HPC.Tip=0;Tilt=0;Piston=[stepSize];Mode=1
-        ## ## pi.setINDI("Acromag.HPC.Tip=0;Tilt=0;Piston="+'{0:.1f}'.format(stepSize)+";Mode=1")
-        ## ## pi.setINDI("Acromag.FPC.Tip=0;Tilt=0;Piston="+'{0:.1f}'.format(stepSize)+";Mode=1")
+        # dictionary to contain the FFT amplitude, phase info
+        d = {"fft_amp": fftInfo_amp, "fft_arg": fftInfo_arg}
+        
+    return d
 
-        end = time.time()
-        print(end - start)
-        print('-----')
+    
+def get_apply_pc_setpts(fft_info, log_name = "setpt_log.csv", mode = "science")
 
-        # turn off fizeau flag to avoid problems with other observations
-        print("De-activating ROI aquisition flag")
-        pi.setINDI("LMIRCAM.fizRun.value=Off")
+    fftInfo_amp = fft_info["fftInfo_amp"]
+    fftInfo_arg = fft_info["fftInfo_arg"]
 
-        return
+    #####################################
+    # Overlap of the Airy PSFs?
+    # TO CORRECT: TT THE HPC TO TRANSLATE DX AIRY PSF
+    ## ## (MAYBE TRY TTING THE FPC LATER?)
+    ## MAYBE TRY MOVING STUFF MANUALLY ON PIEZOS PAGE FIRST
+    print(fftInfo_arg["std_lowFreqPerfect"])
+    hpc_tip_position_now = pi.getINDI("Ubcs.HPC_Tip_status.PosNum") # HPC tip pos
+    hpc_tilt_position_now = pi.getINDI("Ubcs.HPC_Tilt_status.PosNum") # HPC tilt pos
+    print("hpc_tip_position_now:")
+    print(hpc_tip_position_now)
+    print("hpc_tilt_position_now:")
+    print(hpc_tilt_position_now)
+    ## ## need HPC TT command here
+    #pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(spc_trans_command))
+
+    
+    #####################################
+    # High-freq fringe visibility (median)
+    print("--------------------------")
+    print("Median of ampl of high freq lobe:")
+    print(fftInfo_amp["med_highFreqPerfect_R"])
+    # TO CORRECT: MOVE THE SPC_TRANS TO FIND CENTER OF COHERENCE ENVELOPE
+    #pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(spc_trans_command))
+    # BETTER YET: TO CORRECT: CHANGE THE FPC PATHLENGTH SETPOINT
+    ## WHATS THE INDI COMMAND HERE?
+
+    
+    #####################################
+    # High-freq phase gradient
+    print("--------------------------")
+    print("Phase gradient in x of high freq in PTF:")
+    print(fftInfo_arg["phase_normVec_highFreqPerfect_R"][0])
+    print("Phase gradient in y of high freq in PTF:")
+    print(fftInfo_arg["phase_normVec_highFreqPerfect_R"][1])
+    print("Phase gradient in x,y (amplitude)")
+    print(np.sqrt(np.power(fftInfo_arg["phase_normVec_highFreqPerfect_R"][0],2)+\
+                           np.power(fftInfo_arg["phase_normVec_highFreqPerfect_R"][1],2)))
+    print("--------------------------")
+    # TO CORRECT: CHANGE THE FPC TT SETPOINT
+    ## WHATS THE INDI COMMAND HERE?
+
+
+    
+    # all together now, lets make corrective movements
+    # for better Airy overlap: tip-tilt the FPC
+    pi.setINDI("Acromag.FPC.Tip="+'{0:.1f}'.format(vector_move_asec[0])+";Tilt="+'{0:.1f}'.format(vector_move_asec[1])+";Piston=0;Mode=1")
+
+    # for better fringe visibility: move the FPC or HPC in piston
+    stepSize = 5. # (um, total OPD)
+    # big steps, translation stage: Ubcs.SPC_Trans.command=>5
+    pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(10*0.5*stepSize)) # factor of 10 bcz command is in 0.1 um
+    # small steps, piezos: Acromag.HPC.Tip=0;Tilt=0;Piston=[stepSize];Mode=1
+    ## ## pi.setINDI("Acromag.HPC.Tip=0;Tilt=0;Piston="+'{0:.1f}'.format(stepSize)+";Mode=1")
+    ## ## pi.setINDI("Acromag.FPC.Tip=0;Tilt=0;Piston="+'{0:.1f}'.format(stepSize)+";Mode=1")
+
+    end = time.time()
+    print(end - start)
+    print('-----')
+
+    # turn off fizeau flag to avoid problems with other observations
+    print("De-activating ROI aquisition flag")
+    pi.setINDI("LMIRCAM.fizRun.value=Off")
+
+    ## APPEND time.time(), FPC setpoints TO FILE HERE
+
+    return

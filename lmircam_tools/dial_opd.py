@@ -10,7 +10,7 @@ from lmircam_tools import *
 from lmircam_tools import process_readout
 
 
-def optimize_opd_fizeau_grism(mode = "science"):
+def find_optimal_opd_fizeau_grism(mode = "science"):
     ''' 
     Takes well-overlapped grism PSFs and dials the optical path
     difference such that barber-pole fringes become vertical
@@ -179,30 +179,44 @@ def optimize_opd_fizeau_grism(mode = "science"):
     ## plt.xlabel('SPCTRANS')
     ## plt.ylabel('Median of Residuals Between Top and Bottom Halves of FFT')
 
-    ## ## FIND THE MINIMUM: STOP POINT HERE
+    d = {"coeffs": coeffs, "scan_data": df} # put stuff into dictionary
+    
+    return d
 
+
+def implement_optimal_opd(d):
+    '''
+    Take the data from the scan, and implement it by moving the SPC
+
+    INPUTS:
+    d: dictionary containing
+        "coeffs": the coefficients of the fit to the residuals
+        "scan_data": the data on the residuals, and piston positions of moveable beam combiner elements
+    '''
+
+    coeffs = d["coeffs"]
+    
     # find the minimum; set the HPC path length position accordingly
     y_series = coeffs[2] + coeffs[1]*df["spc_trans_position"]+coeffs[0]*df["spc_trans_position"]**2
     min_y = min(y_series)  # find the minimum y-value
-    print(y_series)
-    print(min_y)
     zero_opd_spc_trans_pos = df.loc[y_series == np.min(y_series)]["spc_trans_position"].values[0] # find the x-value (pathlength) corresponding to min y-value (residuals)
+
     # is the curve concave up?
     if (coeffs[0] < 0):
-	print("Line fit to residuals is not concave up!!")
+        print("Something is wrong-- line fit to residuals is not concave up!!")
 
     raw_input("Plot "+file_name+" on a local machine to see if OPD of zero has been found. Then proceed with [Enter]. Otherwise, break.")
 
     # command the SPC_Trans to move to that minimum
     spc_trans_position_now = pi.getINDI("Ubcs.SPC_Trans_status.PosNum") # re-obtain translation stage position
     spc_trans_command = np.subtract(zero_opd_spc_trans_pos,spc_trans_position_now)
-    print("spc_trans_position_now")
+    print("spc_trans_position_now:")
     print(spc_trans_position_now)
-    print("spc_trans_command")
+    print("spc_trans_command:")
     print(spc_trans_command)
     pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(spc_trans_command))
 
-    # command the HPC to move to that minimum
+    # command the HPC piezo to move to that minimum
     #pi.setINDI("Acromag.HPC.Tip=0;Tilt=0;Piston="+'{0:.1f}'.format(max_x)+";Mode=1")
 
     # as last step, remove grism

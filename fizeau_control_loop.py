@@ -3,8 +3,8 @@
 import pdb
 from lmircam_tools import *
 from lmircam_tools.overlap_psfs import overlap_psfs
-from lmircam_tools.dial_opd import optimize_opd_fizeau_grism, optimize_opd_fizeau_airy
-from lmircam_tools.change_tt import get_pc_setpts
+from lmircam_tools.dial_opd import find_optimal_opd_fizeau_airy, implement_optimal_opd
+from lmircam_tools.change_tt import print_write_fft_info, get_apply_pc_setpts
 
 ############## GROSS OVERLAP OF NON-FIZEAU AIRY PSFS
 
@@ -46,7 +46,8 @@ overlap_psfs(fiz_lmir_sweet_spot, mode = mode_choice, psf_type = "grism")
 ## ## add length of scan (in total OPD?)
 ## ## sometimes new HPC movement causes grisms to separate; may need to re-overlap them each time
 ## ## insert all hpc, fpc piston and TT statuses into headers
-optimize_opd_fizeau_grism(mode = mode_choice) # might also use argument of the re-established Fizeau/grism PSF instead of the coordinate where it's supposed to be
+scan_data = find_optimal_opd_fizeau_grism(mode = mode_choice) # might also use argument of the re-established Fizeau/grism PSF instead of the coordinate where it's supposed to be
+implement_optimal_opd(scan_data)
 print("----------------------------------------------------------------------------------")
 raw_input("Now align Phasecam and close the phase loop")
 
@@ -65,8 +66,13 @@ raw_input("Now align Phasecam and close the phase loop")
 
 ############## OPTIMIZE SCIENCE PSF BY FINDING OPD AND TT SETPOINTS ITERATIVELY
 
-## ## optimize_opd_fizeau_airy(psf_location) # 2ND PRIORITY
-get_pc_setpts(log_name = "setpt_log.csv", mode = mode_choice) 
+# print fft info, see how it compares with the set thresholds
+fft_info = print_write_fft_info(log_name = "fft_log.csv", mode = mode_choice)
+
+# calculate and apply Phasecam setpoints
+## ## DONT RUN THE FOLLOWING FUNCTION YET; JUST USE BITS INSIDE OF IT TO TEST THE EFFECT ON THE PSF
+get_apply_pc_setpts(fft_info, log_name = "setpt_log.csv", mode = mode_choice)
+
 ## adjust TT to optimize PSF; maybe iterate with OPD?
 ## note OPD movements cannot be more than 5 um with Phasecam closed
 
