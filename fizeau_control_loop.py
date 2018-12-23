@@ -12,6 +12,8 @@ from lmircam_tools.dial_opd import find_optimal_opd_fizeau_grism, implement_opti
 # grism PSF + possible movement; ~400x200
 # insert option to only horizontally overlap grisms
 
+# default integration time is set in the __init__ file
+
 print("----------------------------------------------------------------------------------")
 raw_input("Place an ROI, no larger than 512x512, over the Phasecam sweet spot for LMIRcam, and move telescopes\n to put Airy PSFs somethere inside the ROI. \nROI size needs to be "+\
 	"large enough to include the grism PSF and possible movement, e.g., ~400x200\n (HOSTS sweet spot was [880,800] "+\
@@ -29,7 +31,7 @@ print("Stop continuous aquisition of the camera.")
 print("----------------------------------------------------------------------------------")
 
 pdb.set_trace()
-overlap_psfs(fiz_lmir_sweet_spot, mode = mode_choice, psf_type = "airy") # filter-agnostic
+overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = mode_choice, psf_type = "airy") # filter-agnostic
 
 ## ## see old sweet spots (can also locate them on NOMIC, and then see where they are on LMIR)
 ## ## see nomic nulling to see how nod with wheel is done
@@ -37,7 +39,7 @@ overlap_psfs(fiz_lmir_sweet_spot, mode = mode_choice, psf_type = "airy") # filte
 ############## PUT IN GRISM AND REFINE GRISM-PSF OVERLAP
 
 put_in_grism()
-overlap_psfs(fiz_lmir_sweet_spot, mode = mode_choice, psf_type = "grism")
+overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = mode_choice, psf_type = "grism")
 
 
 ############## IN GRISM MODE, DIAL OPD WITH HPC AND FIND CENTER OF COHERENCE ENVELOPE, THEN REMOVE GRISM
@@ -46,7 +48,7 @@ overlap_psfs(fiz_lmir_sweet_spot, mode = mode_choice, psf_type = "grism")
 ## ## add length of scan (in total OPD?)
 ## ## sometimes new HPC movement causes grisms to separate; may need to re-overlap them each time
 ## ## insert all hpc, fpc piston and TT statuses into headers
-scan_data = find_optimal_opd_fizeau_grism(mode = mode_choice) # might also use argument of the re-established Fizeau/grism PSF instead of the coordinate where it's supposed to be
+scan_data = find_optimal_opd_fizeau_grism(integ_time, mode = mode_choice) # might also use argument of the re-established Fizeau/grism PSF instead of the coordinate where it's supposed to be
 implement_optimal_opd(scan_data)
 print("----------------------------------------------------------------------------------")
 raw_input("Now align Phasecam and close the phase loop")
@@ -67,11 +69,11 @@ raw_input("Now align Phasecam and close the phase loop")
 ############## OPTIMIZE SCIENCE PSF BY FINDING OPD AND TT SETPOINTS ITERATIVELY
 
 # print fft info, see how it compares with the set thresholds
-fft_info = print_write_fft_info(log_name = "fft_log.csv", mode = mode_choice)
+fft_info = print_write_fft_info(integ_time, log_name = "fft_log.csv", mode = mode_choice)
 
 # calculate and apply Phasecam setpoints
 ## ## DONT RUN THE FOLLOWING FUNCTION YET; JUST USE BITS INSIDE OF IT TO TEST THE EFFECT ON THE PSF
-get_apply_pc_setpts(fft_info, log_name = "setpt_log.csv", mode = mode_choice)
+get_apply_pc_setpts(integ_time, fft_info, log_name = "setpt_log.csv", mode = mode_choice)
 
 ## adjust TT to optimize PSF; maybe iterate with OPD?
 ## note OPD movements cannot be more than 5 um with Phasecam closed

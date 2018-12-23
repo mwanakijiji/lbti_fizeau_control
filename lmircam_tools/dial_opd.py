@@ -10,7 +10,7 @@ from lmircam_tools import *
 from lmircam_tools import process_readout
 
 
-def find_optimal_opd_fizeau_grism(mode = "science"):
+def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
     ''' 
     Takes well-overlapped grism PSFs and dials the optical path
     difference such that barber-pole fringes become vertical
@@ -45,7 +45,7 @@ def find_optimal_opd_fizeau_grism(mode = "science"):
 	step_size_opd = 10. # step size per opd_step count (um, total OPD)
 
         print("Taking a background-subtracted frame")
-        f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=60)
+        f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
 	if (mode == "fake_fits"):
             f = pyfits.open("test_fits_files/test_frame_grismFiz_small.fits")

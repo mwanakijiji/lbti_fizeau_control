@@ -240,7 +240,7 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
     return dictFFTstuff
 
 
-def print_write_fft_info(log_name = "fft_log.csv", mode = "science"):
+def print_write_fft_info(integ_time, log_name = "fft_log.csv", mode = "science"):
     ''' 
     Take FFT of PSF, and calculate new Phasecam PL and TT setpoints
     
@@ -263,11 +263,11 @@ def print_write_fft_info(log_name = "fft_log.csv", mode = "science"):
     elif (mode == "science"):
         # take a frame with background subtracting
         print("Taking a background-subtracted frame")
-        f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=60)
+        f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
     image = f[0].data
 
-    for f in range(0,1): # just 1 sample for now
+    for f in range(0,20): # just 10 samples for now
 
         start = time.time() # start timer
 
@@ -302,9 +302,9 @@ def print_write_fft_info(log_name = "fft_log.csv", mode = "science"):
             continue
 
         print("------------------")
-        print("FFT ampl:")
+        print("FFT ampl of psf "+str(f)+":")
         print(amp.data)
-        print("FFT phase:")
+        print("FFT phase of psf "+str(f)+":")
         print(arg.data)
 
         # analyze FFTs
@@ -314,18 +314,18 @@ def print_write_fft_info(log_name = "fft_log.csv", mode = "science"):
                                   fyi_string=str("{:0>6d}".format(f))+' FFT phase')
 
         print("------------------")
-        print("FFT info ampl:")
+        print("FFT info ampl of psf "+str(f)+":")
         print(fftInfo_amp)
-        print("FFT info phase:")
+        print("FFT info phase of psf "+str(f)+":")
         print(fftInfo_arg)
 
         # save fyi FITS files
         hdu = pyfits.PrimaryHDU(amp.data)
         hdulist = pyfits.HDUList([hdu])
-        hdu.writeto('junk_test_amp.fits', clobber=True)
+        hdu.writeto("junk_test_amp_psf_"+str(f)+".fits", clobber=True)
         hdu = pyfits.PrimaryHDU(arg.data)
         hdulist = pyfits.HDUList([hdu])
-        hdu.writeto('junk_test_arg.fits', clobber=True)
+        hdu.writeto("junk_test_arg_psf_"+str(f)+".fits", clobber=True)
 
         ## take info from the FFTs to send corrective movements
 
@@ -369,91 +369,129 @@ def print_write_fft_info(log_name = "fft_log.csv", mode = "science"):
         # PCMSNR: S/N of K-band fringes
         # PCPHSTD: noise of phase in the integration time of NOMIC
 
-        ## APPEND time.time(), fftInfo_amp, fftInfo_arg TO FILE HERE
-
-        # dictionary to contain the FFT amplitude, phase info
-        d = {"fft_amp": fftInfo_amp, "fft_arg": fftInfo_arg}
-	fftInfo_amp_df = pd.DataFrame(fftInfo_amp)
-	fftInfo_amp_df.to_csv('fft_amp.csv')
+        # also find time
+        timestamp = time.time()
+        fftInfo_amp["time"] = timestamp
+        fftInfo_arg["time"] = timestamp
+        
+        # convert dictionaries to dataframes that are easy to write to file
+        fftInfo_amp_df = pd.DataFrame(fftInfo_amp)
         fftInfo_arg_df = pd.DataFrame(fftInfo_arg)
-        fftInfo_arg_df.to_csv('fft_arg.csv')
+
+        # append to log
+        fftInfo_amp_df.to_csv("fft_amp.csv")
+        fftInfo_arg_df.to_csv("fft_arg.csv")
+        ## ## note I havent used log_name anywhere yet
+
+        # print fyi
+        time_elapsed = time.time() - start
+        print("----------------------------------")
+        print("PSF "+str(f)+" analysed in time (secs):")
+        print(time_elapsed)
+        
+
+    
+    d = {"fft_amp": fftInfo_amp, "fft_arg": fftInfo_arg}
+
+    print("Done analyzing a range of PSFs. Now read the data in and calculate changed PC setpoints.")
     
     return d
 
     
 def get_apply_pc_setpts(fft_info, log_name = "setpt_log.csv", mode = "science")
 
-    fftInfo_amp = fft_info["fftInfo_amp"]
-    fftInfo_arg = fft_info["fftInfo_arg"]
+    ## ## note Im just reading in csvs here, and not passing an argument fft_info
+    fftInfo_amp = pd.read_csv("fft_amp.csv")
+    fftInfo_arg = pd.read_csv("fft_arg.csv")
 
     #####################################
     # Overlap of the Airy PSFs?
     # TO CORRECT: TT THE HPC TO TRANSLATE DX AIRY PSF
     ## ## (MAYBE TRY TTING THE FPC LATER?)
     ## MAYBE TRY MOVING STUFF MANUALLY ON PIEZOS PAGE FIRST
-    print(fftInfo_arg["std_lowFreqPerfect"])
+    print("----------------------------------")
+    print("----------------------------------")
+    print("Checking overlap of the Airy PSFs via std of FFT phase low freq node:")
+    print(np.median(fftInfo_arg["std_lowFreqPerfect"]))
     hpc_tip_position_now = pi.getINDI("Ubcs.HPC_Tip_status.PosNum") # HPC tip pos
     hpc_tilt_position_now = pi.getINDI("Ubcs.HPC_Tilt_status.PosNum") # HPC tilt pos
+    fpc_tip_setpoint_now = pi.getINDI("PLC.UBCSettings.TipSetpoint") # FPC tip setpoint
+    fpc_tilt_setpoint_now = pi.getINDI("PLC.UBCSettings.TiltSetpoint") # FPC tilt setpoint
+    print("----------------------------------")
     print("hpc_tip_position_now:")
     print(hpc_tip_position_now)
     print("hpc_tilt_position_now:")
     print(hpc_tilt_position_now)
-    ## ## need HPC TT command here
-    #pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(spc_trans_command))
-
+    print("fpc_tip_setpoint_now:")
+    print(fpc_tip_setpoint_now)
+    print("fpc_tilt_setpoint_now:")
+    print(fpc_tilt_setpoint_now)  
+    print("Check the Airy overlap on LMIR, and manually move the HPC. How large of an HPC tip-tilt was necessary to overlap them? Scale stdev with this movement.")
+    pdb.set_trace()
     
     #####################################
     # High-freq fringe visibility (median)
-    print("--------------------------")
-    print("Median of ampl of high freq lobe:")
-    print(fftInfo_amp["med_highFreqPerfect_R"])
-    # TO CORRECT: MOVE THE SPC_TRANS TO FIND CENTER OF COHERENCE ENVELOPE
-    #pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(spc_trans_command))
-    # BETTER YET: TO CORRECT: CHANGE THE FPC PATHLENGTH SETPOINT
-    ## WHATS THE INDI COMMAND HERE?
-    new_pl_setpoint = __
-    #pi.setINDI("PLC.UBCSettings.Beam1_x=32;Beam1_y=29;Beam2_x=13;Beam2_y=27;Beam_r=6;MinFTSNR=-1;\
-	#	PLSetpoint="+str(int(new_pl_setpoint))+";PWVGain=0;PLIGain=1;CGSetpoint=0.15;CGScale=0;\
-	#	TipSetpoint=0;\
-	#	TiltSetpoint=155;TTIGain=1;PLPGain=0;PLDGain=0;TTPGain=0;TTDGain=0")
-    pi.setINDI("PLC.UBCSettings.PLSetpoint="+str(int(new_pl_setpoint)))
-    ## ## populate the current values of other things (beam locations, etc.) by grabbing them first
-
+    print("----------------------------------")
+    print("----------------------------------")
+    print("Checking high-freq fringe visibility via median of ampl of high freq lobe:")
+    print(np.median(fftInfo_amp["med_highFreqPerfect_R"]))
+    print("----------------------------------")
+    print("Current SPC_Trans position:")
+    spc_trans_position_now = pi.getINDI("Ubcs.SPC_Trans_status.PosNum") # translation stage (absolute position, 0.02 um)
+    print(spc_trans_position_now)
+    print("Current FPC piston position:")
+    ## ## FILL IN HERE: fpc piston position
+    print("Current FPC PL setpoint:")
+    fpc_pl_setpoint = pi.getINDI("PLC.UBCSettings.PLSetpoint")
+    print("Manually change PL setpoint. How good/bad is the high-freq fringe visibility on LMIR? Write down the scale.")
+    pdb.set_trace()
     
     #####################################
     # High-freq phase gradient
+    print("----------------------------------")
+    print("----------------------------------")
+    print("Checking phase gradient in x of high freq in PTF:")
+    x_grad = np.median(fftInfo_arg["phase_normVec_highFreqPerfect_R"][0])
+    print(x_grad)
+    print("Checking phase gradient in y of high freq in PTF:")
+    y_grad = np.median(fftInfo_arg["phase_normVec_highFreqPerfect_R"][1])
+    print(y_grad)
+    print("Checking phase gradient in x,y (amplitude)")
+    print(np.sqrt(x_grad,2)+np.power(y_grad,2))
     print("--------------------------")
-    print("Phase gradient in x of high freq in PTF:")
-    print(fftInfo_arg["phase_normVec_highFreqPerfect_R"][0])
-    print("Phase gradient in y of high freq in PTF:")
-    print(fftInfo_arg["phase_normVec_highFreqPerfect_R"][1])
-    print("Phase gradient in x,y (amplitude)")
-    print(np.sqrt(np.power(fftInfo_arg["phase_normVec_highFreqPerfect_R"][0],2)+\
-                           np.power(fftInfo_arg["phase_normVec_highFreqPerfect_R"][1],2)))
-    print("--------------------------")
-    # TO CORRECT: CHANGE THE FPC TT SETPOINT
-    ## WHATS THE INDI COMMAND HERE?
-    new_tip_setpoint = __
-    new_tilt_setpoint = __
-    #pi.setINDI("PLC.UBCSettings.Beam1_x=32;Beam1_y=29;Beam2_x=13;Beam2_y=27;Beam_r=6;MinFTSNR=-1;\
-        #       PLSetpoint=;PWVGain=0;PLIGain=1;CGSetpoint=0.15;CGScale=0;\
-        #       TipSetpoint="+str(int(new_tip_setpoint))+";\
-        #       TiltSetpoint="+str(int(new_tilt_setpoint))+";TTIGain=1;PLPGain=0;PLDGain=0;TTPGain=0;TTDGain=0")
+    print("Current FPC tip setpoint:")
+    fpc_tip_setpoint = pi.getINDI("PLC.UBCSettings.TipSetpoint")
+    print(fpc_tip_setpoint)
+    print("Current FPC tilt setpoint:")
+    fpc_tilt_setpoint = pi.getINDI("PLC.UBCSettings.TiltSetpoint")
+    print(fpc_tilt_setpoint)
+    print("Manually change FPC tip-tilt setpoints. What was the scale?")
+    pdb.set_trace()
+
+    #######################################################################
+    # lines to run on the command line to test application of corrections
+
+    # To correct Airy PSF overlap, or TT in Fizeau PSF
+    new_tip_setpoint = 0
+    new_tilt_setpoint = 0
     pi.setINDI("PLC.UBCSettings.TipSetpoint="+str(int(new_tip_setpoint))
     pi.setINDI("PLC.UBCSettings.TiltSetpoint="+str(int(new_tilt_setpoint))
 
-    
-    # all together now, lets make corrective movements
-    # for better Airy overlap: tip-tilt the FPC
-    pi.setINDI("Acromag.FPC.Tip="+'{0:.1f}'.format(vector_move_asec[0])+";Tilt="+'{0:.1f}'.format(vector_move_asec[1])+";Piston=0;Mode=1")
-
-    # for better fringe visibility: move the FPC or HPC in piston
-    stepSize = 5. # (um, total OPD)
-    # big steps, translation stage: Ubcs.SPC_Trans.command=>5
+    # To correct high-freq fringe visibility
+    new_pl_setpoint = 0
+    spc_trans_stepSize = 5. # (um, total OPD)
+    pi.setINDI("PLC.UBCSettings.PLSetpoint="+str(int(new_pl_setpoint)))
+    pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(spc_trans_command))
     pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(10*0.5*stepSize)) # factor of 10 bcz command is in 0.1 um
-    # small steps, piezos: Acromag.HPC.Tip=0;Tilt=0;Piston=[stepSize];Mode=1
-    ## ## pi.setINDI("Acromag.HPC.Tip=0;Tilt=0;Piston="+'{0:.1f}'.format(stepSize)+";Mode=1")
-    ## ## pi.setINDI("Acromag.FPC.Tip=0;Tilt=0;Piston="+'{0:.1f}'.format(stepSize)+";Mode=1")
+    
+    # To correct high-freq fringe gradients (note similarity to correction for Airy PSF overlap)
+    new_tip_setpoint = 0
+    new_tilt_setpoint = 0
+    pi.setINDI("PLC.UBCSettings.TipSetpoint="+str(int(new_tip_setpoint))
+    pi.setINDI("PLC.UBCSettings.TiltSetpoint="+str(int(new_tilt_setpoint))    
+    
+    # FYI: EDIT TO MAKE MOMENTARY CHANGES IN FPC TT
+    pi.setINDI("Acromag.FPC.Tip="+'{0:.1f}'.format(vector_move_asec[0])+";Tilt="+'{0:.1f}'.format(vector_move_asec[1])+";Piston=0;Mode=1")
 
     end = time.time()
     print(end - start)
@@ -462,7 +500,5 @@ def get_apply_pc_setpts(fft_info, log_name = "setpt_log.csv", mode = "science")
     # turn off fizeau flag to avoid problems with other observations
     print("De-activating ROI aquisition flag")
     pi.setINDI("LMIRCAM.fizRun.value=Off")
-
-    ## APPEND time.time(), FPC setpoints TO FILE HERE
 
     return

@@ -6,6 +6,7 @@ from scipy import ndimage, sqrt, stats, misc, signal
 
 pi = PyINDI(verbose=False)
 
+integ_time = 100 # integration time of all frames, saved and unsaved (msec)
 
 # define 2D gaussian for fitting PSFs
 def gaussian_x(x, mu, sig):
@@ -149,7 +150,7 @@ def take_roi_background():
     print("Moving in a blank to take a background")
     pi.setINDI("Lmir.lmir_FW4.command", "Blank", wait=True)
     print("Taking a background")
-    f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=0;int_time=%i;is_bg=1;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=60)
+    f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=0;int_time=%i;is_bg=1;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
     return
 
@@ -175,7 +176,7 @@ def put_in_grism(image = "yes"):
         pi.setINDI("LMIRCAM.fizRun.value=On")
 
     	# take a new frame to see what things look like now
-    	f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=60)
+    	f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
     	# turn off fizeau flag to avoid problems with other observations
     	print("De-activating ROI aquisition flag")

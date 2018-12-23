@@ -64,7 +64,7 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
 
         # take a frame with background subtracting
         print("Taking a background-subtracted frame")
-	f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=60)
+	f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
 	if ((mode == "fake_fits") and (psf_type == "airy")):
             #f = pyfits.open("test_frame_fiz_large.fits")
@@ -98,7 +98,7 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
 
         ### re-locate PSF; correction needed?
         print("Taking a background-subtracted frame")
-	f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=60)
+	f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
 	if (mode == "fake_fits"):
 	    f = pyfits.open("test_fits_files/test_frame_fiz_small.fits")
@@ -137,7 +137,7 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
 	    break
 
 
-def overlap_psfs(fiz_lmir_sweet_spot, mode = "science", psf_type = "airy"):
+def overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = "science", psf_type = "airy"):
 
     start_time = time.time()
 
@@ -153,7 +153,7 @@ def overlap_psfs(fiz_lmir_sweet_spot, mode = "science", psf_type = "airy"):
     pi.setINDI("Lmir.lmir_FW2.command", 'Open', wait=True)
 
     # take a new frame to see what things look like now
-    f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=60)
+    f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
     # turn off fizeau flag to avoid problems with other observations
     print("De-activating ROI aquisition flag")
