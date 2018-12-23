@@ -373,7 +373,11 @@ def print_write_fft_info(log_name = "fft_log.csv", mode = "science"):
 
         # dictionary to contain the FFT amplitude, phase info
         d = {"fft_amp": fftInfo_amp, "fft_arg": fftInfo_arg}
-        
+	fftInfo_amp_df = pd.DataFrame(fftInfo_amp)
+	fftInfo_amp_df.to_csv('fft_amp.csv')
+        fftInfo_arg_df = pd.DataFrame(fftInfo_arg)
+        fftInfo_arg_df.to_csv('fft_arg.csv')
+    
     return d
 
     
@@ -407,6 +411,13 @@ def get_apply_pc_setpts(fft_info, log_name = "setpt_log.csv", mode = "science")
     #pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(spc_trans_command))
     # BETTER YET: TO CORRECT: CHANGE THE FPC PATHLENGTH SETPOINT
     ## WHATS THE INDI COMMAND HERE?
+    new_pl_setpoint = __
+    #pi.setINDI("PLC.UBCSettings.Beam1_x=32;Beam1_y=29;Beam2_x=13;Beam2_y=27;Beam_r=6;MinFTSNR=-1;\
+	#	PLSetpoint="+str(int(new_pl_setpoint))+";PWVGain=0;PLIGain=1;CGSetpoint=0.15;CGScale=0;\
+	#	TipSetpoint=0;\
+	#	TiltSetpoint=155;TTIGain=1;PLPGain=0;PLDGain=0;TTPGain=0;TTDGain=0")
+    pi.setINDI("PLC.UBCSettings.PLSetpoint="+str(int(new_pl_setpoint)))
+    ## ## populate the current values of other things (beam locations, etc.) by grabbing them first
 
     
     #####################################
@@ -422,7 +433,14 @@ def get_apply_pc_setpts(fft_info, log_name = "setpt_log.csv", mode = "science")
     print("--------------------------")
     # TO CORRECT: CHANGE THE FPC TT SETPOINT
     ## WHATS THE INDI COMMAND HERE?
-
+    new_tip_setpoint = __
+    new_tilt_setpoint = __
+    #pi.setINDI("PLC.UBCSettings.Beam1_x=32;Beam1_y=29;Beam2_x=13;Beam2_y=27;Beam_r=6;MinFTSNR=-1;\
+        #       PLSetpoint=;PWVGain=0;PLIGain=1;CGSetpoint=0.15;CGScale=0;\
+        #       TipSetpoint="+str(int(new_tip_setpoint))+";\
+        #       TiltSetpoint="+str(int(new_tilt_setpoint))+";TTIGain=1;PLPGain=0;PLDGain=0;TTPGain=0;TTDGain=0")
+    pi.setINDI("PLC.UBCSettings.TipSetpoint="+str(int(new_tip_setpoint))
+    pi.setINDI("PLC.UBCSettings.TiltSetpoint="+str(int(new_tilt_setpoint))
 
     
     # all together now, lets make corrective movements

@@ -3,8 +3,8 @@
 import pdb
 from lmircam_tools import *
 from lmircam_tools.overlap_psfs import overlap_psfs
-from lmircam_tools.dial_opd import find_optimal_opd_fizeau_airy, implement_optimal_opd
-from lmircam_tools.change_tt import print_write_fft_info, get_apply_pc_setpts
+from lmircam_tools.dial_opd import find_optimal_opd_fizeau_grism, implement_optimal_opd
+#from lmircam_tools.change_tt import print_write_fft_info, get_apply_pc_setpts
 
 ############## GROSS OVERLAP OF NON-FIZEAU AIRY PSFS
 
@@ -23,7 +23,7 @@ fiz_lmir_sweet_spot = [200,100]
 # Is this script being run as a test, or are we doing on-sky science?
 # Options: "fake_fits", "artif_source", "science"
 print("----------------------------------------------------------------------------------")
-mode_choice = "artif_source"
+mode_choice = "science"
 print("This optimization code is running in mode " + mode_choice)
 print("Stop continuous aquisition of the camera.")
 print("----------------------------------------------------------------------------------")

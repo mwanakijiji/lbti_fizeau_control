@@ -6,6 +6,7 @@ import time
 from scipy import ndimage, sqrt, misc, stats,signal
 from lmircam_tools import *
 from lmircam_tools import pi, process_readout, gaussian_x, find_airy_psf, find_grism_psf
+from lmircam_tools.utils import nod, wait4AORunning
 
 
 ###### TO DO: THE OVERLAP FUNCTIONS HAVE A LOT OF SHARED FUNCTIONALITY; MAKE A CLASS STRUCTURE!
@@ -93,7 +94,7 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
         if (mode == "science"):
 	    print("Moving " + x_side + " telescope")
             nod(XOff=vector_move_asec[1],YOff=vector_move_asec[0],side=side,Coords="DETXY",Type="REL")
-            wait4AORunning() # let AO close
+            wait4AORunning('both') # let AO close
 
         ### re-locate PSF; correction needed?
         print("Taking a background-subtracted frame")
