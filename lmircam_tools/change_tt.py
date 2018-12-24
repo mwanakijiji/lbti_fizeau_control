@@ -263,6 +263,7 @@ def print_write_fft_info(integ_time, log_name = "fft_log.csv", mode = "science")
     elif (mode == "science"):
         # take a frame with background subtracting
         print("Taking a background-subtracted frame")
+        pi.setFITS("LMIRCAM.settings.enable_save=1")
         f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
     image = f[0].data
