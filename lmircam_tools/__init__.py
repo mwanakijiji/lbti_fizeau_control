@@ -138,7 +138,7 @@ def find_airy_psf(image):
     return [cy, cx]
 
 
-def take_roi_background():
+def take_roi_background(mode):
     ''' 
     This flips the Fizeau PSF flag to on, and takes a new background for that ROI
     '''
@@ -190,4 +190,9 @@ def put_in_grism(image = "yes"):
         print(end_time - start_time)
         print("-------------------")	
 
+    return
+
+
+def junk_empty_fcn(mode = "science"):
+    print(mode)
     return

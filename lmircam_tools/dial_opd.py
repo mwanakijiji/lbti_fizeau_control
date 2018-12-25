@@ -26,7 +26,7 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
     sig = 5 # sigma of Gaussian profile in x (in pix)
     length_y = 200 # length in y of the psf (in pix)
 
-    take_roi_background()
+    take_roi_background(mode)
     raw_input("User: remove the Blank in FW4, then press return when done")
 
     # initialize dataframe for pathlength and residual data
@@ -183,13 +183,13 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
     ## plt.ylabel('Median of Residuals Between Top and Bottom Halves of FFT')
 
     d = {"coeffs": coeffs, "scan_data": df} # put stuff into dictionary
-    
+
     return d
 
 
 def implement_optimal_opd(d):
-    '''
-    Take the data from the scan, and implement it by moving the SPC
+    ''' 
+    Take the data from the scan, calculate where OPD=0 is, and implement it by moving the SPC
 
     INPUTS:
     d: dictionary containing
@@ -198,7 +198,7 @@ def implement_optimal_opd(d):
     '''
 
     coeffs = d["coeffs"]
-    
+
     # find the minimum; set the HPC path length position accordingly
     y_series = coeffs[2] + coeffs[1]*df["spc_trans_position"]+coeffs[0]*df["spc_trans_position"]**2
     min_y = min(y_series)  # find the minimum y-value
@@ -221,7 +221,8 @@ def implement_optimal_opd(d):
         pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(spc_trans_command))
 
     # command the HPC piezo to move to that minimum
-    #pi.setINDI("Acromag.HPC.Tip=0;Tilt=0;Piston="+'{0:.1f}'.format(max_x)+";Mode=1")
+    #if (mode != "total_passive"):
+    #    pi.setINDI("Acromag.HPC.Tip=0;Tilt=0;Piston="+'{0:.1f}'.format(max_x)+";Mode=1")
 
     # as last step, remove grism
     raw_input("User: remove grism, insert observing filters, and press [Enter]")

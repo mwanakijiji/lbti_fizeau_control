@@ -148,7 +148,7 @@ def overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = "science", psf_type = "
 
     start_time = time.time()
 
-    take_roi_background()
+    take_roi_background(mode)
 
     raw_input("User: remove the Blank in FW4, then press return when done")
 

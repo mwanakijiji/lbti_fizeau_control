@@ -12,6 +12,7 @@ import csv
 import time
 import pickle
 import pdb
+import pandas as pd
 
 from lmircam_tools import *
 from lmircam_tools import overlap_psfs
@@ -236,14 +237,24 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
     dictFFTstuff["normVec_highFreqPerfect_R"] = normVec_highFreqPerfect_R
     dictFFTstuff["normVec_lowFreqPerfect"] = normVec_lowFreqPerfect
     dictFFTstuff["normVec_rect"] = normVec_rect
+    dictFFTstuff["normVec_highFreqPerfect_R_x"] = normVec_highFreqPerfect_L[0]
+    dictFFTstuff["normVec_highFreqPerfect_R_y"] = normVec_highFreqPerfect_L[1]
+    dictFFTstuff["normVec_lowFreqPerfect_x"] = normVec_lowFreqPerfect[0]
+    dictFFTstuff["normVec_lowFreqPerfect_y"] = normVec_lowFreqPerfect[1]
+
+    # return the regions with mask overlays, too
+    dictFFTstuff["sciImg1"] = sciImg1
+    dictFFTstuff["sciImg2"] = sciImg2
+    dictFFTstuff["sciImg3"] = sciImg3
+    dictFFTstuff["sciImg4"] = sciImg4
 
     return dictFFTstuff
 
 
-def print_write_fft_info(integ_time, log_name = "fft_log.csv", mode = "science"):
+def print_write_fft_info(integ_time, mode = "science", log_name = "fft_log.csv"):
     ''' 
     Take FFT of PSF, and calculate new Phasecam PL and TT setpoints
-    
+
     INPUTS:
     log_name: name of the csv file to which FFT information will be printed
     mode: "fake_fits": read in fake FITS files (but continue sending LMIR and mirror commands)
@@ -252,28 +263,28 @@ def print_write_fft_info(integ_time, log_name = "fft_log.csv", mode = "science")
     '''
 
     ampArray = []
+    fftInfo_amp_df = pd.DataFrame()
+    fftInfo_arg_df = pd.DataFrame()
 
     counter_num = 0
 
-    take_roi_background()
+    take_roi_background(mode)
 
-    if ((mode == "fake_fits") or (mode == "total_passive")):
-        #f = pyfits.open("test_fits_files/test_frame_fiz_large.fits")
-        f = pyfits.open("test_fits_files/test_frame_fiz_small.fits")
-    elif (mode == "science"):
-        # take a frame with background subtracting
-        print("Taking a background-subtracted frame")
-        pi.setFITS("LMIRCAM.settings.enable_save=1")
-        f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
-
-    image = f[0].data
-
-    for f in range(0,20): # just 10 samples for now
+    # each loop: take a frame, analyze it, extract FFT info to write out
+    for sample_num in range(0,4): # N samples for now
 
         start = time.time() # start timer
 
+        if ((mode == "fake_fits") or (mode == "total_passive")):
+            #f = pyfits.open("test_fits_files/test_frame_fiz_large.fits")
+            f = pyfits.open("test_fits_files/test_frame_fiz_small.fits")
+        elif ((mode == "science") or (mode == "artif_source")):
+            # take a frame with background subtracting
+            print("Taking a background-subtracted frame")
+            pi.setFITS("LMIRCAM.settings.enable_save=1")
+            f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
-        ## ##image, header = fits.getdata(filename_str,0,header=True)
+        image = f[0].data
 
         # locate PSF
         psf_loc = find_grism_psf(image, sig=5, length_y=5)
@@ -281,7 +292,7 @@ def print_write_fft_info(integ_time, log_name = "fft_log.csv", mode = "science")
         #psf_loc = find_airy_psf(image)
 
         # size of cookie cut-out (measured center-to-edge)
-        #cookie_size = 100 # maximum control radius as of 2018 July corresponds to 130.0 pixels
+        cookie_size = 100 # maximum control radius as of 2018 July corresponds to 130.0 pixels
 
         # take FFT
         # cookie_cut = image[psf_loc[0]-cookie_size:psf_loc[0]+cookie_size,psf_loc[1]-cookie_size:psf_loc[1]+cookie_size]
@@ -303,16 +314,16 @@ def print_write_fft_info(integ_time, log_name = "fft_log.csv", mode = "science")
             continue
 
         print("------------------")
-        print("FFT ampl of psf "+str(f)+":")
+        print("FFT ampl of psf "+str(sample_num)+":")
         print(amp.data)
-        print("FFT phase of psf "+str(f)+":")
+        print("FFT phase of psf "+str(sample_num)+":")
         print(arg.data)
 
         # analyze FFTs
         fftInfo_amp = fftMask(amp,wavel_lambda,plateScale,
-                                  fyi_string=str("{:0>6d}".format(f))+' FFT amp')
+                                  fyi_string=str("{:0>6d}".format(sample_num))+" FFT amp")
         fftInfo_arg = fftMask(arg,wavel_lambda,plateScale,
-                                  fyi_string=str("{:0>6d}".format(f))+' FFT phase')
+                                  fyi_string=str("{:0>6d}".format(sample_num))+" FFT phase")
 
         print("------------------")
         print("FFT info ampl of psf "+str(f)+":")
@@ -320,16 +331,25 @@ def print_write_fft_info(integ_time, log_name = "fft_log.csv", mode = "science")
         print("FFT info phase of psf "+str(f)+":")
         print(fftInfo_arg)
 
-        # save fyi FITS files
-        hdu = pyfits.PrimaryHDU(amp.mask)
+        # save fyi FITS files to see the masks, etc.
+        hdu = pyfits.PrimaryHDU(fftInfo_amp["sciImg1"])
         hdulist = pyfits.HDUList([hdu])
-        hdu.writeto("junk_test_mask_amp_psf_"+str(f)+".fits", clobber=True)
+        hdu.writeto("junk_test_mask_amp_maskedRegion1_"+str(sample_num)+".fits", clobber=True)
+        hdu = pyfits.PrimaryHDU(fftInfo_amp["sciImg2"])
+        hdulist = pyfits.HDUList([hdu])
+        hdu.writeto("junk_test_mask_amp_maskedRegion2_"+str(sample_num)+".fits", clobber=True)
+        hdu = pyfits.PrimaryHDU(fftInfo_amp["sciImg3"])
+        hdulist = pyfits.HDUList([hdu])
+        hdu.writeto("junk_test_mask_amp_maskedRegion3_"+str(sample_num)+".fits", clobber=True)
+        hdu = pyfits.PrimaryHDU(fftInfo_amp["sciImg4"])
+        hdulist = pyfits.HDUList([hdu])
+        hdu.writeto("junk_test_mask_amp_maskedRegion4_"+str(sample_num)+".fits", clobber=True)
         hdu = pyfits.PrimaryHDU(amp.data)
         hdulist = pyfits.HDUList([hdu])
-        hdu.writeto("junk_test_amp_psf_"+str(f)+".fits", clobber=True)
+        hdu.writeto("junk_test_amp_psf_"+str(sample_num)+".fits", clobber=True)
         hdu = pyfits.PrimaryHDU(arg.data)
         hdulist = pyfits.HDUList([hdu])
-        hdu.writeto("junk_test_arg_psf_"+str(f)+".fits", clobber=True)
+        hdu.writeto("junk_test_arg_psf_"+str(sample_num)+".fits", clobber=True)
 
         ## take info from the FFTs to send corrective movements
 
@@ -342,14 +362,14 @@ def print_write_fft_info(integ_time, log_name = "fft_log.csv", mode = "science")
 
 
         ## MONITOR REALTIME STATUS OF PSF QUALITY CRITERIA
-        
+
         # Overlap of the Airy PSFs?
         print("--------------------------")
         print("Std of phase of low freq lobe:")
         print(fftInfo_arg["std_lowFreqPerfect"])
         # TO CORRECT: TT THE HPC TO TRANSLATE DX AIRY PSF
         ## ## (MAYBE TRY TTING THE FPC LATER?)
-        
+
         # High-freq fringe visibility (median)
         print("--------------------------")
         print("Median of ampl of high freq lobe:")
@@ -359,14 +379,14 @@ def print_write_fft_info(integ_time, log_name = "fft_log.csv", mode = "science")
         # High-freq phase gradient
         print("--------------------------")
         print("Phase gradient in x of high freq in PTF:")
-        print(fftInfo_arg["phase_normVec_highFreqPerfect_R"][0])
+        print(fftInfo_arg["normVec_highFreqPerfect_R"][0])
         print("Phase gradient in y of high freq in PTF:")
-        print(fftInfo_arg["phase_normVec_highFreqPerfect_R"][1])
+        print(fftInfo_arg["normVec_highFreqPerfect_R"][1])
         print("--------------------------")
         # TO CORRECT: TT THE FPC? (NOT SURE HERE...)
         ## ## N.B. 1. Differential tip: phase gradient is all up-down, and the low-freq node in FT amplitude takes on a crushed ellipticity.
         ## ## N.B. 2. Differential tilt: phase gradient is left-right, but it is not continuous; it is divided among the three nodes.
-        
+
         ## HOW DO THE ABOVE PRINTED QUANTITIES COMPARE WITH THE THRESHOLDS? 
 
         # other quality control metrics from Phasecam (email from D. Defrere, 2018 Dec 17)
@@ -377,32 +397,42 @@ def print_write_fft_info(integ_time, log_name = "fft_log.csv", mode = "science")
         timestamp = time.time()
         fftInfo_amp["time"] = timestamp
         fftInfo_arg["time"] = timestamp
-        
-        # convert dictionaries to dataframes that are easy to write to file
-        fftInfo_amp_df = pd.DataFrame(fftInfo_amp)
-        fftInfo_arg_df = pd.DataFrame(fftInfo_arg)
 
-        # append to log
-        fftInfo_amp_df.to_csv("fft_amp.csv")
-        fftInfo_arg_df.to_csv("fft_arg.csv")
-        ## ## note I havent used log_name anywhere yet
+        # convert dictionaries to dataframes that are easy to write to file
+        print(fftInfo_amp)
+        print(np.shape(fftInfo_amp))
+
+        # have to delete the 2D arrays from the dictionaries so they can be converted to dataframes
+        del fftInfo_amp["sciImg1"], fftInfo_amp["sciImg2"], fftInfo_amp["sciImg3"], fftInfo_amp["sciImg4"]
+        del fftInfo_arg["sciImg1"], fftInfo_arg["sciImg2"], fftInfo_arg["sciImg3"], fftInfo_arg["sciImg4"]
+        #fftInfo_amp_df = fftInfo_amp.drop(['sciImg1', 'sciImg2', 'sciImg3', 'sciImg4'])
+        #fftInfo_arg_df = fftInfo_arg.drop(['sciImg1', 'sciImg2', 'sciImg3', 'sciImg4'])
+        ## ## for some reason, the dataframes make 3 identical rows; maybe because there are some (x,y) vectors 
+        fftInfo_amp_df_this_frame = pd.DataFrame(fftInfo_amp)
+        fftInfo_arg_df_this_frame = pd.DataFrame(fftInfo_arg)
+
+        fftInfo_amp_df = fftInfo_amp_df.append(fftInfo_amp_df_this_frame, ignore_index=True)
+        fftInfo_arg_df = fftInfo_arg_df.append(fftInfo_arg_df_this_frame, ignore_index=True)
 
         # print fyi
         time_elapsed = time.time() - start
         print("----------------------------------")
         print("PSF "+str(f)+" analysed in time (secs):")
         print(time_elapsed)
-        
 
-    
+    # write to log
+    fftInfo_amp_df.to_csv("fft_amp.csv")
+    fftInfo_arg_df.to_csv("fft_arg.csv")
+    ## ## note I havent used log_name anywhere yet
+
     d = {"fft_amp": fftInfo_amp, "fft_arg": fftInfo_arg}
 
     print("Done analyzing a range of PSFs. Now read the data in and calculate changed PC setpoints.")
-    
+
     return d
 
-    
-def get_apply_pc_setpts(fft_info, log_name = "setpt_log.csv", mode = "science")
+
+def get_apply_pc_setpts(fft_info, mode = "science", log_name = "setpt_log.csv"):
 
     ## ## note Im just reading in csvs here, and not passing an argument fft_info
     fftInfo_amp = pd.read_csv("fft_amp.csv")
@@ -455,10 +485,10 @@ def get_apply_pc_setpts(fft_info, log_name = "setpt_log.csv", mode = "science")
     print("----------------------------------")
     print("----------------------------------")
     print("Checking phase gradient in x of high freq in PTF:")
-    x_grad = np.median(fftInfo_arg["phase_normVec_highFreqPerfect_R"][0])
+    x_grad = np.median(fftInfo_arg["phase_normVec_highFreqPerfect_R_x"])
     print(x_grad)
     print("Checking phase gradient in y of high freq in PTF:")
-    y_grad = np.median(fftInfo_arg["phase_normVec_highFreqPerfect_R"][1])
+    y_grad = np.median(fftInfo_arg["phase_normVec_highFreqPerfect_R_y"])
     print(y_grad)
     print("Checking phase gradient in x,y (amplitude)")
     print(np.sqrt(x_grad,2)+np.power(y_grad,2))
@@ -479,8 +509,8 @@ def get_apply_pc_setpts(fft_info, log_name = "setpt_log.csv", mode = "science")
     new_tip_setpoint = 0
     new_tilt_setpoint = 0
     if (mode != "total_passive"):
-        pi.setINDI("PLC.UBCSettings.TipSetpoint="+str(int(new_tip_setpoint))
-        pi.setINDI("PLC.UBCSettings.TiltSetpoint="+str(int(new_tilt_setpoint))
+        pi.setINDI("PLC.UBCSettings.TipSetpoint="+str(int(new_tip_setpoint)))
+        pi.setINDI("PLC.UBCSettings.TiltSetpoint="+str(int(new_tilt_setpoint)))
 
     # To correct high-freq fringe visibility
     new_pl_setpoint = 0
@@ -494,8 +524,8 @@ def get_apply_pc_setpts(fft_info, log_name = "setpt_log.csv", mode = "science")
     new_tip_setpoint = 0
     new_tilt_setpoint = 0
     if (mode != "total_passive"):
-        pi.setINDI("PLC.UBCSettings.TipSetpoint="+str(int(new_tip_setpoint))
-        pi.setINDI("PLC.UBCSettings.TiltSetpoint="+str(int(new_tilt_setpoint))    
+        pi.setINDI("PLC.UBCSettings.TipSetpoint="+str(int(new_tip_setpoint)))
+        pi.setINDI("PLC.UBCSettings.TiltSetpoint="+str(int(new_tilt_setpoint)))
     
     # FYI: EDIT TO MAKE MOMENTARY CHANGES IN FPC TT
     if (mode != "total_passive"):
