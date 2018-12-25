@@ -23,9 +23,9 @@ raw_input("Place an ROI, no larger than 512x512, over the Phasecam sweet spot fo
 fiz_lmir_sweet_spot = [200,100] 
 
 # Is this script being run as a test, or are we doing on-sky science?
-# Options: "fake_fits", "artif_source", "science"
+# Options: "total_passive", "fake_fits", "artif_source", "science"
 print("----------------------------------------------------------------------------------")
-mode_choice = "science"
+mode_choice = "total_passive"
 print("This optimization code is running in mode " + mode_choice)
 print("Stop continuous aquisition of the camera.")
 print("----------------------------------------------------------------------------------")

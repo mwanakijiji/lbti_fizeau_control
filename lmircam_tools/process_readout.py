@@ -3,43 +3,6 @@ import sys, os, string, time, pdb, copy, pyfits
 import numpy as np
 from pyindi import * 
 from scipy import ndimage, sqrt, stats
-#import matplotlib.pyplot as plt
-
-# do simple for-loops to move the FPC and HPC
-
-#pi.setINDI("LMIRCAM.Command.text=1 savedata")
-
-#pi.setINDI("LMIRCAM.Command.text=go")
-'''
-for step in range(0,4):
-    pi.setINDI("Acromag.HPC.Tip=0;Tilt=0.5;Piston=0;Mode=1")
-    time.sleep(1.0)
-    pi.setINDI("LMIRCAM.Command.text=go")
-    pi.setINDI("Acromag.HPC.Tip=-0.5;Tilt=0.0;Piston=0;Mode=1")
-    time.sleep(1.0)
-    pi.setINDI("LMIRCAM.Command.text=go")
-    pi.setINDI("Acromag.HPC.Tip=0;Tilt=-0.5;Piston=0;Mode=1")
-    time.sleep(1.0)
-    pi.setINDI("LMIRCAM.Command.text=go")
-    pi.setINDI("Acromag.HPC.Tip=0.5;Tilt=0.0;Piston=0;Mode=1")
-    time.sleep(1.0)
-    pi.setINDI("LMIRCAM.Command.text=go")
-    pi.setINDI("Acromag.FPC.Tip=0.0;Tilt=0.5;Piston=0;Mode=1")
-    time.sleep(1.0)
-    pi.setINDI("LMIRCAM.Command.text=go")
-    pi.setINDI("Acromag.FPC.Tip=-0.5;Tilt=0;Piston=0;Mode=1")
-    time.sleep(1.0)
-    pi.setINDI("LMIRCAM.Command.text=go")
-    pi.setINDI("Acromag.FPC.Tip=0.0;Tilt=-0.5;Piston=0;Mode=1")
-    time.sleep(1.0)
-    pi.setINDI("LMIRCAM.Command.text=go")
-    pi.setINDI("Acromag.FPC.Tip=0.5;Tilt=0;Piston=0;Mode=1")
-    time.sleep(1.0)
-    pi.setINDI("LMIRCAM.Command.text=go")
-'''
-
-#####################################################
-# START NEW CODE
 
 # subtract mean or median (method) of the image
 # this is good as a fallback background subtraction method

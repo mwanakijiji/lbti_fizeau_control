@@ -44,11 +44,12 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
 
 	step_size_opd = 10. # step size per opd_step count (um, total OPD)
 
-        print("Taking a background-subtracted frame")
-        pi.setFITS("LMIRCAM.settings.enable_save=1")
-        f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
+        if (mode != "total_passive"):
+            print("Taking a background-subtracted frame")
+            pi.setFITS("LMIRCAM.settings.enable_save=1")
+            f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
-	if (mode == "fake_fits"):
+	if ((mode == "fake_fits") or (mode == "total_passive")):
             f = pyfits.open("test_fits_files/test_frame_grismFiz_small.fits")
 
         imgb4 = f[0].data
@@ -158,8 +159,9 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
 	# big steps with the SPC translation stage: Ubcs.SPC_Trans.command=>5
 	# note factor of 10; command is in relative movement of 0.1 um
         print("----------------------------------------------------------------")
-        print("Moving SPC_Trans for large OPD movement of "+str(int(step_size_opd))+" um (translation of "+str(0.5*step_size_opd)+" um, or "+str(50*0.5*step_size_opd)+" counts)")
-	pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(50*0.5*step_size_opd))
+        if (mode != "total_passive"):
+	    print("Moving SPC_Trans for large OPD movement of "+str(int(step_size_opd))+" um (translation of "+str(0.5*step_size_opd)+" um, or "+str(50*0.5*step_size_opd)+" counts)")
+	    pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(50*0.5*step_size_opd))
 
     # write data to file for copying and plotting on local machine
     pdb.set_trace()
@@ -213,9 +215,10 @@ def implement_optimal_opd(d):
     spc_trans_command = np.subtract(zero_opd_spc_trans_pos,spc_trans_position_now)
     print("spc_trans_position_now:")
     print(spc_trans_position_now)
-    print("spc_trans_command:")
-    print(spc_trans_command)
-    pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(spc_trans_command))
+    if (mode != "total_passive"):
+        print("spc_trans_command:")
+        print(spc_trans_command)
+        pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(spc_trans_command))
 
     # command the HPC piezo to move to that minimum
     #pi.setINDI("Acromag.HPC.Tip=0;Tilt=0;Piston="+'{0:.1f}'.format(max_x)+";Mode=1")
@@ -224,8 +227,9 @@ def implement_optimal_opd(d):
     raw_input("User: remove grism, insert observing filters, and press [Enter]")
 
     # turn off fizeau flag to avoid problems with other observations
-    print("De-activating ROI aquisition flag")
-    pi.setINDI("LMIRCAM.fizRun.value=Off")
+    if (mode != "total_passive"):
+        print("De-activating ROI aquisition flag")
+        pi.setINDI("LMIRCAM.fizRun.value=Off")
 
     return
 

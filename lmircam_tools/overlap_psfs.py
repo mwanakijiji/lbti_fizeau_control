@@ -56,21 +56,23 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
 	length_y = 200
 
     ### move in half-moon to see the Airy PSF of one side
-    print("Putting in "+half_moon_filter+" to see "+x_side)
-    pi.setINDI("Lmir.lmir_FW2.command", half_moon_filter, timeout=45, wait=True)
+    if (mode != "total_passive"):
+        print("Putting in "+half_moon_filter+" to see "+x_side)
+        pi.setINDI("Lmir.lmir_FW2.command", half_moon_filter, timeout=45, wait=True)
 
     ### iterate to try to get Airy PSF on the same pixel
     while True:
 
         # take a frame with background subtracting
-        print("Taking a background-subtracted frame")
-    pi.setFITS("LMIRCAM.settings.enable_save=1")
-	f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
+        if (mode != "total_passive"):
+	    print("Taking a background-subtracted frame")
+            pi.setFITS("LMIRCAM.settings.enable_save=1")
+	    f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
-	if ((mode == "fake_fits") and (psf_type == "airy")):
+	if (((mode == "fake_fits") or (mode == "total_passive")) and (psf_type == "airy")):
             #f = pyfits.open("test_frame_fiz_large.fits")
             f = pyfits.open("test_fits_files/test_frame_fiz_small.fits")
-	elif ((mode == "fake_fits") and (psf_type == "grism")):
+	elif (((mode == "fake_fits") or (mode == "total_passive")) and (psf_type == "grism")):
 	    f = pyfits.open("test_fits_files/test_frame_grismFiz_small.fits")
 
         imgb4 = f[0].data
@@ -98,11 +100,12 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
             wait4AORunning('both') # let AO close
 
         ### re-locate PSF; correction needed?
-        print("Taking a background-subtracted frame")
-    pi.setFITS("LMIRCAM.settings.enable_save=1")
-	f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
+        if (mode != "total_passive"):
+            print("Taking a background-subtracted frame")
+            pi.setFITS("LMIRCAM.settings.enable_save=1")
+	    f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
-	if (mode == "fake_fits"):
+	if ((mode == "fake_fits") or (mode == "total_passive")):
 	    f = pyfits.open("test_fits_files/test_frame_fiz_small.fits")
 
 	imgb4 = f[0].data
@@ -128,11 +131,13 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
 	else:
 	    # fine-tune with FPC or HPC
 	    if (side == "left"):
-            	print("Moving SX PSF again, now with FPC movement")
-            	pi.setINDI("Acromag.FPC.Tip="+'{0:.1f}'.format(vector_move_asec[0])+";Tilt="+'{0:.1f}'.format(vector_move_asec[1])+";Piston=0;Mode=1")
+                if (mode != "total_passive"):
+            	    print("Moving SX PSF again, now with FPC movement")
+            	    pi.setINDI("Acromag.FPC.Tip="+'{0:.1f}'.format(vector_move_asec[0])+";Tilt="+'{0:.1f}'.format(vector_move_asec[1])+";Piston=0;Mode=1")
 	    elif (side == "right"):
-		print("Moving DX PSF again, now with HPC movement")
-		pi.setINDI("Acromag.HPC.Tip="+'{0:.1f}'.format(vector_move_asec[0])+";Tilt="+'{0:.1f}'.format(vector_move_asec[1])+";Piston=0;Mode=1")
+		if (mode != "total_passive"):
+                    print("Moving DX PSF again, now with HPC movement")
+		    pi.setINDI("Acromag.HPC.Tip="+'{0:.1f}'.format(vector_move_asec[0])+";Tilt="+'{0:.1f}'.format(vector_move_asec[1])+";Piston=0;Mode=1")
 
 	if (mode == "fake_fits"):
 	    # need to break, because otherwise the FPC/HPC mirrors won't converge
@@ -151,16 +156,19 @@ def overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = "science", psf_type = "
 
     centroid_and_move(fiz_lmir_sweet_spot, side = "right", mode = mode, psf_type = psf_type)
 
-    print('Done moving PSFs. Reopening LMIR FW2.')
-    pi.setINDI("Lmir.lmir_FW2.command", 'Open', wait=True)
+    if (mode != "total_passive"):
+        print('Done moving PSFs. Reopening LMIR FW2.')
+        pi.setINDI("Lmir.lmir_FW2.command", 'Open', wait=True)
 
     # take a new frame to see what things look like now
-    pi.setFITS("LMIRCAM.settings.enable_save=1")
-    f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
+    if (mode != "total_passive"):
+        pi.setFITS("LMIRCAM.settings.enable_save=1")
+        f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
     # turn off fizeau flag to avoid problems with other observations
-    print("De-activating ROI aquisition flag")
-    pi.setINDI("LMIRCAM.fizRun.value=Off")
+    if (mode != "total_passive"):
+        print("De-activating ROI aquisition flag")
+        pi.setINDI("LMIRCAM.fizRun.value=Off")
 
     end_time = time.time()
     print("PSF overlapping done in (secs)")

@@ -6,6 +6,7 @@ from scipy import ndimage, sqrt, stats, misc, signal
 
 pi = PyINDI(verbose=False)
 
+integ_time = 100 # integration time, msec
 
 # define 2D gaussian for fitting PSFs
 def gaussian_x(x, mu, sig):
@@ -144,12 +145,13 @@ def take_roi_background():
 
     # take a background
     # allow aquisition from ROI box (keep smaller than 512x512!)
-    print("Setting ROI aquisition flag")
-    pi.setINDI("LMIRCAM.fizRun.value=On")
-    print("Moving in a blank to take a background")
-    pi.setINDI("Lmir.lmir_FW4.command", "Blank", wait=True)
-    print("Taking a background")
-    f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=0;int_time=%i;is_bg=1;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=60)
+    if (mode != "total_passive"):
+        print("Setting ROI aquisition flag")
+        pi.setINDI("LMIRCAM.fizRun.value=On")
+        print("Moving in a blank to take a background")
+        pi.setINDI("Lmir.lmir_FW4.command", "Blank", wait=True)
+        print("Taking a background")
+        f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=0;int_time=%i;is_bg=1;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
     return
 
@@ -163,27 +165,29 @@ def put_in_grism(image = "yes"):
 
     fw25_selection = "Lspec2.8-4.0"
     fw3_selection = "Lgrism6AR"
-    print("Entering grism mode: putting in "+fw25_selection+" and "+fw3_selection)
-    pi.setINDI("Lmir.lmir_FW3.command", fw3_selection, timeout=45, wait=True)
-    pi.setINDI("Lmir.lmir_FW25.command", fw25_selection, timeout=45, wait=True) # blocks some extraneous light
+    if (mode != "total_passive"):
+        print("Entering grism mode: putting in "+fw25_selection+" and "+fw3_selection)
+        pi.setINDI("Lmir.lmir_FW3.command", fw3_selection, timeout=45, wait=True)
+        pi.setINDI("Lmir.lmir_FW25.command", fw25_selection, timeout=45, wait=True) # blocks some extraneous light
 
 
-    if image:
+    if (image and (mode != "total_passive")):
 
         # turn on fizeau flag
         print("Activating ROI aquisition flag")
         pi.setINDI("LMIRCAM.fizRun.value=On")
 
-    	# take a new frame to see what things look like now
-    	f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % 100, timeout=60)
+        # take a new frame to see what things look like now
+        pi.setFITS("LMIRCAM.settings.enable_save=1")
+        f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
-    	# turn off fizeau flag to avoid problems with other observations
-    	print("De-activating ROI aquisition flag")
-    	pi.setINDI("LMIRCAM.fizRun.value=Off")
+        # turn off fizeau flag to avoid problems with other observations
+        print("De-activating ROI aquisition flag")
+        pi.setINDI("LMIRCAM.fizRun.value=Off")
 
-    	end_time = time.time()
-    	print("Grism put in in (secs)")
-    	print(end_time - start_time)
-    	print("-------------------")	
+        end_time = time.time()
+        print("Grism put in in (secs)")
+        print(end_time - start_time)
+        print("-------------------")	
 
     return

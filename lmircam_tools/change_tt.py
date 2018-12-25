@@ -257,7 +257,7 @@ def print_write_fft_info(integ_time, log_name = "fft_log.csv", mode = "science")
 
     take_roi_background()
 
-    if (mode == "fake_fits"):
+    if ((mode == "fake_fits") or (mode == "total_passive")):
         #f = pyfits.open("test_fits_files/test_frame_fiz_large.fits")
         f = pyfits.open("test_fits_files/test_frame_fiz_small.fits")
     elif (mode == "science"):
@@ -321,6 +321,9 @@ def print_write_fft_info(integ_time, log_name = "fft_log.csv", mode = "science")
         print(fftInfo_arg)
 
         # save fyi FITS files
+        hdu = pyfits.PrimaryHDU(amp.mask)
+        hdulist = pyfits.HDUList([hdu])
+        hdu.writeto("junk_test_mask_amp_psf_"+str(f)+".fits", clobber=True)
         hdu = pyfits.PrimaryHDU(amp.data)
         hdulist = pyfits.HDUList([hdu])
         hdu.writeto("junk_test_amp_psf_"+str(f)+".fits", clobber=True)
@@ -475,31 +478,36 @@ def get_apply_pc_setpts(fft_info, log_name = "setpt_log.csv", mode = "science")
     # To correct Airy PSF overlap, or TT in Fizeau PSF
     new_tip_setpoint = 0
     new_tilt_setpoint = 0
-    pi.setINDI("PLC.UBCSettings.TipSetpoint="+str(int(new_tip_setpoint))
-    pi.setINDI("PLC.UBCSettings.TiltSetpoint="+str(int(new_tilt_setpoint))
+    if (mode != "total_passive"):
+        pi.setINDI("PLC.UBCSettings.TipSetpoint="+str(int(new_tip_setpoint))
+        pi.setINDI("PLC.UBCSettings.TiltSetpoint="+str(int(new_tilt_setpoint))
 
     # To correct high-freq fringe visibility
     new_pl_setpoint = 0
     spc_trans_stepSize = 5. # (um, total OPD)
-    pi.setINDI("PLC.UBCSettings.PLSetpoint="+str(int(new_pl_setpoint)))
-    pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(spc_trans_command))
-    pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(10*0.5*stepSize)) # factor of 10 bcz command is in 0.1 um
+    if (mode != "total_passive"):
+        pi.setINDI("PLC.UBCSettings.PLSetpoint="+str(int(new_pl_setpoint)))
+        pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(spc_trans_command))
+        pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(10*0.5*stepSize)) # factor of 10 bcz command is in 0.1 um
     
     # To correct high-freq fringe gradients (note similarity to correction for Airy PSF overlap)
     new_tip_setpoint = 0
     new_tilt_setpoint = 0
-    pi.setINDI("PLC.UBCSettings.TipSetpoint="+str(int(new_tip_setpoint))
-    pi.setINDI("PLC.UBCSettings.TiltSetpoint="+str(int(new_tilt_setpoint))    
+    if (mode != "total_passive"):
+        pi.setINDI("PLC.UBCSettings.TipSetpoint="+str(int(new_tip_setpoint))
+        pi.setINDI("PLC.UBCSettings.TiltSetpoint="+str(int(new_tilt_setpoint))    
     
     # FYI: EDIT TO MAKE MOMENTARY CHANGES IN FPC TT
-    pi.setINDI("Acromag.FPC.Tip="+'{0:.1f}'.format(vector_move_asec[0])+";Tilt="+'{0:.1f}'.format(vector_move_asec[1])+";Piston=0;Mode=1")
+    if (mode != "total_passive"):
+        pi.setINDI("Acromag.FPC.Tip="+'{0:.1f}'.format(vector_move_asec[0])+";Tilt="+'{0:.1f}'.format(vector_move_asec[1])+";Piston=0;Mode=1")
 
     end = time.time()
     print(end - start)
     print('-----')
 
     # turn off fizeau flag to avoid problems with other observations
-    print("De-activating ROI aquisition flag")
-    pi.setINDI("LMIRCAM.fizRun.value=Off")
+    if (mode != "total_passive"):
+        print("De-activating ROI aquisition flag")
+        pi.setINDI("LMIRCAM.fizRun.value=Off")
 
     return
