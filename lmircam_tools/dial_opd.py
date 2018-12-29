@@ -38,15 +38,16 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
 				'fpc_piezo_piston',\
 				'fpc_piezo_piston_opd_um',\
 				'resid'])
-
     # loop over OPD steps (unitless here) around where we start
-    for opd_step in range(-25,25):
+    step_start = -1
+    step_stop = 1
+    for opd_step in range(step_start,step_stop):
 
 	step_size_opd = 10. # step size per opd_step count (um, total OPD)
 
         if (mode != "total_passive"):
             print("Taking a background-subtracted frame")
-            pi.setFITS("LMIRCAM.settings.enable_save=1")
+            pi.setINDI("LMIRCAM.enable_save.value=On")
             f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
 	if ((mode == "fake_fits") or (mode == "total_passive")):
@@ -116,7 +117,7 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
 	# add median of residuals, and pathlength (HPC) position, to arrays
 	print("----------------------------------------------------------------")
 	print("Current OPD step:")
-	print(opd_step)
+	print(str(opd_step) + ", to end with " + str(np.add(step_start,np.subtract(step_stop,step_start))))
 
 	# conversions
 	# SPC_Trans: 1 um trans (2 um OPD) -> 50 counts
@@ -182,7 +183,7 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
     ## plt.xlabel('SPCTRANS')
     ## plt.ylabel('Median of Residuals Between Top and Bottom Halves of FFT')
 
-    d = {"coeffs": coeffs, "scan_data": df} # put stuff into dictionary
+    d = {"coeffs": coeffs, "scan_data": df} # put stuff into dictionary (IS THIS NEEDED, IF INFO IS WRITTEN OUT?)
 
     return d
 
@@ -200,8 +201,9 @@ def implement_optimal_opd(d):
     coeffs = d["coeffs"]
 
     # find the minimum; set the HPC path length position accordingly
-    y_series = coeffs[2] + coeffs[1]*df["spc_trans_position"]+coeffs[0]*df["spc_trans_position"]**2
+    y_series = coeffs[2] + coeffs[1]*d["scan_data"]["spc_trans_position"]+coeffs[0]*d["scan_data"]["spc_trans_position"]**2
     min_y = min(y_series)  # find the minimum y-value
+    df = pd.DataFrame(d)
     zero_opd_spc_trans_pos = df.loc[y_series == np.min(y_series)]["spc_trans_position"].values[0] # find the x-value (pathlength) corresponding to min y-value (residuals)
 
     # is the curve concave up?

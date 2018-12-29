@@ -16,8 +16,7 @@ from lmircam_tools.change_tt import print_write_fft_info, get_apply_pc_setpts
 
 print("----------------------------------------------------------------------------------")
 raw_input("Place an ROI, no larger than 512x512, over the Phasecam sweet spot for LMIRcam, and move telescopes\n to put Airy PSFs somethere inside the ROI. \nROI size needs to be "+\
-	"large enough to include the grism PSF and possible movement, e.g., ~400x200\n (HOSTS sweet spot was [880,800] "+\
-	"on full detector in May 2018.)\nPress [Enter] when done.")
+	"large enough to include the grism PSF and possible movement\nPress [Enter] when done.")
 
 # Phasecam sweet spot on detector, in ROI coordinates (y, x)
 fiz_lmir_sweet_spot = [200,100] 
@@ -26,10 +25,10 @@ fiz_lmir_sweet_spot = [200,100]
 # Options: "total_passive", "fake_fits", "artif_source", "science"
 #    "total_passive": no getFITS, setFITS, or setINDI commands are sent (but getINDI are)
 #    "fake_fits":     read in fake FITS files, and send INDI commands to cameras and mirrors (but not the telescope)
-#    "artif_source":  use detector images involving artificial sources in closed-dome
+#    "artif_source":  use detector images involving artificial sources in closed-dome, and send commands to UBC mirrors (but not the telescope)
 #    "science":       send commands to cameras, mirrors, and telescope like we're on-sky
 print("----------------------------------------------------------------------------------")
-mode_choice = "total_passive"
+mode_choice = "fake_fits"
 print("This optimization code is running in mode " + mode_choice)
 print("Stop continuous aquisition of the camera.")
 print("----------------------------------------------------------------------------------")
@@ -77,7 +76,7 @@ fft_info = print_write_fft_info(integ_time, mode = mode_choice, log_name = "fft_
 
 # calculate and apply Phasecam setpoints
 ## ## DONT RUN THE FOLLOWING FUNCTION YET; JUST USE BITS INSIDE OF IT TO TEST THE EFFECT ON THE PSF
-get_apply_pc_setpts(integ_time, fft_info, mode = mode_choice, log_name = "setpt_log.csv")
+get_apply_pc_setpts(integ_time, mode = mode_choice, log_name = "setpt_log.csv")
 
 ## adjust TT to optimize PSF; maybe iterate with OPD?
 ## note OPD movements cannot be more than 5 um with Phasecam closed

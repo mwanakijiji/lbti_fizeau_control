@@ -178,7 +178,7 @@ def put_in_grism(image = "yes"):
         pi.setINDI("LMIRCAM.fizRun.value=On")
 
         # take a new frame to see what things look like now
-        pi.setFITS("LMIRCAM.settings.enable_save=1")
+        pi.setINDI("LMIRCAM.enable_save.value=On")
         f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
         # turn off fizeau flag to avoid problems with other observations

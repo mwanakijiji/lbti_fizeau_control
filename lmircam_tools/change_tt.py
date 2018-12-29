@@ -13,6 +13,7 @@ import time
 import pickle
 import pdb
 import pandas as pd
+import math
 
 from lmircam_tools import *
 from lmircam_tools import overlap_psfs
@@ -281,7 +282,7 @@ def print_write_fft_info(integ_time, mode = "science", log_name = "fft_log.csv")
         elif ((mode == "science") or (mode == "artif_source")):
             # take a frame with background subtracting
             print("Taking a background-subtracted frame")
-            pi.setFITS("LMIRCAM.settings.enable_save=1")
+            pi.setINDI("LMIRCAM.enable_save.value=On")
             f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
         image = f[0].data
@@ -432,7 +433,9 @@ def print_write_fft_info(integ_time, mode = "science", log_name = "fft_log.csv")
     return d
 
 
-def get_apply_pc_setpts(fft_info, mode = "science", log_name = "setpt_log.csv"):
+def get_apply_pc_setpts(integ_time, mode = "science", log_name = "setpt_log.csv"):
+
+    start_time = time.time()
 
     ## ## note Im just reading in csvs here, and not passing an argument fft_info
     fftInfo_amp = pd.read_csv("fft_amp.csv")
@@ -447,20 +450,21 @@ def get_apply_pc_setpts(fft_info, mode = "science", log_name = "setpt_log.csv"):
     print("----------------------------------")
     print("Checking overlap of the Airy PSFs via std of FFT phase low freq node:")
     print(np.median(fftInfo_arg["std_lowFreqPerfect"]))
-    hpc_tip_position_now = pi.getINDI("Ubcs.HPC_Tip_status.PosNum") # HPC tip pos
-    hpc_tilt_position_now = pi.getINDI("Ubcs.HPC_Tilt_status.PosNum") # HPC tilt pos
-    fpc_tip_setpoint_now = pi.getINDI("PLC.UBCSettings.TipSetpoint") # FPC tip setpoint
-    fpc_tilt_setpoint_now = pi.getINDI("PLC.UBCSettings.TiltSetpoint") # FPC tilt setpoint
-    print("----------------------------------")
-    print("hpc_tip_position_now:")
-    print(hpc_tip_position_now)
-    print("hpc_tilt_position_now:")
-    print(hpc_tilt_position_now)
-    print("fpc_tip_setpoint_now:")
-    print(fpc_tip_setpoint_now)
-    print("fpc_tilt_setpoint_now:")
-    print(fpc_tilt_setpoint_now)  
-    print("Check the Airy overlap on LMIR, and manually move the HPC. How large of an HPC tip-tilt was necessary to overlap them? Scale stdev with this movement.")
+    if (mode != "total_passive"):
+        hpc_tip_position_now = pi.getINDI("Ubcs.HPC_Tip_status.PosNum") # HPC tip pos
+        hpc_tilt_position_now = pi.getINDI("Ubcs.HPC_Tilt_status.PosNum") # HPC tilt pos
+        fpc_tip_setpoint_now = pi.getINDI("PLC.UBCSettings.TipSetpoint") # FPC tip setpoint
+        fpc_tilt_setpoint_now = pi.getINDI("PLC.UBCSettings.TiltSetpoint") # FPC tilt setpoint
+        print("----------------------------------")
+        print("hpc_tip_position_now:")
+        print(hpc_tip_position_now)
+        print("hpc_tilt_position_now:")
+        print(hpc_tilt_position_now)
+        print("fpc_tip_setpoint_now:")
+        print(fpc_tip_setpoint_now)
+        print("fpc_tilt_setpoint_now:")
+        print(fpc_tilt_setpoint_now)
+        print("Check the Airy overlap on LMIR, and manually move the HPC. How large of an HPC tip-tilt was necessary to overlap them? Scale stdev with this movement.")
     pdb.set_trace()
     
     #####################################
@@ -470,36 +474,36 @@ def get_apply_pc_setpts(fft_info, mode = "science", log_name = "setpt_log.csv"):
     print("Checking high-freq fringe visibility via median of ampl of high freq lobe:")
     print(np.median(fftInfo_amp["med_highFreqPerfect_R"]))
     print("----------------------------------")
-    print("Current SPC_Trans position:")
-    spc_trans_position_now = pi.getINDI("Ubcs.SPC_Trans_status.PosNum") # translation stage (absolute position, 0.02 um)
-    print(spc_trans_position_now)
-    print("Current FPC piston position:")
-    ## ## FILL IN HERE: fpc piston position
-    print("Current FPC PL setpoint:")
-    fpc_pl_setpoint = pi.getINDI("PLC.UBCSettings.PLSetpoint")
-    print("Manually change PL setpoint. How good/bad is the high-freq fringe visibility on LMIR? Write down the scale.")
-    pdb.set_trace()
+    if (mode != "total_passive"):
+        print("Current SPC_Trans position:")
+        spc_trans_position_now = pi.getINDI("Ubcs.SPC_Trans_status.PosNum") # translation stage (absolute position, 0.02 um)
+        print(spc_trans_position_now)
+        print("Current FPC piston position:")
+        print("Current FPC PL setpoint:")
+        fpc_pl_setpoint = pi.getINDI("PLC.UBCSettings.PLSetpoint")
+        print("Manually change PL setpoint. How good/bad is the high-freq fringe visibility on LMIR? Write down the scale.")
     
     #####################################
     # High-freq phase gradient
     print("----------------------------------")
     print("----------------------------------")
     print("Checking phase gradient in x of high freq in PTF:")
-    x_grad = np.median(fftInfo_arg["phase_normVec_highFreqPerfect_R_x"])
+    x_grad = np.median(fftInfo_arg["normVec_highFreqPerfect_R_x"])
     print(x_grad)
     print("Checking phase gradient in y of high freq in PTF:")
-    y_grad = np.median(fftInfo_arg["phase_normVec_highFreqPerfect_R_y"])
+    y_grad = np.median(fftInfo_arg["normVec_highFreqPerfect_R_y"])
     print(y_grad)
     print("Checking phase gradient in x,y (amplitude)")
-    print(np.sqrt(x_grad,2)+np.power(y_grad,2))
+    print(np.sqrt(np.add(math.pow(x_grad,2),math.pow(y_grad,2))))
     print("--------------------------")
-    print("Current FPC tip setpoint:")
-    fpc_tip_setpoint = pi.getINDI("PLC.UBCSettings.TipSetpoint")
-    print(fpc_tip_setpoint)
-    print("Current FPC tilt setpoint:")
-    fpc_tilt_setpoint = pi.getINDI("PLC.UBCSettings.TiltSetpoint")
-    print(fpc_tilt_setpoint)
-    print("Manually change FPC tip-tilt setpoints. What was the scale?")
+    if (mode != "total_passive"):
+        print("Current FPC tip setpoint:")
+        fpc_tip_setpoint = pi.getINDI("PLC.UBCSettings.TipSetpoint")
+        print(fpc_tip_setpoint)
+        print("Current FPC tilt setpoint:")
+        fpc_tilt_setpoint = pi.getINDI("PLC.UBCSettings.TiltSetpoint")
+        print(fpc_tilt_setpoint)
+        print("Manually change FPC tip-tilt setpoints. What was the scale?")
     pdb.set_trace()
 
     #######################################################################
@@ -531,9 +535,10 @@ def get_apply_pc_setpts(fft_info, mode = "science", log_name = "setpt_log.csv"):
     if (mode != "total_passive"):
         pi.setINDI("Acromag.FPC.Tip="+'{0:.1f}'.format(vector_move_asec[0])+";Tilt="+'{0:.1f}'.format(vector_move_asec[1])+";Piston=0;Mode=1")
 
-    end = time.time()
-    print(end - start)
-    print('-----')
+    stop_time = time.time()
+    print("Elapsed time for sending setpoint or PL corrections:")
+    print(start_time - stop_time)
+    print("-----")
 
     # turn off fizeau flag to avoid problems with other observations
     if (mode != "total_passive"):

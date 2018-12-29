@@ -66,7 +66,7 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
         # take a frame with background subtracting
         if (mode != "total_passive"):
 	    print("Taking a background-subtracted frame")
-            pi.setFITS("LMIRCAM.settings.enable_save=1")
+            pi.setINDI("LMIRCAM.enable_save.value=On")
 	    f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
 	if (((mode == "fake_fits") or (mode == "total_passive")) and (psf_type == "airy")):
@@ -102,7 +102,7 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
         ### re-locate PSF; correction needed?
         if (mode != "total_passive"):
             print("Taking a background-subtracted frame")
-            pi.setFITS("LMIRCAM.settings.enable_save=1")
+            pi.setINDI("LMIRCAM.enable_save.value=On")
 	    f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
 	if ((mode == "fake_fits") or (mode == "total_passive")):
@@ -139,7 +139,7 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
                     print("Moving DX PSF again, now with HPC movement")
 		    pi.setINDI("Acromag.HPC.Tip="+'{0:.1f}'.format(vector_move_asec[0])+";Tilt="+'{0:.1f}'.format(vector_move_asec[1])+";Piston=0;Mode=1")
 
-	if (mode == "fake_fits"):
+	if ((mode == "fake_fits") or (mode == "total_passive")):
 	    # need to break, because otherwise the FPC/HPC mirrors won't converge
 	    break
 
@@ -162,17 +162,16 @@ def overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = "science", psf_type = "
 
     # take a new frame to see what things look like now
     if (mode != "total_passive"):
-        pi.setFITS("LMIRCAM.settings.enable_save=1")
+        pi.setINDI("LMIRCAM.enable_save.value=On")
         f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
     # turn off fizeau flag to avoid problems with other observations
     if (mode != "total_passive"):
         print("De-activating ROI aquisition flag")
         pi.setINDI("LMIRCAM.fizRun.value=Off")
-
-    end_time = time.time()
-    print("PSF overlapping done in (secs)")
-    print(end_time - start_time)
-    print("-------------------")
+        end_time = time.time()
+        print("PSF overlapping done in (secs)")
+        print(end_time - start_time)
+        print("-------------------")
 
     return
