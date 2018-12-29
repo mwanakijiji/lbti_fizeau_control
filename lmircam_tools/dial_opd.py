@@ -6,9 +6,9 @@ from pyindi import *
 import scipy
 from scipy import ndimage, sqrt, stats, misc, signal
 import pyfits
+import pickle
 from lmircam_tools import *
 from lmircam_tools import process_readout
-
 
 def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
     ''' 
@@ -165,7 +165,6 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
 	    pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(50*0.5*step_size_opd))
 
     # write data to file for copying and plotting on local machine
-    pdb.set_trace()
     file_name = "resids_test.csv"
     #resids_df = pd.DataFrame(np.transpose([pl_array,resid_array]), columns=["pl","resid"])
     no_return = df.to_csv(file_name)
@@ -183,12 +182,15 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
     ## plt.xlabel('SPCTRANS')
     ## plt.ylabel('Median of Residuals Between Top and Bottom Halves of FFT')
 
-    d = {"coeffs": coeffs, "scan_data": df} # put stuff into dictionary (IS THIS NEEDED, IF INFO IS WRITTEN OUT?)
+    # pickle the coefficients and the scan data to be restored by the next function
+    # (note this includes the data that was written as a csv for checking)
+    with open("scan_objs.pkl", "w") as f:
+        pickle.dump([coeffs, df], f)
 
-    return d
+    return 
 
 
-def implement_optimal_opd(d):
+def implement_optimal_opd(mode = "science"):
     ''' 
     Take the data from the scan, calculate where OPD=0 is, and implement it by moving the SPC
 
@@ -198,12 +200,17 @@ def implement_optimal_opd(d):
         "scan_data": the data on the residuals, and piston positions of moveable beam combiner elements
     '''
 
-    coeffs = d["coeffs"]
+    # write data to file for copying and plotting on local machine
+    ## ## (THIS IS ACTUALLY DEFINED IN FIND_OPTIMAL_FIZEAU_GRISM; THIS FILENAME NEEDS TO BE TRANSFERRED INSTEAD
+    file_name = "resids_test.csv"
+
+    # restore the pickle file with the fit coefficients and scan data
+    with open("scan_objs.pkl") as f:
+        coeffs, df = pickle.load(f)
 
     # find the minimum; set the HPC path length position accordingly
-    y_series = coeffs[2] + coeffs[1]*d["scan_data"]["spc_trans_position"]+coeffs[0]*d["scan_data"]["spc_trans_position"]**2
+    y_series = coeffs[2] + coeffs[1]*df["spc_trans_position"]+coeffs[0]*df["spc_trans_position"]**2
     min_y = min(y_series)  # find the minimum y-value
-    df = pd.DataFrame(d)
     zero_opd_spc_trans_pos = df.loc[y_series == np.min(y_series)]["spc_trans_position"].values[0] # find the x-value (pathlength) corresponding to min y-value (residuals)
 
     # is the curve concave up?

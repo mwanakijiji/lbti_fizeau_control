@@ -252,15 +252,17 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
     return dictFFTstuff
 
 
-def print_write_fft_info(integ_time, mode = "science", log_name = "fft_log.csv"):
+def print_write_fft_info(integ_time, mode = "science", fft_pickle_write_name = "fft_info.pkl"):
     ''' 
     Take FFT of PSF, and calculate new Phasecam PL and TT setpoints
 
     INPUTS:
-    log_name: name of the csv file to which FFT information will be printed
+    fft_pickle_write_name: name of the csv file to which FFT information will be printed
     mode: "fake_fits": read in fake FITS files (but continue sending LMIR and mirror commands)
           "artif_source": use an artificial source (either laser or pinhole)
           "science": on-sky
+    OUTPUTS:
+    N/A; FFT info from series of Fizeau PSFs is pickled
     '''
 
     ampArray = []
@@ -310,7 +312,7 @@ def print_write_fft_info(integ_time, mode = "science", log_name = "fft_log.csv")
         '''
 
         # sanity check (and to avoid getting for loop stuck)
-        if (np.shape(amp)[0]!=np.shape(amp)[1]): # if the FFT doesn't make sense (i.e., if PSF was not found)
+        if (np.shape(amp)[0] != np.shape(amp)[1]): # if the FFT doesn't make sense (i.e., if PSF was not found)
             print('PSF does not make sense ... aborting this one ...')
             continue
 
@@ -422,27 +424,32 @@ def print_write_fft_info(integ_time, mode = "science", log_name = "fft_log.csv")
         print(time_elapsed)
 
     # write to log
-    fftInfo_amp_df.to_csv("fft_amp.csv")
-    fftInfo_arg_df.to_csv("fft_arg.csv")
+    #fftInfo_amp_df.to_csv("fft_amp.csv")
+    #fftInfo_arg_df.to_csv("fft_arg.csv")
     ## ## note I havent used log_name anywhere yet
 
-    d = {"fft_amp": fftInfo_amp, "fft_arg": fftInfo_arg}
+    # pack info from the series of FFTs into a dictionary, and pickle it
+    d = {"fftInfo_amp": fftInfo_amp, "fftInfo_arg": fftInfo_arg}
+    with open(fft_pickle_write_name, "w") as f:
+        pickle.dump(d, f)
 
     print("Done analyzing a range of PSFs. Now read the data in and calculate changed PC setpoints.")
 
-    return d
+    return
 
 
-def get_apply_pc_setpts(integ_time, mode = "science", log_name = "setpt_log.csv"):
+def get_apply_pc_setpts(integ_time, mode = "science", fft_pickle_read_name = "fft_info.pkl"):
 
     start_time = time.time()
 
-    ## ## note Im just reading in csvs here, and not passing an argument fft_info
-    fftInfo_amp = pd.read_csv("fft_amp.csv")
-    fftInfo_arg = pd.read_csv("fft_arg.csv")
+    # restore the pickle file with the fit coefficients and scan data
+    with open(fft_pickle_read_name) as f:
+        d = pickle.load(f)
+    fftInfo_amp = d["fftInfo_amp"]
+    fftInfo_arg = d["fftInfo_arg"]
 
     #####################################
-    # Overlap of the Airy PSFs?
+    # LOW PRIORITY: Overlap of the Airy PSFs (MAYBE THIS SHOULD BE RESOLVED WITH OVERLAP_PSFS?)
     # TO CORRECT: TT THE HPC TO TRANSLATE DX AIRY PSF
     ## ## (MAYBE TRY TTING THE FPC LATER?)
     ## MAYBE TRY MOVING STUFF MANUALLY ON PIEZOS PAGE FIRST
@@ -468,7 +475,7 @@ def get_apply_pc_setpts(integ_time, mode = "science", log_name = "setpt_log.csv"
     pdb.set_trace()
     
     #####################################
-    # High-freq fringe visibility (median)
+    # MEDIUM PRIORITY: High-freq fringe visibility (as measued with median of high-freq FFT ampl lobe) (ASSUME OPD=0 BEFORE TAKING OUT OTHER ABERRATIONS)
     print("----------------------------------")
     print("----------------------------------")
     print("Checking high-freq fringe visibility via median of ampl of high freq lobe:")
@@ -484,7 +491,7 @@ def get_apply_pc_setpts(integ_time, mode = "science", log_name = "setpt_log.csv"
         print("Manually change PL setpoint. How good/bad is the high-freq fringe visibility on LMIR? Write down the scale.")
     
     #####################################
-    # High-freq phase gradient
+    # HIGH PRIORITY: High-freq phase gradient
     print("----------------------------------")
     print("----------------------------------")
     print("Checking phase gradient in x of high freq in PTF:")
@@ -495,6 +502,8 @@ def get_apply_pc_setpts(integ_time, mode = "science", log_name = "setpt_log.csv"
     print(y_grad)
     print("Checking phase gradient in x,y (amplitude)")
     print(np.sqrt(np.add(math.pow(x_grad,2),math.pow(y_grad,2))))
+    print("Checking angle of the gradient (deg CCW from x=0):")
+    print(math.atan2(y_grad,x_grad)*180./np.pi)
     print("--------------------------")
     if (mode != "total_passive"):
         print("Current FPC tip setpoint:")

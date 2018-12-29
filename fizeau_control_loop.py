@@ -23,12 +23,12 @@ fiz_lmir_sweet_spot = [200,100]
 
 # Is this script being run as a test, or are we doing on-sky science?
 # Options: "total_passive", "fake_fits", "artif_source", "science"
-#    "total_passive": no getFITS, setFITS, or setINDI commands are sent (but getINDI are)
-#    "fake_fits":     read in fake FITS files, and send INDI commands to cameras and mirrors (but not the telescope)
+#    "total_passive": read in fake FITS files, and no getFITS or setINDI commands are sent (but getINDI are)
+#    "fake_fits":     read in fake FITS files, but also send INDI commands to cameras and mirrors (but not the telescope)
 #    "artif_source":  use detector images involving artificial sources in closed-dome, and send commands to UBC mirrors (but not the telescope)
 #    "science":       send commands to cameras, mirrors, and telescope like we're on-sky
 print("----------------------------------------------------------------------------------")
-mode_choice = "fake_fits"
+mode_choice = "total_passive"
 print("This optimization code is running in mode " + mode_choice)
 print("Stop continuous aquisition of the camera.")
 print("----------------------------------------------------------------------------------")
@@ -51,8 +51,8 @@ overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = mode_choice, psf_type = "gr
 ## ## add length of scan (in total OPD?)
 ## ## sometimes new HPC movement causes grisms to separate; may need to re-overlap them each time
 ## ## insert all hpc, fpc piston and TT statuses into headers
-scan_data = find_optimal_opd_fizeau_grism(integ_time, mode = mode_choice) # might also use argument of the re-established Fizeau/grism PSF instead of the coordinate where it's supposed to be
-implement_optimal_opd(scan_data)
+find_optimal_opd_fizeau_grism(integ_time, mode = mode_choice) # might also use argument of the re-established Fizeau/grism PSF instead of the coordinate where it's supposed to be
+implement_optimal_opd(mode = mode_choice)
 print("----------------------------------------------------------------------------------")
 raw_input("Now align Phasecam and close the phase loop")
 
@@ -72,11 +72,11 @@ raw_input("Now align Phasecam and close the phase loop")
 ############## OPTIMIZE SCIENCE PSF BY FINDING OPD AND TT SETPOINTS ITERATIVELY
 
 # print fft info, see how it compares with the set thresholds
-fft_info = print_write_fft_info(integ_time, mode = mode_choice, log_name = "fft_log.csv")
+print_write_fft_info(integ_time, mode = mode_choice, fft_pickle_write_name = "fft_info.pkl")
 
 # calculate and apply Phasecam setpoints
 ## ## DONT RUN THE FOLLOWING FUNCTION YET; JUST USE BITS INSIDE OF IT TO TEST THE EFFECT ON THE PSF
-get_apply_pc_setpts(integ_time, mode = mode_choice, log_name = "setpt_log.csv")
+get_apply_pc_setpts(integ_time, mode = mode_choice, fft_pickle_read_name = "fft_info.pkl")
 
 ## adjust TT to optimize PSF; maybe iterate with OPD?
 ## note OPD movements cannot be more than 5 um with Phasecam closed
