@@ -10,6 +10,86 @@ import pickle
 from lmircam_tools import *
 from lmircam_tools import process_readout
 
+def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
+    ''' 
+    Measures the angle of fringes in grism mode, and calculates
+    and implements the needed SPC translation stage movement
+
+    INPUTS:
+    mode: "fake_fits": read in fake FITS files (but continue sending LMIR and mirror commands)
+          "artif_source": use an artificial source (either laser or pinhole)
+          "science": on-sky
+    '''
+
+
+    # set some approximate parameters of the observed grism PSF
+    sig = 5 # sigma of Gaussian profile in x (in pix)
+    length_y = 200 # length in y of the psf (in pix)
+
+    take_roi_background(mode)
+    raw_input("User: remove the Blank in FW4, then press return when done")
+
+    if (mode != "total_passive"):
+        print("Taking a background-subtracted frame")
+        pi.setINDI("LMIRCAM.enable_save.value=On")
+        f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
+
+    if ((mode == "fake_fits") or (mode == "total_passive")):
+        f = pyfits.open("test_fits_files/test_frame_grismFiz_small.fits")
+
+    imgb4 = f[0].data
+    image = process_readout.processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
+
+    # determine grism Fizeau PSF center
+    center_grism = find_grism_psf(image, sig, length_y) # locate the grism PSF center (THIS IS IN OVERLAP_PSFS.PY; SHOULD IT BE IN INIT?)
+
+    # cut out the grism image
+    ''' 
+    img_before_padding_before_FT = np.copy(image)
+    '''
+    img_before_padding_before_FT = image[center_grism[0]-int(200):center_grism[0]+int(200),
+                                     center_grism[1]-int(100):center_grism[1]+int(100)]
+
+    # take FFT; no padding for now
+    ## ## DO I WANT A SMALL CUTOUT OR THE ORIGINAL IMAGE?
+    AmpPE, ArgPE = fft_img(img_before_padding_before_FT).fft(padding=0)
+
+    # find angle of fringes
+    # is there an off-center dot in FFT amplitude?
+    # blot out low-frequency center of FFT ampl
+    center_masked_data = amp.data
+    center_masked_data[int(0.5*np.shape(center_masked_data)[0])-20:int(0.5*np.shape(center_masked_data)[0])+20,
+                           int(0.5*np.shape(center_masked_data)[1])-20:int(0.5*np.shape(center_masked_data)[1])+20] = np.nan
+    dot_loc = find_airy_psf(center_masked_data)
+    #dot_loc = find_grism_psf(np.multiply(amp.data,amp.mask), 5, 5)
+
+    print("Dot location:")
+    print(dot_loc)
+    print("Dot angle:")
+    y_comp = dot_loc[0]-0.5*np.shape(center_masked_data)[0]
+    x_comp = dot_loc[1]-0.5*np.shape(center_masked_data)[1]
+    angle_val = math.atan2(y_comp,x_comp)*180./np.pi
+    print(angle_val)
+    print("-----------------")
+
+    # as found by using OPD scans in grism mode in 2018A and 2018B, it appears that, for the Lgrism6AR,
+    # for every +degree in the CW direction that the FFT amplitude high-freq node is,
+    # need to move the SPC_Trans in the NEGATIVE direction by 144 counts
+    movement_per_pos_degree = -144
+    diff_movement_total_cts = angle_val * movement_per_pos_degree # units of counts
+    diff_movement_total_opd = 2. * np.divide(diff_movement_total_cts,50.) # factor of 2: linear to OPD; factor of 1/50: counts to um
+
+    # correct with the SPC translation stage: Ubcs.SPC_Trans.command=>N
+    # note factor of 10; command is in relative movement of 0.1 um
+    print("----------------------------------------------------------------")
+    if (mode != "total_passive"):
+        print("Moving SPC_Trans for large OPD movement of "+str(int(diff_movement_total_opd))+" um or "+str(diff_movement_total_cts)+" translation counts"
+        pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(diff_movement_total_cts))
+
+    return
+
+
+
 def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
     ''' 
     Takes well-overlapped grism PSFs and dials the optical path

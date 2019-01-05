@@ -149,9 +149,10 @@ def take_roi_background(mode):
         print("Setting ROI aquisition flag")
         pi.setINDI("LMIRCAM.fizRun.value=On")
         print("Moving in a blank to take a background")
-        pi.setINDI("Lmir.lmir_FW4.command", "Blank", wait=True)
-        print("Taking a background")
-        f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=0;int_time=%i;is_bg=1;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
+        ## ## COMMENTED OUT DUE TO FW 4 STUCK 2018 dEC 29
+        ## ## pi.setINDI("Lmir.lmir_FW4.command", "Blank", wait=True)
+        ## ## print("Taking a background")
+        ## ## f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=0;int_time=%i;is_bg=1;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
     return
 

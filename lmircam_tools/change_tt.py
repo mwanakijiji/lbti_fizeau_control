@@ -423,9 +423,9 @@ def print_write_fft_info(integ_time, mode = "science", fft_pickle_write_name = "
         print("PSF "+str(f)+" analysed in time (secs):")
         print(time_elapsed)
 
-    # write to log
-    #fftInfo_amp_df.to_csv("fft_amp.csv")
-    #fftInfo_arg_df.to_csv("fft_arg.csv")
+    # write to csv to check on a local machine
+    fftInfo_amp_df.to_csv("fft_amp.csv")
+    fftInfo_arg_df.to_csv("fft_arg.csv")
     ## ## note I havent used log_name anywhere yet
 
     # pack info from the series of FFTs into a dictionary, and pickle it
@@ -518,14 +518,14 @@ def get_apply_pc_setpts(integ_time, mode = "science", fft_pickle_read_name = "ff
     #######################################################################
     # lines to run on the command line to test application of corrections
 
-    # To correct Airy PSF overlap, or TT in Fizeau PSF
+    # LOW PRIORITY: To correct Airy PSF overlap, or TT in Fizeau PSF
     new_tip_setpoint = 0
     new_tilt_setpoint = 0
     if (mode != "total_passive"):
         pi.setINDI("PLC.UBCSettings.TipSetpoint="+str(int(new_tip_setpoint)))
         pi.setINDI("PLC.UBCSettings.TiltSetpoint="+str(int(new_tilt_setpoint)))
 
-    # To correct high-freq fringe visibility
+    # MEDIUM PRIORITY: To correct high-freq fringe visibility
     new_pl_setpoint = 0
     spc_trans_stepSize = 5. # (um, total OPD)
     if (mode != "total_passive"):
@@ -533,7 +533,7 @@ def get_apply_pc_setpts(integ_time, mode = "science", fft_pickle_read_name = "ff
         pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(spc_trans_command))
         pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(10*0.5*stepSize)) # factor of 10 bcz command is in 0.1 um
     
-    # To correct high-freq fringe gradients (note similarity to correction for Airy PSF overlap)
+    # HIGH PRIORITY: To correct high-freq fringe gradients (note similarity to correction for Airy PSF overlap)
     new_tip_setpoint = 0
     new_tilt_setpoint = 0
     if (mode != "total_passive"):
