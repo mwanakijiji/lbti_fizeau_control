@@ -28,9 +28,7 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
     INPUTS:
     side: "left" or "right" (there is no "both") ("Do. Or do not. There is no try." --Yoda)
     tolerance: how close (in pixels) do Airy PSF have to be positioned to the Fizeau position setpoint?
-    mode: "fake_fits": read in fake FITS files (but continue sending LMIR and mirror commands)
-	  "artif_source": use an artificial source (either laser or pinhole)
-	  "science": on-sky
+    mode: testing or science
     psf_type: "airy" or "grism"
 
     PREREQS:

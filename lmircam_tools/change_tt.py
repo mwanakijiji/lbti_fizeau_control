@@ -258,9 +258,7 @@ def print_write_fft_info(integ_time, mode = "science", fft_pickle_write_name = "
 
     INPUTS:
     fft_pickle_write_name: name of the csv file to which FFT information will be printed
-    mode: "fake_fits": read in fake FITS files (but continue sending LMIR and mirror commands)
-          "artif_source": use an artificial source (either laser or pinhole)
-          "science": on-sky
+    mode: testing or science
     OUTPUTS:
     N/A; FFT info from series of Fizeau PSFs is pickled
     '''
@@ -272,7 +270,9 @@ def print_write_fft_info(integ_time, mode = "science", fft_pickle_write_name = "
     counter_num = 0
 
     take_roi_background(mode)
+    raw_input("User: remove the Blank in FW4, then press return when done")
 
+    pdb.set_trace()
     # each loop: take a frame, analyze it, extract FFT info to write out
     for sample_num in range(0,4): # N samples for now
 
@@ -281,13 +281,19 @@ def print_write_fft_info(integ_time, mode = "science", fft_pickle_write_name = "
         if ((mode == "fake_fits") or (mode == "total_passive")):
             #f = pyfits.open("test_fits_files/test_frame_fiz_large.fits")
             f = pyfits.open("test_fits_files/test_frame_fiz_small.fits")
-        elif ((mode == "science") or (mode == "artif_source")):
+        elif ((mode == "science") or (mode == "nac_source") or (mode == "az_source")):
             # take a frame with background subtracting
             print("Taking a background-subtracted frame")
             pi.setINDI("LMIRCAM_save.enable_save.value=On")
             f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
+	print("TESTING")
         image = f[0].data
+
+	# save image to check
+	hdu = pyfits.PrimaryHDU(image)
+        hdulist = pyfits.HDUList([hdu])
+        hdu.writeto("junk_test_image_seen_"+str(sample_num)+".fits", clobber=True)
 
         # locate PSF
         psf_loc = find_grism_psf(image, sig=5, length_y=5)

@@ -25,10 +25,11 @@ fiz_lmir_sweet_spot = [200,100]
 # Options: "total_passive", "fake_fits", "artif_source", "science"
 #    "total_passive": read in fake FITS files, and no getFITS or setINDI commands are sent (but getINDI are)
 #    "fake_fits":     read in fake FITS files, but also send INDI commands to cameras and mirrors (but not the telescope)
-#    "artif_source":  use detector images involving artificial sources in closed-dome, and send commands to UBC mirrors (but not the telescope)
+#    "nac_source":    use detector images involving the NAC source (downstream of the UBC) in closed-dome, but don't send commands to UBC mirrors or telescope
+#    "az_source":     use detector images involving the AZ source (upstream of the UBC) in closed-dome, and send commands to UBC mirrors but not the telescope 
 #    "science":       send commands to cameras, mirrors, and telescope like we're on-sky
 print("----------------------------------------------------------------------------------")
-mode_choice = "fake_fits"
+mode_choice = "nac_source"
 print("This optimization code is running in mode " + mode_choice)
 print("Stop continuous aquisition of the camera.")
 print("----------------------------------------------------------------------------------")

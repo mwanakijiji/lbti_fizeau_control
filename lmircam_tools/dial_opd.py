@@ -17,9 +17,7 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
     and implements the needed SPC translation stage movement
 
     INPUTS:
-    mode: "fake_fits": read in fake FITS files (but continue sending LMIR and mirror commands)
-          "artif_source": use an artificial source (either laser or pinhole)
-          "science": on-sky
+    mode: testing or science
     '''
 
 
@@ -98,9 +96,7 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
 
     INPUTS: 
     psf_location: location of the Fizeau grism PSF
-    mode: "fake_fits": read in fake FITS files (but continue sending LMIR and mirror commands)
-          "artif_source": use an artificial source (either laser or pinhole)
-          "science": on-sky
+    mode: testing or science
     '''
 
     # set some approximate parameters of the observed grism PSF
