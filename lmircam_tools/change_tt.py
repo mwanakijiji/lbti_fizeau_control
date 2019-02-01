@@ -284,7 +284,7 @@ def print_write_fft_info(integ_time, mode = "science", fft_pickle_write_name = "
         elif ((mode == "science") or (mode == "artif_source")):
             # take a frame with background subtracting
             print("Taking a background-subtracted frame")
-            pi.setINDI("LMIRCAM.enable_save.value=On")
+            pi.setINDI("LMIRCAM_save.enable_save.value=On")
             f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
         image = f[0].data
@@ -458,8 +458,8 @@ def get_apply_pc_setpts(integ_time, mode = "science", fft_pickle_read_name = "ff
     print("Checking overlap of the Airy PSFs via std of FFT phase low freq node:")
     print(np.median(fftInfo_arg["std_lowFreqPerfect"]))
     if (mode != "total_passive"):
-        hpc_tip_position_now = pi.getINDI("Ubcs.HPC_Tip_status.PosNum") # HPC tip pos
-        hpc_tilt_position_now = pi.getINDI("Ubcs.HPC_Tilt_status.PosNum") # HPC tilt pos
+        hpc_tip_position_now = pi.getINDI("Acromag.HPC_status.Tip") # HPC tip pos
+        hpc_tilt_position_now = pi.getINDI("Acromag.HPC_status.Tilt") # HPC tilt pos
         fpc_tip_setpoint_now = pi.getINDI("PLC.UBCSettings.TipSetpoint") # FPC tip setpoint
         fpc_tilt_setpoint_now = pi.getINDI("PLC.UBCSettings.TiltSetpoint") # FPC tilt setpoint
         print("----------------------------------")

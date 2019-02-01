@@ -66,7 +66,7 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
         # take a frame with background subtracting
         if (mode != "total_passive"):
 	    print("Taking a background-subtracted frame")
-            pi.setINDI("LMIRCAM.enable_save.value=On")
+            pi.setINDI("LMIRCAM_save.enable_save.value=On")
 	    f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
 	if (((mode == "fake_fits") or (mode == "total_passive")) and (psf_type == "airy")):
@@ -102,7 +102,7 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
         ### re-locate PSF; correction needed?
         if (mode != "total_passive"):
             print("Taking a background-subtracted frame")
-            pi.setINDI("LMIRCAM.enable_save.value=On")
+            pi.setINDI("LMIRCAM_save.enable_save.value=On")
 	    f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
 	if ((mode == "fake_fits") or (mode == "total_passive")):
@@ -162,7 +162,7 @@ def overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = "science", psf_type = "
 
     # take a new frame to see what things look like now
     if (mode != "total_passive"):
-        pi.setINDI("LMIRCAM.enable_save.value=On")
+        pi.setINDI("LMIRCAM_save.enable_save.value=On")
         f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
     # turn off fizeau flag to avoid problems with other observations

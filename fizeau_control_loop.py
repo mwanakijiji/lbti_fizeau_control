@@ -19,7 +19,7 @@ raw_input("Place an ROI, no larger than 512x512, over the Phasecam sweet spot fo
 	"large enough to include the grism PSF and possible movement\nPress [Enter] when done.")
 
 # Phasecam sweet spot on detector, in ROI coordinates (y, x)
-fiz_lmir_sweet_spot = [200,150] 
+fiz_lmir_sweet_spot = [200,100] 
 
 # Is this script being run as a test, or are we doing on-sky science?
 # Options: "total_passive", "fake_fits", "artif_source", "science"
@@ -28,7 +28,7 @@ fiz_lmir_sweet_spot = [200,150]
 #    "artif_source":  use detector images involving artificial sources in closed-dome, and send commands to UBC mirrors (but not the telescope)
 #    "science":       send commands to cameras, mirrors, and telescope like we're on-sky
 print("----------------------------------------------------------------------------------")
-mode_choice = "science"
+mode_choice = "fake_fits"
 print("This optimization code is running in mode " + mode_choice)
 print("Stop continuous aquisition of the camera.")
 print("----------------------------------------------------------------------------------")
@@ -54,6 +54,7 @@ overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = mode_choice, psf_type = "gr
 
 # the following function is for a one-off correction once you have a grism PSF with visible fringes at an angle
 # once its seen to work well, then it should be applied periodically while data is being taken (like once the angle is see to be >5 degrees, or something like that)
+## ## ONLY WORKS IN GRISM MODE, THOUGH
 live_opd_correction_fizeau_grism(integ_time, mode = mode_choice)
 
 # the following is for doing a big, automated scan... but it may be more efficient to do the scan manually

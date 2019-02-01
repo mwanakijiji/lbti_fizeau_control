@@ -7,6 +7,7 @@ import scipy
 from scipy import ndimage, sqrt, stats, misc, signal
 import pyfits
 import pickle
+import math
 from lmircam_tools import *
 from lmircam_tools import process_readout
 
@@ -31,7 +32,7 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
 
     if (mode != "total_passive"):
         print("Taking a background-subtracted frame")
-        pi.setINDI("LMIRCAM.enable_save.value=On")
+        pi.setINDI("LMIRCAM_save.enable_save.value=On")
         f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
     if ((mode == "fake_fits") or (mode == "total_passive")):
@@ -57,7 +58,7 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
     # find angle of fringes
     # is there an off-center dot in FFT amplitude?
     # blot out low-frequency center of FFT ampl
-    center_masked_data = amp.data
+    center_masked_data = AmpPE.data
     center_masked_data[int(0.5*np.shape(center_masked_data)[0])-20:int(0.5*np.shape(center_masked_data)[0])+20,
                            int(0.5*np.shape(center_masked_data)[1])-20:int(0.5*np.shape(center_masked_data)[1])+20] = np.nan
     dot_loc = find_airy_psf(center_masked_data)
@@ -83,7 +84,7 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
     # note factor of 10; command is in relative movement of 0.1 um
     print("----------------------------------------------------------------")
     if (mode != "total_passive"):
-        print("Moving SPC_Trans for large OPD movement of "+str(int(diff_movement_total_opd))+" um or "+str(diff_movement_total_cts)+" translation counts"
+        print("Moving SPC_Trans for large OPD movement of "+str(int(diff_movement_total_opd))+" um or "+str(diff_movement_total_cts)+" translation counts")
         pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(diff_movement_total_cts))
 
     return
@@ -120,14 +121,14 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
 				'resid'])
     # loop over OPD steps (unitless here) around where we start
     step_start = -1
-    step_stop = 1
+    step_stop = 4
     for opd_step in range(step_start,step_stop):
 
 	step_size_opd = 10. # step size per opd_step count (um, total OPD)
 
         if (mode != "total_passive"):
             print("Taking a background-subtracted frame")
-            pi.setINDI("LMIRCAM.enable_save.value=On")
+            pi.setINDI("LMIRCAM_save.enable_save.value=On")
             f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
 	if ((mode == "fake_fits") or (mode == "total_passive")):
@@ -250,9 +251,10 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
     no_return = df.to_csv(file_name)
 
     # fit a 2nd-order polynomial to the residuals as fcn of SPC position
-    coeffs = np.polyfit(df["spc_trans_position"], df["resid"], 2)
-    print("coeffs")
-    print(coeffs)
+    if (mode != "total_passive"):
+    	coeffs = np.polyfit(df["spc_trans_position"], df["resid"], 2)
+    else:
+        coeffs = [0,0]
 
     ## WOULD BE COOL TO HAVE A WEBPAGE DISPLAY OF A PLOT OF THE ABOVE
     ## MATPLOTLIB VERSION IS
@@ -279,6 +281,9 @@ def implement_optimal_opd(mode = "science"):
         "coeffs": the coefficients of the fit to the residuals
         "scan_data": the data on the residuals, and piston positions of moveable beam combiner elements
     '''
+
+    if (mode == "total_passive"):
+	return
 
     # write data to file for copying and plotting on local machine
     ## ## (THIS IS ACTUALLY DEFINED IN FIND_OPTIMAL_FIZEAU_GRISM; THIS FILENAME NEEDS TO BE TRANSFERRED INSTEAD
