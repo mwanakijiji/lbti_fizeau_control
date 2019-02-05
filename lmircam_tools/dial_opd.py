@@ -81,9 +81,11 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
     # correct with the SPC translation stage: Ubcs.SPC_Trans.command=>N
     # note factor of 10; command is in relative movement of 0.1 um
     print("----------------------------------------------------------------")
-    if (mode != "total_passive"):
+    if ((mode == "fake_fits") or (mode == "az_source") or (mode == "science")):
         print("Moving SPC_Trans for large OPD movement of "+str(int(diff_movement_total_opd))+" um or "+str(diff_movement_total_cts)+" translation counts")
         pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(diff_movement_total_cts))
+    else:
+        print("Not moving SPC_Trans, since this is in testing mode")
 
     return
 
@@ -237,7 +239,7 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
 	# big steps with the SPC translation stage: Ubcs.SPC_Trans.command=>5
 	# note factor of 10; command is in relative movement of 0.1 um
         print("----------------------------------------------------------------")
-        if (mode != "total_passive"):
+        if ((mode == "fake_fits") or (mode == "az_source") or (mode == "science")):
 	    print("Moving SPC_Trans for large OPD movement of "+str(int(step_size_opd))+" um (translation of "+str(0.5*step_size_opd)+" um, or "+str(50*0.5*step_size_opd)+" counts)")
 	    pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(50*0.5*step_size_opd))
 
@@ -305,7 +307,7 @@ def implement_optimal_opd(mode = "science"):
     spc_trans_command = np.subtract(zero_opd_spc_trans_pos,spc_trans_position_now)
     print("spc_trans_position_now:")
     print(spc_trans_position_now)
-    if (mode != "total_passive"):
+    if ((mode == "fake_fits") or (mode == "az_source") or (mode == "science")):
         print("spc_trans_command:")
         print(spc_trans_command)
         pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(spc_trans_command))

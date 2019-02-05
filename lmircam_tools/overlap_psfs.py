@@ -129,15 +129,15 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
 	else:
 	    # fine-tune with FPC or HPC
 	    if (side == "left"):
-                if (mode != "total_passive"):
+                if ((mode == "fake_fits") or (mode == "az_source") or (mode == "science")):
             	    print("Moving SX PSF again, now with FPC movement")
             	    pi.setINDI("Acromag.FPC.Tip="+'{0:.1f}'.format(vector_move_asec[0])+";Tilt="+'{0:.1f}'.format(vector_move_asec[1])+";Piston=0;Mode=1")
 	    elif (side == "right"):
-		if (mode != "total_passive"):
+		if ((mode == "fake_fits") or (mode == "az_source") or (mode == "science")):
                     print("Moving DX PSF again, now with HPC movement")
 		    pi.setINDI("Acromag.HPC.Tip="+'{0:.1f}'.format(vector_move_asec[0])+";Tilt="+'{0:.1f}'.format(vector_move_asec[1])+";Piston=0;Mode=1")
 
-	if ((mode == "fake_fits") or (mode == "total_passive")):
+	if ((mode == "fake_fits") or (mode == "total_passive") or (mode == "nac_source")):
 	    # need to break, because otherwise the FPC/HPC mirrors won't converge
 	    break
 

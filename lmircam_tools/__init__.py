@@ -146,6 +146,7 @@ def take_roi_background(mode):
     # take a background
     # allow aquisition from ROI box (keep smaller than 512x512!)
     if (mode != "total_passive"):
+        start_time = time.time()
         print("Setting ROI aquisition flag")
         pi.setINDI("LMIRCAM.fizRun.value=On")
         print("Moving in a blank to take a background")
@@ -153,11 +154,14 @@ def take_roi_background(mode):
         pi.setINDI("Lmir.lmir_FW4.command", "Blank", wait=True)
         print("Taking a background")
         f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=0;int_time=%i;is_bg=1;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
-
+        print("Took a new background in (secs)")
+        end_time = time.time()
+        print(end_time - start_time)
+        print("-------------------")
     return
 
 
-def put_in_grism(image = "yes"):
+def put_in_grism(mode = "science", image = "yes"):
     ''' 
     Inserts the LMIR grism
     '''

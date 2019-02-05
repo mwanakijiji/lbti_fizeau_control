@@ -42,7 +42,7 @@ overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = mode_choice, psf_type = "ai
 
 ############## PUT IN GRISM AND REFINE GRISM-PSF OVERLAP
 
-put_in_grism()
+put_in_grism(mode = mode_choice)
 overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = mode_choice, psf_type = "grism")
 
 

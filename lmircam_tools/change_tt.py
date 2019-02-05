@@ -308,6 +308,19 @@ def print_write_fft_info(integ_time, mode = "science", fft_pickle_write_name = "
         cookie_cut = np.copy(image)
         amp, arg = fft_img(cookie_cut).fft(padding=int(5*cookie_size), mask_thresh=1e5)
 
+        # test: see what the FFT looks like
+        hdu = pyfits.PrimaryHDU(amp.data)
+        hdulist = pyfits.HDUList([hdu])
+        hdu.writeto("amptest.fits", clobber=True)
+        hdu = pyfits.PrimaryHDU(arg.data)
+        hdulist = pyfits.HDUList([hdu])
+        hdu.writeto("argtest.fits", clobber=True)
+        print("shape of amp data")
+        print(np.shape(amp))
+        print("shape of arg data")
+        print(np.shape(arg))
+
+
         # test: image with a perfect slope
         ''' 
         testing, header = fits.getdata('slope_test_psf.fits',0,header=True)
@@ -317,10 +330,11 @@ def print_write_fft_info(integ_time, mode = "science", fft_pickle_write_name = "
         amp[np.isfinite(amp)] = -1 #cookie_cut_testing[np.isfinite(amp)]
         '''
 
+        # --commented out because it was triggering on NxM frames where N!=M--
         # sanity check (and to avoid getting for loop stuck)
-        if (np.shape(amp)[0] != np.shape(amp)[1]): # if the FFT doesn't make sense (i.e., if PSF was not found)
-            print('PSF does not make sense ... aborting this one ...')
-            continue
+        #if (np.shape(amp)[0] != np.shape(amp)[1]): # if the FFT doesn't make sense (i.e., if PSF was not found)
+        #    print('PSF does not make sense ... aborting this one ...')
+        #    continue
 
         print("------------------")
         print("FFT ampl of psf "+str(sample_num)+":")
@@ -527,14 +541,14 @@ def get_apply_pc_setpts(integ_time, mode = "science", fft_pickle_read_name = "ff
     # LOW PRIORITY: To correct Airy PSF overlap, or TT in Fizeau PSF
     new_tip_setpoint = 0
     new_tilt_setpoint = 0
-    if (mode != "total_passive"):
+    if ((mode == "science") or (mode == "fake_fits") or (mode == "az_source")):
         pi.setINDI("PLC.UBCSettings.TipSetpoint="+str(int(new_tip_setpoint)))
         pi.setINDI("PLC.UBCSettings.TiltSetpoint="+str(int(new_tilt_setpoint)))
 
     # MEDIUM PRIORITY: To correct high-freq fringe visibility
     new_pl_setpoint = 0
     spc_trans_stepSize = 5. # (um, total OPD)
-    if (mode != "total_passive"):
+    if ((mode == "science") or (mode == "fake_fits") or (mode == "az_source")):
         pi.setINDI("PLC.UBCSettings.PLSetpoint="+str(int(new_pl_setpoint)))
         pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(spc_trans_command))
         pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(10*0.5*stepSize)) # factor of 10 bcz command is in 0.1 um
@@ -542,12 +556,12 @@ def get_apply_pc_setpts(integ_time, mode = "science", fft_pickle_read_name = "ff
     # HIGH PRIORITY: To correct high-freq fringe gradients (note similarity to correction for Airy PSF overlap)
     new_tip_setpoint = 0
     new_tilt_setpoint = 0
-    if (mode != "total_passive"):
+    if ((mode == "science") or (mode == "fake_fits") or (mode == "az_source")):
         pi.setINDI("PLC.UBCSettings.TipSetpoint="+str(int(new_tip_setpoint)))
         pi.setINDI("PLC.UBCSettings.TiltSetpoint="+str(int(new_tilt_setpoint)))
     
     # FYI: EDIT TO MAKE MOMENTARY CHANGES IN FPC TT
-    if (mode != "total_passive"):
+    if ((mode == "science") or (mode == "fake_fits") or (mode == "az_source")):
         pi.setINDI("Acromag.FPC.Tip="+'{0:.1f}'.format(vector_move_asec[0])+";Tilt="+'{0:.1f}'.format(vector_move_asec[1])+";Piston=0;Mode=1")
 
     stop_time = time.time()
