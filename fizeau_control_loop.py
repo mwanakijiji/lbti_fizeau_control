@@ -6,6 +6,10 @@ from lmircam_tools.overlap_psfs import overlap_psfs
 from lmircam_tools.dial_opd import find_optimal_opd_fizeau_grism, live_opd_correction_fizeau_grism, implement_optimal_opd
 from lmircam_tools.change_tt import print_write_fft_info, get_apply_pc_setpts
 
+#################################################################################
+###############         ALIGNMENT         #######################################
+#################################################################################
+
 ############## GROSS OVERLAP OF NON-FIZEAU AIRY PSFS
 
 # ROI size no larger than 512x512, but large enough in y to cover 200-pixel-tall
@@ -29,7 +33,7 @@ fiz_lmir_sweet_spot = [200,100]
 #    "az_source":     use detector images involving the AZ source (upstream of the UBC) in closed-dome, and send commands to UBC mirrors but not the telescope 
 #    "science":       send commands to cameras, mirrors, and telescope like we're on-sky
 print("----------------------------------------------------------------------------------")
-mode_choice = "nac_source"
+mode_choice = "total_passive"
 print("This optimization code is running in mode " + mode_choice)
 print("Stop continuous aquisition of the camera.")
 print("----------------------------------------------------------------------------------")
@@ -77,6 +81,10 @@ raw_input("Now align Phasecam and close the phase loop")
 # 2ND PRIORITY
 # might be manual step
 
+
+#################################################################################
+###############         SCIENCE           #######################################
+#################################################################################
 
 ############## OPTIMIZE SCIENCE PSF BY FINDING OPD AND TT SETPOINTS ITERATIVELY
 

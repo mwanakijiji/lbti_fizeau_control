@@ -14,6 +14,7 @@ import pickle
 import pdb
 import pandas as pd
 import math
+import glob
 
 from lmircam_tools import *
 from lmircam_tools import overlap_psfs
@@ -272,13 +273,24 @@ def print_write_fft_info(integ_time, mode = "science", fft_pickle_write_name = "
     take_roi_background(mode)
     raw_input("User: remove the Blank in FW4, then press return when done")
 
-    pdb.set_trace()
-    # each loop: take a frame, analyze it, extract FFT info to write out
-    for sample_num in range(0,4): # N samples for now
+    # read in any new images written out to a directory
+    files_start = glob.glob(dir_to_monitor + "*.fits") # starting list of files
+    while True:
 
-        start = time.time() # start timer
+        time_start = time.time()
+        time.sleep(del_t)
 
+        # check to see if there were new files from last check
+        files_later = glob.glob(dir_to_monitor + "/*.fits")
+
+        # are there new files?
+        new_list = np.setdiff1d(files_later,files_start)
+
+        time_start = time.time() # start timer
+
+        '''
         if ((mode == "fake_fits") or (mode == "total_passive")):
+            files_start = glob.glob(dir_to_monitor + "*.fits")
             #f = pyfits.open("test_fits_files/test_frame_fiz_large.fits")
             f = pyfits.open("test_fits_files/test_frame_fiz_small.fits")
         elif ((mode == "science") or (mode == "nac_source") or (mode == "az_source")):
@@ -286,174 +298,177 @@ def print_write_fft_info(integ_time, mode = "science", fft_pickle_write_name = "
             print("Taking a background-subtracted frame")
             pi.setINDI("LMIRCAM_save.enable_save.value=On")
             f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
-
-	print("TESTING")
-        image = f[0].data
-
-	# save image to check
-	hdu = pyfits.PrimaryHDU(image)
-        hdulist = pyfits.HDUList([hdu])
-        hdu.writeto("junk_test_image_seen_"+str(sample_num)+".fits", clobber=True)
-
-        # locate PSF
-        psf_loc = find_grism_psf(image, sig=5, length_y=5)
-        ## ## if time, test the following line
-        #psf_loc = find_airy_psf(image)
-
-        # size of cookie cut-out (measured center-to-edge)
-        cookie_size = 100 # maximum control radius as of 2018 July corresponds to 130.0 pixels
-
-        # take FFT
-        # cookie_cut = image[psf_loc[0]-cookie_size:psf_loc[0]+cookie_size,psf_loc[1]-cookie_size:psf_loc[1]+cookie_size]
-        cookie_cut = np.copy(image)
-        amp, arg = fft_img(cookie_cut).fft(padding=int(5*cookie_size), mask_thresh=1e5)
-
-        # test: see what the FFT looks like
-        hdu = pyfits.PrimaryHDU(amp.data)
-        hdulist = pyfits.HDUList([hdu])
-        hdu.writeto("amptest.fits", clobber=True)
-        hdu = pyfits.PrimaryHDU(arg.data)
-        hdulist = pyfits.HDUList([hdu])
-        hdu.writeto("argtest.fits", clobber=True)
-        print("shape of amp data")
-        print(np.shape(amp))
-        print("shape of arg data")
-        print(np.shape(arg))
-
-
-        # test: image with a perfect slope
-        ''' 
-        testing, header = fits.getdata('slope_test_psf.fits',0,header=True)
-        cookie_cut_testing = testing[psf_loc[0]-cookie_size:psf_loc[0]+
-                                     cookie_size,psf_loc[1]-cookie_size:psf_loc[1]+cookie_size]
-        #sciImg = ma.asarray(sciImg)
-        amp[np.isfinite(amp)] = -1 #cookie_cut_testing[np.isfinite(amp)]
         '''
 
-        # --commented out because it was triggering on NxM frames where N!=M--
-        # sanity check (and to avoid getting for loop stuck)
-        #if (np.shape(amp)[0] != np.shape(amp)[1]): # if the FFT doesn't make sense (i.e., if PSF was not found)
-        #    print('PSF does not make sense ... aborting this one ...')
-        #    continue
+        # if there are new files
+        if (len(new_list) > 2):
 
-        print("------------------")
-        print("FFT ampl of psf "+str(sample_num)+":")
-        print(amp.data)
-        print("FFT phase of psf "+str(sample_num)+":")
-        print(arg.data)
+            # reassign these files to be next starting point
+            files_start = files_later 
 
-        # analyze FFTs
-        fftInfo_amp = fftMask(amp,wavel_lambda,plateScale,
-                                  fyi_string=str("{:0>6d}".format(sample_num))+" FFT amp")
-        fftInfo_arg = fftMask(arg,wavel_lambda,plateScale,
-                                  fyi_string=str("{:0>6d}".format(sample_num))+" FFT phase")
+            # filename of second-newst file (in case the newest is still being written)
+            second_newest = sorted(files_later)[-2] 
 
-        print("------------------")
-        print("FFT info ampl of psf "+str(f)+":")
-        print(fftInfo_amp)
-        print("FFT info phase of psf "+str(f)+":")
-        print(fftInfo_arg)
+            f = pyfits.open(second_newest)
 
-        # save fyi FITS files to see the masks, etc.
-        hdu = pyfits.PrimaryHDU(fftInfo_amp["sciImg1"])
-        hdulist = pyfits.HDUList([hdu])
-        hdu.writeto("junk_test_mask_amp_maskedRegion1_"+str(sample_num)+".fits", clobber=True)
-        hdu = pyfits.PrimaryHDU(fftInfo_amp["sciImg2"])
-        hdulist = pyfits.HDUList([hdu])
-        hdu.writeto("junk_test_mask_amp_maskedRegion2_"+str(sample_num)+".fits", clobber=True)
-        hdu = pyfits.PrimaryHDU(fftInfo_amp["sciImg3"])
-        hdulist = pyfits.HDUList([hdu])
-        hdu.writeto("junk_test_mask_amp_maskedRegion3_"+str(sample_num)+".fits", clobber=True)
-        hdu = pyfits.PrimaryHDU(fftInfo_amp["sciImg4"])
-        hdulist = pyfits.HDUList([hdu])
-        hdu.writeto("junk_test_mask_amp_maskedRegion4_"+str(sample_num)+".fits", clobber=True)
-        hdu = pyfits.PrimaryHDU(amp.data)
-        hdulist = pyfits.HDUList([hdu])
-        hdu.writeto("junk_test_amp_psf_"+str(sample_num)+".fits", clobber=True)
-        hdu = pyfits.PrimaryHDU(arg.data)
-        hdulist = pyfits.HDUList([hdu])
-        hdu.writeto("junk_test_arg_psf_"+str(sample_num)+".fits", clobber=True)
+            print("TESTING")
+            image = f[0].data
 
-        ## take info from the FFTs to send corrective movements
+	    # save image to check
+	    #hdu = pyfits.PrimaryHDU(image)
+            #hdulist = pyfits.HDUList([hdu])
+            #hdu.writeto("junk_test_image_seen_"+str(sample_num)+".fits", clobber=True)
 
-        # thresholds
-        fft_ampl_high_freq_lowlimit = 2.4e5 # min threshold for good fringe visibility
-        fft_ampl_low_freq_lowlimit = 1.4e6 # min threshold for acceptable AO correction
-        fft_phase_vec_high_freq_highlimit = 5 # max threshold for Airy overlap
-        std_lowFreqPerfect_lowlimit = 10 # max threshold for Airy overlap
-        phase_normVec_highFreqPerfect_R_x = 100 # max threshold for phase of high-freq fringes
+            # locate PSF
+            psf_loc = find_grism_psf(image, sig=5, length_y=5)
+            ## ## if time, test the following line
+            #psf_loc = find_airy_psf(image)
+
+            # size of cookie cut-out (measured center-to-edge)
+            cookie_size = 100 # maximum control radius as of 2018 July corresponds to 130.0 pixels
+
+            # take FFT
+            # cookie_cut = image[psf_loc[0]-cookie_size:psf_loc[0]+cookie_size,psf_loc[1]-cookie_size:psf_loc[1]+cookie_size]
+            cookie_cut = np.copy(image)
+            amp, arg = fft_img(cookie_cut).fft(padding=int(5*cookie_size), mask_thresh=1e5)
+
+            # test: see what the FFT looks like
+            hdu = pyfits.PrimaryHDU(amp.data)
+            hdulist = pyfits.HDUList([hdu])
+            hdu.writeto("amptest.fits", clobber=True)
+            hdu = pyfits.PrimaryHDU(arg.data)
+            hdulist = pyfits.HDUList([hdu])
+            hdu.writeto("argtest.fits", clobber=True)
+            print("shape of amp data")
+            print(np.shape(amp))
+            print("shape of arg data")
+            print(np.shape(arg))
 
 
-        ## MONITOR REALTIME STATUS OF PSF QUALITY CRITERIA
+            # --commented out because it was triggering on NxM frames where N!=M--
+            # sanity check (and to avoid getting for loop stuck)
+            #if (np.shape(amp)[0] != np.shape(amp)[1]): # if the FFT doesn't make sense (i.e., if PSF was not found)
+            #    print('PSF does not make sense ... aborting this one ...')
+            #    continue
 
-        # Overlap of the Airy PSFs?
-        print("--------------------------")
-        print("Std of phase of low freq lobe:")
-        print(fftInfo_arg["std_lowFreqPerfect"])
-        # TO CORRECT: TT THE HPC TO TRANSLATE DX AIRY PSF
-        ## ## (MAYBE TRY TTING THE FPC LATER?)
+            print("------------------")
+            print("FFT ampl of psf:")
+            print(amp.data)
+            print("FFT phase of psf:")
+            print(arg.data)
 
-        # High-freq fringe visibility (median)
-        print("--------------------------")
-        print("Median of ampl of high freq lobe:")
-        print(fftInfo_amp["med_highFreqPerfect_R"])
-        # TO CORRECT: MOVE THE SPC_TRANS TO FIND CENTER OF COHERENCE ENVELOPE
+            # analyze FFTs
+            fftInfo_amp = fftMask(amp,wavel_lambda,plateScale,
+                                  fyi_string=" FFT amp")
+            fftInfo_arg = fftMask(arg,wavel_lambda,plateScale,
+                                  fyi_string=" FFT phase")
 
-        # High-freq phase gradient
-        print("--------------------------")
-        print("Phase gradient in x of high freq in PTF:")
-        print(fftInfo_arg["normVec_highFreqPerfect_R"][0])
-        print("Phase gradient in y of high freq in PTF:")
-        print(fftInfo_arg["normVec_highFreqPerfect_R"][1])
-        print("--------------------------")
-        # TO CORRECT: TT THE FPC? (NOT SURE HERE...)
-        ## ## N.B. 1. Differential tip: phase gradient is all up-down, and the low-freq node in FT amplitude takes on a crushed ellipticity.
-        ## ## N.B. 2. Differential tilt: phase gradient is left-right, but it is not continuous; it is divided among the three nodes.
+            print("------------------")
+            print("FFT info ampl of psf "+str(f)+":")
+            print(fftInfo_amp)
+            print("FFT info phase of psf "+str(f)+":")
+            print(fftInfo_arg)
 
-        ## HOW DO THE ABOVE PRINTED QUANTITIES COMPARE WITH THE THRESHOLDS? 
+            # save fyi FITS files to see the masks, etc.
+            hdu = pyfits.PrimaryHDU(fftInfo_amp["sciImg1"])
+            hdulist = pyfits.HDUList([hdu])
+            hdu.writeto("junk_other_tests/junk_test_mask_amp_maskedRegion1.fits", clobber=True)
+            hdu = pyfits.PrimaryHDU(fftInfo_amp["sciImg2"])
+            hdulist = pyfits.HDUList([hdu])
+            hdu.writeto("junk_other_tests/junk_test_mask_amp_maskedRegion2.fits", clobber=True)
+            hdu = pyfits.PrimaryHDU(fftInfo_amp["sciImg3"])
+            hdulist = pyfits.HDUList([hdu])
+            hdu.writeto("junk_other_tests/junk_test_mask_amp_maskedRegion3.fits", clobber=True)
+            hdu = pyfits.PrimaryHDU(fftInfo_amp["sciImg4"])
+            hdulist = pyfits.HDUList([hdu])
+            hdu.writeto("junk_other_tests/junk_test_mask_amp_maskedRegion4.fits", clobber=True)
+            hdu = pyfits.PrimaryHDU(amp.data)
+            hdulist = pyfits.HDUList([hdu])
+            hdu.writeto("junk_other_tests/junk_test_amp_psf.fits", clobber=True)
+            hdu = pyfits.PrimaryHDU(arg.data)
+            hdulist = pyfits.HDUList([hdu])
+            hdu.writeto("junk_other_tests/junk_test_arg_psf.fits", clobber=True)
 
-        # other quality control metrics from Phasecam (email from D. Defrere, 2018 Dec 17)
-        # PCMSNR: S/N of K-band fringes
-        # PCPHSTD: noise of phase in the integration time of NOMIC
+            ## take info from the FFTs to send corrective movements
 
-        # also find time
-        timestamp = time.time()
-        fftInfo_amp["time"] = timestamp
-        fftInfo_arg["time"] = timestamp
+            # thresholds
+            fft_ampl_high_freq_lowlimit = 2.4e5 # min threshold for good fringe visibility
+            fft_ampl_low_freq_lowlimit = 1.4e6 # min threshold for acceptable AO correction
+            fft_phase_vec_high_freq_highlimit = 5 # max threshold for Airy overlap
+            std_lowFreqPerfect_lowlimit = 10 # max threshold for Airy overlap
+            phase_normVec_highFreqPerfect_R_x = 100 # max threshold for phase of high-freq fringes
 
-        # convert dictionaries to dataframes that are easy to write to file
-        print(fftInfo_amp)
-        print(np.shape(fftInfo_amp))
 
-        # have to delete the 2D arrays from the dictionaries so they can be converted to dataframes
-        del fftInfo_amp["sciImg1"], fftInfo_amp["sciImg2"], fftInfo_amp["sciImg3"], fftInfo_amp["sciImg4"]
-        del fftInfo_arg["sciImg1"], fftInfo_arg["sciImg2"], fftInfo_arg["sciImg3"], fftInfo_arg["sciImg4"]
-        #fftInfo_amp_df = fftInfo_amp.drop(['sciImg1', 'sciImg2', 'sciImg3', 'sciImg4'])
-        #fftInfo_arg_df = fftInfo_arg.drop(['sciImg1', 'sciImg2', 'sciImg3', 'sciImg4'])
-        ## ## for some reason, the dataframes make 3 identical rows; maybe because there are some (x,y) vectors 
-        fftInfo_amp_df_this_frame = pd.DataFrame(fftInfo_amp)
-        fftInfo_arg_df_this_frame = pd.DataFrame(fftInfo_arg)
+            ## MONITOR REALTIME STATUS OF PSF QUALITY CRITERIA
 
-        fftInfo_amp_df = fftInfo_amp_df.append(fftInfo_amp_df_this_frame, ignore_index=True)
-        fftInfo_arg_df = fftInfo_arg_df.append(fftInfo_arg_df_this_frame, ignore_index=True)
+            # Overlap of the Airy PSFs?
+            print("--------------------------")
+            print("Std of phase of low freq lobe:")
+            print(fftInfo_arg["std_lowFreqPerfect"])
+            # TO CORRECT: TT THE HPC TO TRANSLATE DX AIRY PSF
+            ## ## (MAYBE TRY TTING THE FPC LATER?)
 
-        # print fyi
-        time_elapsed = time.time() - start
-        print("----------------------------------")
-        print("PSF "+str(f)+" analysed in time (secs):")
-        print(time_elapsed)
+            # High-freq fringe visibility (median)
+            print("--------------------------")
+            print("Median of ampl of high freq lobe:")
+            print(fftInfo_amp["med_highFreqPerfect_R"])
+            # TO CORRECT: MOVE THE SPC_TRANS TO FIND CENTER OF COHERENCE ENVELOPE
 
-    # write to csv to check on a local machine
-    fftInfo_amp_df.to_csv("fft_amp.csv")
-    fftInfo_arg_df.to_csv("fft_arg.csv")
-    ## ## note I havent used log_name anywhere yet
+            # High-freq phase gradient
+            print("--------------------------")
+            print("Phase gradient in x of high freq in PTF:")
+            print(fftInfo_arg["normVec_highFreqPerfect_R"][0])
+            print("Phase gradient in y of high freq in PTF:")
+            print(fftInfo_arg["normVec_highFreqPerfect_R"][1])
+            print("--------------------------")
+            # TO CORRECT: TT THE FPC? (NOT SURE HERE...)
+            ## ## N.B. 1. Differential tip: phase gradient is all up-down, and the low-freq node in FT amplitude takes on a crushed ellipticity.
+            ## ## N.B. 2. Differential tilt: phase gradient is left-right, but it is not continuous; it is divided among the three nodes.
 
-    # pack info from the series of FFTs into a dictionary, and pickle it
-    d = {"fftInfo_amp": fftInfo_amp, "fftInfo_arg": fftInfo_arg}
-    with open(fft_pickle_write_name, "w") as f:
-        pickle.dump(d, f)
+            ## HOW DO THE ABOVE PRINTED QUANTITIES COMPARE WITH THE THRESHOLDS? 
 
-    print("Done analyzing a range of PSFs. Now read the data in and calculate changed PC setpoints.")
+            # other quality control metrics from Phasecam (email from D. Defrere, 2018 Dec 17)
+            # PCMSNR: S/N of K-band fringes
+            # PCPHSTD: noise of phase in the integration time of NOMIC
+
+            # also find time
+            timestamp = time.time()
+            fftInfo_amp["time"] = timestamp
+            fftInfo_arg["time"] = timestamp
+
+            # convert dictionaries to dataframes that are easy to write to file
+            print(fftInfo_amp)
+            print(np.shape(fftInfo_amp))
+
+            # have to delete the 2D arrays from the dictionaries so they can be converted to dataframes
+            del fftInfo_amp["sciImg1"], fftInfo_amp["sciImg2"], fftInfo_amp["sciImg3"], fftInfo_amp["sciImg4"]
+            del fftInfo_arg["sciImg1"], fftInfo_arg["sciImg2"], fftInfo_arg["sciImg3"], fftInfo_arg["sciImg4"]
+            #fftInfo_amp_df = fftInfo_amp.drop(['sciImg1', 'sciImg2', 'sciImg3', 'sciImg4'])
+            #fftInfo_arg_df = fftInfo_arg.drop(['sciImg1', 'sciImg2', 'sciImg3', 'sciImg4'])
+            ## ## for some reason, the dataframes make 3 identical rows; maybe because there are some (x,y) vectors 
+            fftInfo_amp_df_this_frame = pd.DataFrame(fftInfo_amp)
+            fftInfo_arg_df_this_frame = pd.DataFrame(fftInfo_arg)
+
+            fftInfo_amp_df = fftInfo_amp_df.append(fftInfo_amp_df_this_frame, ignore_index=True)
+            fftInfo_arg_df = fftInfo_arg_df.append(fftInfo_arg_df_this_frame, ignore_index=True)
+
+            # print fyi
+            time_elapsed = time.time() - time_start
+            print("----------------------------------")
+            print("PSF "+str(f)+" analysed in time (secs):")
+            print(time_elapsed)
+
+            # write to csv to check on a local machine
+            fftInfo_amp_df.to_csv("fft_amp.csv")
+            fftInfo_arg_df.to_csv("fft_arg.csv")
+            ## ## note I havent used log_name anywhere yet
+
+            # pack info from the series of FFTs into a dictionary, and pickle it
+            d = {"fftInfo_amp": fftInfo_amp, "fftInfo_arg": fftInfo_arg}
+            with open(fft_pickle_write_name, "w") as f:
+                pickle.dump(d, f)
+
+            print("Done analyzing one PSF. Now read the data in and calculate changed PC setpoints.")
 
     return
 

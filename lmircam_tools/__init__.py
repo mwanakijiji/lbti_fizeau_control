@@ -8,6 +8,9 @@ pi = PyINDI(verbose=False)
 
 integ_time = 100 # integration time, msec
 
+dir_to_monitor = "fake_monitor/" # directory to monitor for newly-written images
+del_t = 1.0 # pause cadence (sec) with which to monitor that directory
+
 # define 2D gaussian for fitting PSFs
 def gaussian_x(x, mu, sig):
     shape_gaussian = np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.)))
