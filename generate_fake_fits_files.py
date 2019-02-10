@@ -33,7 +33,7 @@ def move_mimic_fits(framenum):
 
 
 
-framenum = 0
+framenum = 8849
 
 while True:
     time_start = time.time()

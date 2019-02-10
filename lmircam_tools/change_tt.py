@@ -18,7 +18,7 @@ import glob
 
 from lmircam_tools import *
 from lmircam_tools import overlap_psfs
-
+from lmircam_tools import process_readout
 
 #################################################
 # USER INPUTS: set units of the observation
@@ -289,6 +289,7 @@ def print_write_fft_info(integ_time, mode = "science", fft_pickle_write_name = "
         time_start = time.time() # start timer
 
         '''
+        # this is for individual test images
         if ((mode == "fake_fits") or (mode == "total_passive")):
             files_start = glob.glob(dir_to_monitor + "*.fits")
             #f = pyfits.open("test_fits_files/test_frame_fiz_large.fits")
@@ -304,23 +305,28 @@ def print_write_fft_info(integ_time, mode = "science", fft_pickle_write_name = "
         if (len(new_list) > 2):
 
             # reassign these files to be next starting point
-            files_start = files_later 
+            files_start = files_later
 
             # filename of second-newst file (in case the newest is still being written)
-            second_newest = sorted(files_later)[-2] 
+            second_newest = sorted(files_later)[-2]
 
             f = pyfits.open(second_newest)
 
             print("TESTING")
             image = f[0].data
 
+            if ((mode == "fake_fits") or (mode == "total_passive")):
+                image = process_readout.processImg(image,"median") # simple background subtraction
+
 	    # save image to check
-	    #hdu = pyfits.PrimaryHDU(image)
-            #hdulist = pyfits.HDUList([hdu])
-            #hdu.writeto("junk_test_image_seen_"+str(sample_num)+".fits", clobber=True)
+	    hdu = pyfits.PrimaryHDU(image)
+            hdulist = pyfits.HDUList([hdu])
+            hdu.writeto("junk_other_tests/junk_test_image_seen.fits", clobber=True)
 
             # locate PSF
             psf_loc = find_grism_psf(image, sig=5, length_y=5)
+            if ((mode == "fake_fits") or (mode == "total_passive")):
+                psf_loc = psf_loc_fake # if we are reading in fake FITS files
             ## ## if time, test the following line
             #psf_loc = find_airy_psf(image)
 
@@ -328,22 +334,28 @@ def print_write_fft_info(integ_time, mode = "science", fft_pickle_write_name = "
             cookie_size = 100 # maximum control radius as of 2018 July corresponds to 130.0 pixels
 
             # take FFT
-            # cookie_cut = image[psf_loc[0]-cookie_size:psf_loc[0]+cookie_size,psf_loc[1]-cookie_size:psf_loc[1]+cookie_size]
-            cookie_cut = np.copy(image)
+            if ((mode == "fake_fits") or (mode == "total_passive")):
+                cookie_cut = image[psf_loc[0]-cookie_size:psf_loc[0]+cookie_size,psf_loc[1]-cookie_size:psf_loc[1]+cookie_size]
+            else:
+                cookie_cut = np.copy(image)
             amp, arg = fft_img(cookie_cut).fft(padding=int(5*cookie_size), mask_thresh=1e5)
+
+            # save image to check
+            hdu = pyfits.PrimaryHDU(cookie_cut)
+            hdulist = pyfits.HDUList([hdu])
+            hdu.writeto("junk_other_tests/junk_test_cookie_seen.fits", clobber=True)
 
             # test: see what the FFT looks like
             hdu = pyfits.PrimaryHDU(amp.data)
             hdulist = pyfits.HDUList([hdu])
-            hdu.writeto("amptest.fits", clobber=True)
+            hdu.writeto("junk_other_tests/amptest.fits", clobber=True)
             hdu = pyfits.PrimaryHDU(arg.data)
             hdulist = pyfits.HDUList([hdu])
-            hdu.writeto("argtest.fits", clobber=True)
+            hdu.writeto("junk_other_tests/argtest.fits", clobber=True)
             print("shape of amp data")
             print(np.shape(amp))
             print("shape of arg data")
             print(np.shape(arg))
-
 
             # --commented out because it was triggering on NxM frames where N!=M--
             # sanity check (and to avoid getting for loop stuck)
