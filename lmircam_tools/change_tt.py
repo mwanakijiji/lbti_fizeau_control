@@ -247,13 +247,7 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
 
     # normal vectors to the high- and low- frequency 
     # note vectors are [a,b,c] corresponding to the eqn Z = a*X + b*Y + c
-    print('YYYYYYYYYYYYYYYYY')
-    print(type(normVec_highFreqPerfect_L[0]))
-    print(type(std_lowFreqPerfect))
-    print(type(normVec_lowFreqPerfect[0]))
-    print(type(normVec_rect[0]))
-    print('YYYYYYYYYYYYYYYYY')
-    dictFFTstuff["dummy"] = [0.1] # lets me convert to a dataframe later
+    dictFFTstuff["dummy"] = [0.1] # dont touch! this lets me convert to a dataframe later
     dictFFTstuff["normVec_highFreqPerfect_L_x"] = normVec_highFreqPerfect_L_x
     dictFFTstuff["normVec_highFreqPerfect_L_y"] = normVec_highFreqPerfect_L_y
     dictFFTstuff["normVec_highFreqPerfect_L_z"] = normVec_highFreqPerfect_L_z
@@ -339,7 +333,6 @@ def print_write_fft_info(integ_time, mode = "science"):
 
             f = pyfits.open(second_newest)
 
-            print("TESTING")
             image = f[0].data
 
             if ((mode == "fake_fits") or (mode == "total_passive")):
@@ -379,10 +372,6 @@ def print_write_fft_info(integ_time, mode = "science"):
             hdu = pyfits.PrimaryHDU(arg.data)
             hdulist = pyfits.HDUList([hdu])
             hdu.writeto("junk_other_tests/argtest.fits", clobber=True)
-            print("shape of amp data")
-            print(np.shape(amp))
-            print("shape of arg data")
-            print(np.shape(arg))
 
             # --commented out because it was triggering on NxM frames where N!=M--
             # sanity check (and to avoid getting for loop stuck)
@@ -390,23 +379,11 @@ def print_write_fft_info(integ_time, mode = "science"):
             #    print('PSF does not make sense ... aborting this one ...')
             #    continue
 
-            print("------------------")
-            print("FFT ampl of psf:")
-            print(amp.data)
-            print("FFT phase of psf:")
-            print(arg.data)
-
             # analyze FFTs
             fftInfo_amp = fftMask(amp,wavel_lambda,plateScale,
                                   fyi_string=" FFT amp")
             fftInfo_arg = fftMask(arg,wavel_lambda,plateScale,
                                   fyi_string=" FFT phase")
-
-            print("------------------")
-            print("FFT info ampl of psf "+str(f)+":")
-            print(fftInfo_amp)
-            print("FFT info phase of psf "+str(f)+":")
-            print(fftInfo_arg)
 
             # save fyi FITS files to see the masks, etc.
             hdu = pyfits.PrimaryHDU(fftInfo_amp["sciImg1"])
@@ -476,30 +453,19 @@ def print_write_fft_info(integ_time, mode = "science"):
             fftInfo_arg["time"] = timestamp
 
             # convert dictionaries to dataframes that are easy to write to file
-            print(fftInfo_amp)
-            print(np.shape(fftInfo_amp))
-            #print('HHHHHHHHHHHHHHHHHHH')
-
             # have to delete the 2D arrays from the dictionaries so they can be converted to dataframes
             del fftInfo_amp["sciImg1"], fftInfo_amp["sciImg2"], fftInfo_amp["sciImg3"], fftInfo_amp["sciImg4"]
             del fftInfo_arg["sciImg1"], fftInfo_arg["sciImg2"], fftInfo_arg["sciImg3"], fftInfo_arg["sciImg4"]
             #fftInfo_amp_df = fftInfo_amp.drop(['sciImg1', 'sciImg2', 'sciImg3', 'sciImg4'])
             #fftInfo_arg_df = fftInfo_arg.drop(['sciImg1', 'sciImg2', 'sciImg3', 'sciImg4'])
             ## ## for some reason, the dataframes make 3 identical rows; maybe because there are some (x,y) vectors 
-            print(fftInfo_amp)
-
-            print('77777777777')
-            print(fftInfo_amp.keys())
-            print(type(fftInfo_amp))
             fftInfo_amp_df_this_frame = pd.DataFrame(fftInfo_amp)
             fftInfo_arg_df_this_frame = pd.DataFrame(fftInfo_arg)
-            print('HHHHHHHHHHHHHHHHHHH')
             fftInfo_amp_df = fftInfo_amp_df.append(fftInfo_amp_df_this_frame, ignore_index=True)
             fftInfo_arg_df = fftInfo_arg_df.append(fftInfo_arg_df_this_frame, ignore_index=True)
 
             # print fyi
             time_elapsed = time.time() - time_start
-            print("----------------------------------")
             print("PSF "+str(f)+" analysed in time (secs):")
             print(time_elapsed)
 
@@ -513,7 +479,7 @@ def print_write_fft_info(integ_time, mode = "science"):
             with open(fft_pickle_write_name, "w") as f:
                 pickle.dump((fftInfo_amp, fftInfo_arg), f)
 
-            print("Done analyzing one PSF. Now read the data in and calculate changed PC setpoints.")
+            print("Done analyzing one PSF.")
 
             counter_num += 1 # advance counter
 
@@ -544,14 +510,9 @@ def get_apply_pc_setpts(integ_time, num_psfs, mode = "science"):
         with open(fft_pickle_read_name) as f:
             d_all_amp["pickle_" + str("{:0>2d}".format(pickle_num))], d_all_arg["pickle_" + str("{:0>2d}".format(pickle_num))] = pickle.load(f)
 
-    print(d_all_amp)
-    print(d_all_arg)
-
     # convert to one dataframe of dicts
     d_all_amp_df = pd.DataFrame(d_all_amp)
     d_all_arg_df = pd.DataFrame(d_all_arg)
-    print(d_all_amp_df)
-    print(d_all_arg_df)
 
     d_df_ampT = d_all_amp_df.T.reset_index() # transpose
     d_df_argT = d_all_arg_df.T.reset_index() # transpose
@@ -575,7 +536,6 @@ def get_apply_pc_setpts(integ_time, num_psfs, mode = "science"):
     ## ## (MAYBE TRY TTING THE FPC LATER?)
     ## MAYBE TRY MOVING STUFF MANUALLY ON PIEZOS PAGE FIRST
     print("----------------------------------")
-    print("----------------------------------")
     print("Checking overlap of the Airy PSFs via std of FFT phase low freq node:")
     print(np.median(fftInfo_arg["std_lowFreqPerfect"]))
     if (mode != "total_passive"):
@@ -593,13 +553,11 @@ def get_apply_pc_setpts(integ_time, num_psfs, mode = "science"):
         print("fpc_tilt_setpoint_now:")
         print(fpc_tilt_setpoint_now)
         print("Check the Airy overlap on LMIR, and manually move the HPC. How large of an HPC tip-tilt was necessary to overlap them? Scale stdev with this movement.")
-    pdb.set_trace()
 
     #####################################
     # MEDIUM PRIORITY: High-freq fringe visibility (as measued with median of high-freq FFT ampl lobe) (ASSUME OPD=0 BEFORE TAKING OUT OTHER ABERRATIONS)
     print("----------------------------------")
-    print("----------------------------------")
-    print("Checking high-freq fringe visibility via median of ampl of high freq lobe:")
+    print("Checking high-freq fringe visibility via median of ampl of high freq lobe in MTF:")
     print(np.median(fftInfo_amp["med_highFreqPerfect_R"]))
     print("----------------------------------")
     if (mode != "total_passive"):
@@ -614,17 +572,25 @@ def get_apply_pc_setpts(integ_time, num_psfs, mode = "science"):
     #####################################
     # HIGH PRIORITY: High-freq phase gradient
     print("----------------------------------")
-    print("----------------------------------")
+    print("Checking ampl of high-freq node of PTF:")
+    print(fftInfo_arg["med_highFreqPerfect_R"].values[0])
     print("Checking phase gradient in x of high freq in PTF:")
-    x_grad = np.median(fftInfo_arg["normVec_highFreqPerfect_R_x"])
-    print(x_grad)
+    x_grad_perf_high_R = np.median(fftInfo_arg["normVec_highFreqPerfect_R_x"])
+    print(x_grad_perf_high_R)
     print("Checking phase gradient in y of high freq in PTF:")
-    y_grad = np.median(fftInfo_arg["normVec_highFreqPerfect_R_y"])
-    print(y_grad)
-    print("Checking phase gradient in x,y (amplitude)")
-    print(np.sqrt(np.add(math.pow(x_grad,2),math.pow(y_grad,2))))
-    print("Checking angle of the gradient (deg CCW from x=0):")
-    print(math.atan2(y_grad,x_grad)*180./np.pi)
+    y_grad_perf_high_R = np.median(fftInfo_arg["normVec_highFreqPerfect_R_y"])
+    print(y_grad_perf_high_R)
+    print("Checking phase gradient in x of low freq in PTF:")
+    x_grad_perf_lowfreq = np.median(fftInfo_arg["normVec_lowFreqPerfect_x"])
+    print(x_grad_perf_lowfreq)
+    print("Checking phase gradient in y of low freq in PTF:")
+    y_grad_perf_lowfreq = np.median(fftInfo_arg["normVec_lowFreqPerfect_y"])
+    print(y_grad_perf_lowfreq)
+    print("Checking phase gradient in x,y (amplitude) of high freq in PTF:")
+    print(np.sqrt(np.add(math.pow(x_grad_perf_high_R,2),math.pow(y_grad_perf_high_R,2))))
+    print("Checking angle of the gradient (deg CCW from x=0) in PTF:")
+    angle_gradient = math.atan2(y_grad_perf_high_R,x_grad_perf_high_R)*180./np.pi
+    print(angle_gradient)
     print("--------------------------")
     if (mode != "total_passive"):
         print("Current FPC tip setpoint:")
@@ -634,7 +600,6 @@ def get_apply_pc_setpts(integ_time, num_psfs, mode = "science"):
         fpc_tilt_setpoint = pi.getINDI("PLC.UBCSettings.TiltSetpoint")
         print(fpc_tilt_setpoint)
         print("Manually change FPC tip-tilt setpoints. What was the scale?")
-    pdb.set_trace()
 
     #######################################################################
     # lines to run on the command line to test application of corrections
@@ -665,10 +630,25 @@ def get_apply_pc_setpts(integ_time, num_psfs, mode = "science"):
     if ((mode == "science") or (mode == "fake_fits") or (mode == "az_source")):
         pi.setINDI("Acromag.FPC.Tip="+'{0:.1f}'.format(vector_move_asec[0])+";Tilt="+'{0:.1f}'.format(vector_move_asec[1])+";Piston=0;Mode=1")
 
+    # print needed corrections
+    print("--------------------------------------")
+    print("--------------------------------------")
+    print("NEEDED TIP (y) CORRECTION TO FPC SETPOINT:")
+    avg_phase_grad_y_low_high_freq = np.mean([y_grad_perf_high_R,y_grad_perf_lowfreq])
+    print("coeff*"+str(-avg_phase_grad_y_low_high_freq))
+    print("-")
+    print("NEEDED TILT (x) CORRECTION TO FPC SETPOINT:")
+    avg_phase_grad_x_low_high_freq = np.mean([x_grad_perf_high_R,x_grad_perf_lowfreq])
+    print("coeff*"+str(-avg_phase_grad_x_low_high_freq))
+    print("-")
+    print("NEEDED PL CORRECTION TO FPC SETPOINT (degrees):")
+    print(-fftInfo_arg["med_highFreqPerfect_R"].values[0])
+
     stop_time = time.time()
+    print("-")
     print("Elapsed time for sending setpoint or PL corrections:")
     print(stop_time - start_time)
-    print("-----")
+    print("-----------------------------------")
 
     # turn off fizeau flag to avoid problems with other observations
     if (mode != "total_passive"):

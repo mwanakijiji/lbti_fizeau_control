@@ -16,7 +16,7 @@ from lmircam_tools.change_tt import print_write_fft_info, get_apply_pc_setpts
 # grism PSF + possible movement; ~400x200
 # insert option to only horizontally overlap grisms
 
-# default integration time is set in the __init__ file
+# default integration time is set in the __init__ file (vestigial now --2019Feb10)
 
 print("----------------------------------------------------------------------------------")
 raw_input("Place an ROI, no larger than 512x512, over the Phasecam sweet spot for LMIRcam, and move telescopes\n to put Airy PSFs somethere inside the ROI. \nROI size needs to be "+\
@@ -45,7 +45,6 @@ overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = mode_choice, psf_type = "ai
 ## ## see nomic nulling to see how nod with wheel is done
 
 ############## PUT IN GRISM AND REFINE GRISM-PSF OVERLAP
-
 put_in_grism(mode = mode_choice)
 overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = mode_choice, psf_type = "grism")
 
@@ -68,39 +67,14 @@ implement_optimal_opd(mode = mode_choice)
 print("----------------------------------------------------------------------------------")
 raw_input("Now align Phasecam and close the phase loop")
 
-## ## ... AND REMOVE THE GRISM TOO
-
-############## HOLD CENTER OF SCIENCE COHERENCE ENVELOPE WITH HIGH-CONTRAST FRINGES
-
-# 2ND PRIORITY
-# maybe allow HPC to correct pathlength using science readouts, even though Phasecam not closed yet? or does this not have to be automatic, and we can just correct the Fizeau/Airy PSFs once Phasecam is closed?
-
-
-############## TRANSLATE NIL + CLOSE PHASECAM LOOP HERE?
-
-# 2ND PRIORITY
-# might be manual step
-
 
 #################################################################################
 ###############         SCIENCE           #######################################
 #################################################################################
 
-############## OPTIMIZE SCIENCE PSF BY FINDING OPD AND TT SETPOINTS ITERATIVELY
 
 # print fft info, see how it compares with the set thresholds
 num_psfs = print_write_fft_info(integ_time, mode = mode_choice)
 
 # calculate and apply Phasecam setpoints
-## ## DONT RUN THE FOLLOWING FUNCTION YET; JUST USE BITS INSIDE OF IT TO TEST THE EFFECT ON THE PSF
 get_apply_pc_setpts(integ_time, num_psfs, mode = mode_choice)
-
-## adjust TT to optimize PSF; maybe iterate with OPD?
-## note OPD movements cannot be more than 5 um with Phasecam closed
-
-
-############## ANY RUNNING STATS I WANT TO KEEP OF THE SCIENCE PSFS?
-
-
-
-############## REDO EVERYTHING ONCE NOD HAPPENS
