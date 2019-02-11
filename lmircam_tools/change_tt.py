@@ -192,6 +192,18 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
     normVec_highFreqPerfect_R = normalVector(sciImg2)
     normVec_lowFreqPerfect = normalVector(sciImg3)
     normVec_rect = normalVector(sciImg4)
+    normVec_highFreqPerfect_L_x = normVec_highFreqPerfect_L[0]
+    normVec_highFreqPerfect_L_y = normVec_highFreqPerfect_L[1]
+    normVec_highFreqPerfect_L_z = normVec_highFreqPerfect_L[2]
+    normVec_highFreqPerfect_R_x = normVec_highFreqPerfect_R[0]
+    normVec_highFreqPerfect_R_y = normVec_highFreqPerfect_R[1]
+    normVec_highFreqPerfect_R_z = normVec_highFreqPerfect_R[2]
+    normVec_lowFreqPerfect_x = normVec_lowFreqPerfect[0]
+    normVec_lowFreqPerfect_y = normVec_lowFreqPerfect[1]
+    normVec_lowFreqPerfect_z = normVec_lowFreqPerfect[2]
+    normVec_rect_x = normVec_rect[0]
+    normVec_rect_y = normVec_rect[1]
+    normVec_rect_z = normVec_rect[2]
 
     # return stdev in each region
     std_highFreqPerfect_L = np.nanstd(sciImg1)
@@ -235,14 +247,25 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
 
     # normal vectors to the high- and low- frequency 
     # note vectors are [a,b,c] corresponding to the eqn Z = a*X + b*Y + c
-    dictFFTstuff["normVec_highFreqPerfect_L"] = normVec_highFreqPerfect_L
-    dictFFTstuff["normVec_highFreqPerfect_R"] = normVec_highFreqPerfect_R
-    dictFFTstuff["normVec_lowFreqPerfect"] = normVec_lowFreqPerfect
-    dictFFTstuff["normVec_rect"] = normVec_rect
-    dictFFTstuff["normVec_highFreqPerfect_R_x"] = normVec_highFreqPerfect_L[0]
-    dictFFTstuff["normVec_highFreqPerfect_R_y"] = normVec_highFreqPerfect_L[1]
-    dictFFTstuff["normVec_lowFreqPerfect_x"] = normVec_lowFreqPerfect[0]
-    dictFFTstuff["normVec_lowFreqPerfect_y"] = normVec_lowFreqPerfect[1]
+    print('YYYYYYYYYYYYYYYYY')
+    print(type(normVec_highFreqPerfect_L[0]))
+    print(type(std_lowFreqPerfect))
+    print(type(normVec_lowFreqPerfect[0]))
+    print(type(normVec_rect[0]))
+    print('YYYYYYYYYYYYYYYYY')
+    dictFFTstuff["dummy"] = [0.1] # lets me convert to a dataframe later
+    dictFFTstuff["normVec_highFreqPerfect_L_x"] = normVec_highFreqPerfect_L_x
+    dictFFTstuff["normVec_highFreqPerfect_L_y"] = normVec_highFreqPerfect_L_y
+    dictFFTstuff["normVec_highFreqPerfect_L_z"] = normVec_highFreqPerfect_L_z
+    dictFFTstuff["normVec_highFreqPerfect_R_x"] = normVec_highFreqPerfect_R_x
+    dictFFTstuff["normVec_highFreqPerfect_R_y"] = normVec_highFreqPerfect_R_y
+    dictFFTstuff["normVec_highFreqPerfect_R_z"] = normVec_highFreqPerfect_R_z
+    dictFFTstuff["normVec_lowFreqPerfect_x"] = normVec_lowFreqPerfect_x
+    dictFFTstuff["normVec_lowFreqPerfect_y"] = normVec_lowFreqPerfect_y
+    dictFFTstuff["normVec_lowFreqPerfect_z"] = normVec_lowFreqPerfect_z
+    dictFFTstuff["normVec_rect_x"] = normVec_rect_x
+    dictFFTstuff["normVec_rect_y"] = normVec_rect_y
+    dictFFTstuff["normVec_rect_z"] = normVec_rect_z
 
     # return the regions with mask overlays, too
     dictFFTstuff["sciImg1"] = sciImg1
@@ -253,7 +276,7 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
     return dictFFTstuff
 
 
-def print_write_fft_info(integ_time, mode = "science", fft_pickle_write_name = "fft_info.pkl"):
+def print_write_fft_info(integ_time, mode = "science"):
     ''' 
     Take FFT of PSF, and calculate new Phasecam PL and TT setpoints
 
@@ -275,10 +298,14 @@ def print_write_fft_info(integ_time, mode = "science", fft_pickle_write_name = "
 
     # read in any new images written out to a directory
     files_start = glob.glob(dir_to_monitor + "*.fits") # starting list of files
-    while True:
+    num_psfs_to_analyze = 5 # number of PSFs to sample
+
+    while counter_num < num_psfs_to_analyze:
 
         time_start = time.time()
         time.sleep(del_t)
+
+        fft_pickle_write_name = "fft_info_"+str("{:0>2d}".format(counter_num))+".pkl" # filename for pickled FFT info
 
         # check to see if there were new files from last check
         files_later = glob.glob(dir_to_monitor + "/*.fits")
@@ -429,9 +456,9 @@ def print_write_fft_info(integ_time, mode = "science", fft_pickle_write_name = "
             # High-freq phase gradient
             print("--------------------------")
             print("Phase gradient in x of high freq in PTF:")
-            print(fftInfo_arg["normVec_highFreqPerfect_R"][0])
+            print(fftInfo_arg["normVec_highFreqPerfect_R_x"])
             print("Phase gradient in y of high freq in PTF:")
-            print(fftInfo_arg["normVec_highFreqPerfect_R"][1])
+            print(fftInfo_arg["normVec_highFreqPerfect_R_y"])
             print("--------------------------")
             # TO CORRECT: TT THE FPC? (NOT SURE HERE...)
             ## ## N.B. 1. Differential tip: phase gradient is all up-down, and the low-freq node in FT amplitude takes on a crushed ellipticity.
@@ -451,6 +478,7 @@ def print_write_fft_info(integ_time, mode = "science", fft_pickle_write_name = "
             # convert dictionaries to dataframes that are easy to write to file
             print(fftInfo_amp)
             print(np.shape(fftInfo_amp))
+            #print('HHHHHHHHHHHHHHHHHHH')
 
             # have to delete the 2D arrays from the dictionaries so they can be converted to dataframes
             del fftInfo_amp["sciImg1"], fftInfo_amp["sciImg2"], fftInfo_amp["sciImg3"], fftInfo_amp["sciImg4"]
@@ -458,9 +486,14 @@ def print_write_fft_info(integ_time, mode = "science", fft_pickle_write_name = "
             #fftInfo_amp_df = fftInfo_amp.drop(['sciImg1', 'sciImg2', 'sciImg3', 'sciImg4'])
             #fftInfo_arg_df = fftInfo_arg.drop(['sciImg1', 'sciImg2', 'sciImg3', 'sciImg4'])
             ## ## for some reason, the dataframes make 3 identical rows; maybe because there are some (x,y) vectors 
+            print(fftInfo_amp)
+
+            print('77777777777')
+            print(fftInfo_amp.keys())
+            print(type(fftInfo_amp))
             fftInfo_amp_df_this_frame = pd.DataFrame(fftInfo_amp)
             fftInfo_arg_df_this_frame = pd.DataFrame(fftInfo_arg)
-
+            print('HHHHHHHHHHHHHHHHHHH')
             fftInfo_amp_df = fftInfo_amp_df.append(fftInfo_amp_df_this_frame, ignore_index=True)
             fftInfo_arg_df = fftInfo_arg_df.append(fftInfo_arg_df_this_frame, ignore_index=True)
 
@@ -470,30 +503,71 @@ def print_write_fft_info(integ_time, mode = "science", fft_pickle_write_name = "
             print("PSF "+str(f)+" analysed in time (secs):")
             print(time_elapsed)
 
-            # write to csv to check on a local machine
+            # write to csv to check on a local machine (this info will also be pickled)
             fftInfo_amp_df.to_csv("fft_amp.csv")
             fftInfo_arg_df.to_csv("fft_arg.csv")
             ## ## note I havent used log_name anywhere yet
 
-            # pack info from the series of FFTs into a dictionary, and pickle it
-            d = {"fftInfo_amp": fftInfo_amp, "fftInfo_arg": fftInfo_arg}
+            # pack info from the series of FFTs into dictionaries, and pickle them
+            #d = {"fftInfo_amp": fftInfo_amp, "fftInfo_arg": fftInfo_arg}
             with open(fft_pickle_write_name, "w") as f:
-                pickle.dump(d, f)
+                pickle.dump((fftInfo_amp, fftInfo_arg), f)
 
             print("Done analyzing one PSF. Now read the data in and calculate changed PC setpoints.")
 
-    return
+            counter_num += 1 # advance counter
+
+    return num_psfs_to_analyze
 
 
-def get_apply_pc_setpts(integ_time, mode = "science", fft_pickle_read_name = "fft_info.pkl"):
+def get_apply_pc_setpts(integ_time, num_psfs, mode = "science"):
 
     start_time = time.time()
 
     # restore the pickle file with the fit coefficients and scan data
+    '''
+    # for a single pickle file
     with open(fft_pickle_read_name) as f:
-        d = pickle.load(f)
-    fftInfo_amp = d["fftInfo_amp"]
-    fftInfo_arg = d["fftInfo_arg"]
+        fftInfo_amp, fftInfo_arg = pickle.load(f)
+    #fftInfo_amp = d["fftInfo_amp"]
+    #fftInfo_arg = d["fftInfo_arg"]
+    '''
+
+    # for multiple pickle files, over which we take medians of each key value
+    d_all_amp = {}
+    d_all_arg = {}
+    for pickle_num in range(0,num_psfs): # loop over the number of PSFs which have been analyzed
+        fft_pickle_read_name = "fft_info_"+str("{:0>2d}".format(pickle_num))+".pkl" 
+
+        # open individual pickle files (one per PSF) and put them into a larger dict
+        # N.b. there are two dictionaries (for amp and arg) that come out of each pickle file
+        with open(fft_pickle_read_name) as f:
+            d_all_amp["pickle_" + str("{:0>2d}".format(pickle_num))], d_all_arg["pickle_" + str("{:0>2d}".format(pickle_num))] = pickle.load(f)
+
+    print(d_all_amp)
+    print(d_all_arg)
+
+    # convert to one dataframe of dicts
+    d_all_amp_df = pd.DataFrame(d_all_amp)
+    d_all_arg_df = pd.DataFrame(d_all_arg)
+    print(d_all_amp_df)
+    print(d_all_arg_df)
+
+    d_df_ampT = d_all_amp_df.T.reset_index() # transpose
+    d_df_argT = d_all_arg_df.T.reset_index() # transpose
+    del d_df_ampT["index"], d_df_ampT["dummy"] # get rid of dummy so I can take a median
+    del d_df_argT["index"], d_df_argT["dummy"] # get rid of dummy so I can take a median
+
+    print('----------------------------')
+    # find median values of quantities across the dicts
+    fftInfo_amp = pd.DataFrame(pd.DataFrame.median(d_df_ampT, axis=0)).T
+    fftInfo_arg = pd.DataFrame(pd.DataFrame.median(d_df_argT, axis=0)).T
+    #fftInfo_amp = pd.DataFrame(pd.DataFrame.median(d_all_amp_df, axis=1, skipna=True)).T
+    #fftInfo_arg = pd.DataFrame(pd.DataFrame.median(d_all_arg_df, axis=1, skipna=True)).T
+    print(fftInfo_amp)
+    print(fftInfo_arg)
+    #fftInfo_amp = d["fftInfo_amp"]
+    #fftInfo_arg = d["fftInfo_arg"]
 
     #####################################
     # LOW PRIORITY: Overlap of the Airy PSFs (MAYBE THIS SHOULD BE RESOLVED WITH OVERLAP_PSFS?)
@@ -520,7 +594,7 @@ def get_apply_pc_setpts(integ_time, mode = "science", fft_pickle_read_name = "ff
         print(fpc_tilt_setpoint_now)
         print("Check the Airy overlap on LMIR, and manually move the HPC. How large of an HPC tip-tilt was necessary to overlap them? Scale stdev with this movement.")
     pdb.set_trace()
-    
+
     #####################################
     # MEDIUM PRIORITY: High-freq fringe visibility (as measued with median of high-freq FFT ampl lobe) (ASSUME OPD=0 BEFORE TAKING OUT OTHER ABERRATIONS)
     print("----------------------------------")
@@ -536,7 +610,7 @@ def get_apply_pc_setpts(integ_time, mode = "science", fft_pickle_read_name = "ff
         print("Current FPC PL setpoint:")
         fpc_pl_setpoint = pi.getINDI("PLC.UBCSettings.PLSetpoint")
         print("Manually change PL setpoint. How good/bad is the high-freq fringe visibility on LMIR? Write down the scale.")
-    
+
     #####################################
     # HIGH PRIORITY: High-freq phase gradient
     print("----------------------------------")
@@ -579,21 +653,21 @@ def get_apply_pc_setpts(integ_time, mode = "science", fft_pickle_read_name = "ff
         pi.setINDI("PLC.UBCSettings.PLSetpoint="+str(int(new_pl_setpoint)))
         pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(spc_trans_command))
         pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(10*0.5*stepSize)) # factor of 10 bcz command is in 0.1 um
-    
+
     # HIGH PRIORITY: To correct high-freq fringe gradients (note similarity to correction for Airy PSF overlap)
     new_tip_setpoint = 0
     new_tilt_setpoint = 0
     if ((mode == "science") or (mode == "fake_fits") or (mode == "az_source")):
         pi.setINDI("PLC.UBCSettings.TipSetpoint="+str(int(new_tip_setpoint)))
         pi.setINDI("PLC.UBCSettings.TiltSetpoint="+str(int(new_tilt_setpoint)))
-    
+
     # FYI: EDIT TO MAKE MOMENTARY CHANGES IN FPC TT
     if ((mode == "science") or (mode == "fake_fits") or (mode == "az_source")):
         pi.setINDI("Acromag.FPC.Tip="+'{0:.1f}'.format(vector_move_asec[0])+";Tilt="+'{0:.1f}'.format(vector_move_asec[1])+";Piston=0;Mode=1")
 
     stop_time = time.time()
     print("Elapsed time for sending setpoint or PL corrections:")
-    print(start_time - stop_time)
+    print(stop_time - start_time)
     print("-----")
 
     # turn off fizeau flag to avoid problems with other observations

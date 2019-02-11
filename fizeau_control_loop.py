@@ -89,11 +89,11 @@ raw_input("Now align Phasecam and close the phase loop")
 ############## OPTIMIZE SCIENCE PSF BY FINDING OPD AND TT SETPOINTS ITERATIVELY
 
 # print fft info, see how it compares with the set thresholds
-print_write_fft_info(integ_time, mode = mode_choice, fft_pickle_write_name = "fft_info.pkl")
+num_psfs = print_write_fft_info(integ_time, mode = mode_choice)
 
 # calculate and apply Phasecam setpoints
 ## ## DONT RUN THE FOLLOWING FUNCTION YET; JUST USE BITS INSIDE OF IT TO TEST THE EFFECT ON THE PSF
-get_apply_pc_setpts(integ_time, mode = mode_choice, fft_pickle_read_name = "fft_info.pkl")
+get_apply_pc_setpts(integ_time, num_psfs, mode = mode_choice)
 
 ## adjust TT to optimize PSF; maybe iterate with OPD?
 ## note OPD movements cannot be more than 5 um with Phasecam closed
