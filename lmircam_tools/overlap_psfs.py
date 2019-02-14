@@ -1,11 +1,11 @@
-import sys, os, string, time, pdb, copy, pyfits
+import sys, os, string, time, pdb, copy#, pyfits
 import numpy as np
 import numpy.ma as ma
 import scipy
 import time
 from scipy import ndimage, sqrt, misc, stats,signal
 from lmircam_tools import *
-from lmircam_tools import pi, process_readout, gaussian_x, find_airy_psf, find_grism_psf
+from lmircam_tools import process_readout, gaussian_x, find_airy_psf, find_grism_psf
 from lmircam_tools.utils import nod, wait4AORunning
 
 

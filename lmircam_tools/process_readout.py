@@ -1,7 +1,7 @@
-from lmircam_tools import pi
-import sys, os, string, time, pdb, copy, pyfits
+#from lmircam_tools import pi
+import sys, os, string, time, pdb, copy#, pyfits
 import numpy as np
-from pyindi import * 
+#from pyindi import * 
 from scipy import ndimage, sqrt, stats
 
 # subtract mean or median (method) of the image

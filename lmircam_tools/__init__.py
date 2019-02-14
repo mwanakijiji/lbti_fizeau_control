@@ -1,10 +1,10 @@
 import numpy as np
 import time
 from numpy import ma
-from pyindi import *
+#from pyindi import *
 from scipy import ndimage, sqrt, stats, misc, signal
 
-pi = PyINDI(verbose=False)
+#pi = PyINDI(verbose=False)
 
 integ_time = 100 # integration time, msec
 

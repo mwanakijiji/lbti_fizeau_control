@@ -236,7 +236,7 @@ def psf_sim(parameters):
     #hdu.writeto('test.fits', overwrite=True)
 
     # save everything for that grid point in a pickle file
-    extra_pickle_extension = '/home/gastonlagaffe/../../vol_c'
+    extra_pickle_extension = '.'
     pickle.dump( psf_stats, open( extra_pickle_extension + '/pickle_files/chrom_' + chromaticString + '_avgwavel_' + wavelString +
                                   '_opd_' + opdString + '_tip_' + tipString + '_tilt_' + tiltString +
                                   '_transl_' + translString + '_PS_' + PSstring + extraString + '.pkl', "wb" ) )
@@ -253,12 +253,12 @@ def main():
     ## USER INPUTS
 
     opd_start = 0.0e-6
-    #opd_stop = 0.0e-6
-    opd_stop = 50.0e-6 # inclusive
+    opd_stop = 0.0e-6
+    #opd_stop = 50.0e-6 # inclusive
     opd_increment = 0.5e-6 # change in OPD at each step; in m
 
     tilt_start = 0.0
-    tilt_stop = 0.0 # asec 
+    tilt_stop = 0.1 # asec 
     tilt_increment = 0.01
 
     tip_start = 0.
