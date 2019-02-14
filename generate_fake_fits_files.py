@@ -29,7 +29,7 @@ def move_mimic_fits(framenum):
     writing new files to that directory
     '''
     hdulist = pyfits.open(retrieve_dir+"lm_180507_"+str("{:0>6d}".format(framenum))+".fits")
-    hdulist.writeto(check_dir+"lm_180507fake_"+str("{:0>6d}".format(framenum))+".fits", clobber=True)
+    hdulist.writeto(check_dir+"lm_180507_"+str("{:0>6d}".format(framenum))+".fits", clobber=True)
 
 
 

@@ -332,13 +332,15 @@ def print_write_fft_info(integ_time, mode = "science"):
             second_newest = sorted(files_later)[-2]
 
             f = pyfits.open(second_newest)
+            file_name_full = os.path.basename(second_newest) # filename without the path
+            file_name_base = os.path.splitext(file_name_full)[0] # filename without the extension, too
 
             image = f[0].data
 
             if ((mode == "fake_fits") or (mode == "total_passive")):
                 image = process_readout.processImg(image,"median") # simple background subtraction
 
-	    # save image to check
+	    # save detector image to check (overwrites previous)
 	    hdu = pyfits.PrimaryHDU(image)
             hdulist = pyfits.HDUList([hdu])
             hdu.writeto("junk_other_tests/junk_test_image_seen.fits", clobber=True)
@@ -363,15 +365,15 @@ def print_write_fft_info(integ_time, mode = "science"):
             # save image to check
             hdu = pyfits.PrimaryHDU(cookie_cut)
             hdulist = pyfits.HDUList([hdu])
-            hdu.writeto("junk_other_tests/junk_test_cookie_seen.fits", clobber=True)
+            hdu.writeto("junk_other_tests/junk_test_cookie_seen_"+str("{:0>2d}".format(counter_num))+".fits", clobber=True)
 
             # test: see what the FFT looks like
             hdu = pyfits.PrimaryHDU(amp.data)
             hdulist = pyfits.HDUList([hdu])
-            hdu.writeto("junk_other_tests/amptest.fits", clobber=True)
+            hdu.writeto(dir_to_monitor + "log_images/fft_amp_" + file_name_base + ".fits", clobber=True)
             hdu = pyfits.PrimaryHDU(arg.data)
             hdulist = pyfits.HDUList([hdu])
-            hdu.writeto("junk_other_tests/argtest.fits", clobber=True)
+            hdu.writeto(dir_to_monitor + "log_images/fft_arg_" + file_name_base + ".fits", clobber=True)
 
             # --commented out because it was triggering on NxM frames where N!=M--
             # sanity check (and to avoid getting for loop stuck)
