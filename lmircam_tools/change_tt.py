@@ -285,7 +285,7 @@ def print_write_fft_info(integ_time, mode = "science"):
     fftInfo_amp_df = pd.DataFrame()
     fftInfo_arg_df = pd.DataFrame()
 
-    counter_num = 0
+    counter_num = 0 # for counting number of analyzed PSFs
 
     take_roi_background(mode)
     raw_input("User: remove the Blank in FW4, then press return when done")

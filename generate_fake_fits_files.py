@@ -32,10 +32,19 @@ def move_mimic_fits(framenum):
     hdulist.writeto(check_dir+"lm_180507_"+str("{:0>6d}".format(framenum))+".fits", clobber=True)
 
 
+# good Fizeau-grism sequences from 180507 Altair data:
+# frames, rough PSF location
+# 4249-4258, (y,x)=(302,852)
+# 5706-5816, (y,x)=(292,853)
+# 6949-7084, (y,x)=(328,818)
 
-framenum = 8849
+# one good Fizeau-Airy sequence from 180507 Altair data:
+# 8849-9175
 
-while True:
+framenum = 5706
+stop_framenum = 5816
+
+while (framenum < stop_framenum):
     time_start = time.time()
     time.sleep(1.0)
     #write_fake_fits(framenum)

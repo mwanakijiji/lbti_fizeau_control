@@ -8,6 +8,7 @@ from scipy import ndimage, sqrt, stats, misc, signal
 import pyfits
 import pickle
 import math
+import glob
 from lmircam_tools import *
 from lmircam_tools import process_readout
 
@@ -25,81 +26,139 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
     sig = 5 # sigma of Gaussian profile in x (in pix)
     length_y = 200 # length in y of the psf (in pix)
 
+    counter_num = 0 # for counting number of analyzed PSFs
+
     take_roi_background(mode)
     raw_input("User: remove the Blank in FW4, then press return when done")
 
-    if (mode != "total_passive"):
-        print("Taking a background-subtracted frame")
+    # read in any new images written out to a directory
+    files_start = glob.glob(dir_to_monitor + "*.fits") # starting list of files
+    num_psfs_to_analyze = 2 # number of PSFs to sample
+
+    while counter_num < num_psfs_to_analyze:
+
+        time_start = time.time()
+        time.sleep(del_t)
+
+        fft_pickle_write_name = "fft_info_"+str("{:0>2d}".format(counter_num))+".pkl" # filename for pickled FFT info
+
+        # check to see if there were new files from last check
+        files_later = glob.glob(dir_to_monitor + "/*.fits")
+
+        # are there new files?
+        new_list = np.setdiff1d(files_later,files_start)
+
+        time_start = time.time() # start timer
+
+        ''' 
+        # Old acquire code
+        if (mode != "total_passive"):
+            print("Taking a background-subtracted frame")
         pi.setINDI("LMIRCAM_save.enable_save.value=On")
         f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
+        '''
 
-    if ((mode == "fake_fits") or (mode == "total_passive")):
-        f = pyfits.open("test_fits_files/test_frame_grismFiz_small.fits")
+        # if there are new files
+        if (len(new_list) > 2):
 
-    imgb4 = f[0].data
-    image = process_readout.processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
+            # reassign these files to be next starting point
+            files_start = files_later
 
-    # determine grism Fizeau PSF center
-    center_grism = find_grism_psf(image, sig, length_y) # locate the grism PSF center (THIS IS IN OVERLAP_PSFS.PY; SHOULD IT BE IN INIT?)
+            # filename of second-newst file (in case the newest is still being written)
+            second_newest = sorted(files_later)[-2]
 
-    # cut out the grism image
-    ''' 
-    img_before_padding_before_FT = np.copy(image)
-    '''
-    img_before_padding_before_FT = image[center_grism[0]-int(200):center_grism[0]+int(200),
-                                     center_grism[1]-int(100):center_grism[1]+int(100)]
+            f = pyfits.open(second_newest)
+            file_name_full = os.path.basename(second_newest) # filename without the path
+            file_name_base = os.path.splitext(file_name_full)[0] # filename without the extension, too
 
-    # take FFT; no padding for now
-    ## ## DO I WANT A SMALL CUTOUT OR THE ORIGINAL IMAGE?
-    AmpPE, ArgPE = fft_img(img_before_padding_before_FT).fft(padding=0)
+            image = f[0].data
 
-    # find angle of fringes
-    # is there an off-center dot in FFT amplitude?
-    # blot out low-frequency center of FFT ampl
-    center_masked_data = AmpPE.data
-    center_masked_data[int(0.5*np.shape(center_masked_data)[0])-20:int(0.5*np.shape(center_masked_data)[0])+20,
+            if ((mode == "fake_fits") or (mode == "total_passive")):
+                image = process_readout.processImg(image,"median") # simple background subtraction
+
+            # save detector image to check (overwrites previous)
+            hdu = pyfits.PrimaryHDU(image)
+            hdulist = pyfits.HDUList([hdu])
+            hdu.writeto("junk_other_tests/junk_test_image_seen.fits", clobber=True)
+
+
+            # determine grism Fizeau PSF center
+            center_grism = find_grism_psf(image, sig, length_y) # locate the grism PSF center (THIS IS IN OVERLAP_PSFS.PY; SHOULD IT BE IN INIT?)
+            if ((mode == "fake_fits") or (mode == "total_passive")):
+                center_grism = psf_loc_fake # if we are reading in fake FITS files, we may have to just set the location
+
+            # cut out the grism image (best to have rectangle, rather than square cutout)
+            #img_before_padding_before_FT = np.copy(image)
+            img_before_padding_before_FT = image[center_grism[0]-int(200):center_grism[0]+int(200),center_grism[1]-int(100):center_grism[1]+int(100)]
+
+            # take FFT; no padding for now
+            ## ## DO I WANT A SMALL CUTOUT OR THE ORIGINAL IMAGE?
+            AmpPE, ArgPE = fft_img(img_before_padding_before_FT).fft(padding=0)
+
+            # save image to check
+            hdu = pyfits.PrimaryHDU(img_before_padding_before_FT)
+            hdulist = pyfits.HDUList([hdu])
+            hdu.writeto(dir_to_monitor + "log_images/img_seen_prepradding_" + file_name_base + ".fits", clobber=True)
+
+            # test: see what the FFT looks like
+            hdu = pyfits.PrimaryHDU(AmpPE.data)
+            hdulist = pyfits.HDUList([hdu])
+            hdu.writeto(dir_to_monitor + "log_images/fft_amp_" + file_name_base + ".fits", clobber=True)
+            hdu = pyfits.PrimaryHDU(ArgPE.data)
+            hdulist = pyfits.HDUList([hdu])
+            hdu.writeto(dir_to_monitor + "log_images/fft_arg_" + file_name_base + ".fits", clobber=True)
+
+            # find angle of fringes
+            # is there an off-center dot in FFT amplitude?
+            # blot out low-frequency center of FFT ampl
+            center_masked_data = AmpPE.data
+            center_masked_data[int(0.5*np.shape(center_masked_data)[0])-20:int(0.5*np.shape(center_masked_data)[0])+20,
                            int(0.5*np.shape(center_masked_data)[1])-20:int(0.5*np.shape(center_masked_data)[1])+20] = np.nan
-    dot_loc = find_airy_psf(center_masked_data)
-    #dot_loc = find_grism_psf(np.multiply(amp.data,amp.mask), 5, 5)
+            dot_loc = find_airy_psf(center_masked_data)
+            #dot_loc = find_grism_psf(np.multiply(amp.data,amp.mask), 5, 5)
 
-    print("Dot location:")
-    print(dot_loc)
-    print("Dot angle:")
-    y_comp = dot_loc[0]-0.5*np.shape(center_masked_data)[0]
-    x_comp = dot_loc[1]-0.5*np.shape(center_masked_data)[1]
-    angle_val = math.atan2(y_comp,x_comp)*180./np.pi
-    print(angle_val)
-    print("-----------------")
+            # save image to check
+            hdu = pyfits.PrimaryHDU(center_masked_data)
+            hdulist = pyfits.HDUList([hdu])
+            hdu.writeto(dir_to_monitor + "log_images/img_when_centroiding_fringe_angle_" + file_name_base + ".fits", clobber=True)
 
-    # as found by using OPD scans in grism mode in 2018A and 2018B, it appears that, for the Lgrism6AR,
-    # for every +degree in the CW direction that the FFT amplitude high-freq node is,
-    # need to move the SPC_Trans in the NEGATIVE direction by 144 counts
-    movement_per_pos_degree = -144
-    diff_movement_total_cts = angle_val * movement_per_pos_degree # units of counts
-    diff_movement_total_opd = 2. * np.divide(diff_movement_total_cts,50.) # factor of 2: linear to OPD; factor of 1/50: counts to um
+            print("Analyzing "+file_name_base)
+            print("Dot location:")
+            print(dot_loc)
+            print("Dot angle:")
+            y_comp = dot_loc[0]-0.5*np.shape(center_masked_data)[0]
+            x_comp = dot_loc[1]-0.5*np.shape(center_masked_data)[1]
+            angle_val = math.atan2(y_comp,x_comp)*180./np.pi
+            print(angle_val)
+            print("-----------------")
 
-    # correct with the SPC translation stage: Ubcs.SPC_Trans.command=>N
-    # note factor of 10; command is in relative movement of 0.1 um
-    print("----------------------------------------------------------------")
-    if ((mode == "fake_fits") or (mode == "az_source") or (mode == "science")):
-        print("Moving SPC_Trans for large OPD movement of "+str(int(diff_movement_total_opd))+" um or "+str(diff_movement_total_cts)+" translation counts")
-        pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(diff_movement_total_cts))
-    else:
-        print("Not moving SPC_Trans, since this is in testing mode")
+            # as found by using OPD scans in grism mode in 2018A and 2018B, it appears that, for the Lgrism6AR,
+            # for every +degree in the CW direction that the FFT amplitude high-freq node is,
+            # need to move the SPC_Trans in the NEGATIVE direction by 144 counts
+            movement_per_pos_degree = -144
+            diff_movement_total_cts = angle_val * movement_per_pos_degree # units of counts
+            diff_movement_total_opd = 2. * np.divide(diff_movement_total_cts,50.) # factor of 2: linear to OPD; factor of 1/50: counts to um
+
+            # correct with the SPC translation stage: Ubcs.SPC_Trans.command=>N
+            # note factor of 10; command is in relative movement of 0.1 um
+            print("----------------------------------------------------------------")
+            if ((mode == "fake_fits") or (mode == "az_source") or (mode == "science")):
+                print("Moving SPC_Trans for large OPD movement of "+str(int(diff_movement_total_opd))+" um or "+str(diff_movement_total_cts)+" translation counts")
+                pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(diff_movement_total_cts))
+            else:
+                print("Not moving SPC_Trans, since this is in testing mode")
 
     return
 
 
 
 def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
-    ''' 
-    Takes well-overlapped grism PSFs and dials the optical path
-    difference such that barber-pole fringes become vertical
+    #Takes well-overlapped grism PSFs and dials the optical path
+    #difference such that barber-pole fringes become vertical
 
-    INPUTS: 
-    psf_location: location of the Fizeau grism PSF
-    mode: testing or science
-    '''
+    #INPUTS:
+    #psf_location: location of the Fizeau grism PSF
+    #mode: testing or science
 
     # set some approximate parameters of the observed grism PSF
     sig = 5 # sigma of Gaussian profile in x (in pix)
@@ -139,18 +198,18 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
         center_grism = find_grism_psf(image, sig, length_y) # locate the grism PSF center (THIS IS IN OVERLAP_PSFS.PY; SHOULD IT BE IN INIT?)
 
         # cut out the grism image
-	img_before_padding_before_FT = np.copy(image)
-	''' 
+        img_before_padding_before_FT = np.copy(image)
+        '''
         img_before_padding_before_FT = image[center_grism[0]-int(0.5*length_y):center_grism[0]+int(0.5*length_y),
                                      center_grism[1]-2*sig:center_grism[1]+2*sig]
-	'''
+        '''
 
         # take FFT; no padding for now
         ## ## DO I WANT A SMALL CUTOUT OR THE ORIGINAL IMAGE?
 	AmpPE, ArgPE = fft_img(img_before_padding_before_FT).fft(padding=0)
 
 	# save fyi FITS files
-        ''' 
+        '''
 	hdu = pyfits.PrimaryHDU(image)
         hdulist = pyfits.HDUList([hdu])
         hdu.writeto('junk_test_original_grism.fits', clobber=True)
@@ -267,18 +326,16 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
     with open("scan_objs.pkl", "w") as f:
         pickle.dump([coeffs, df], f)
 
-    return 
+    return
 
 
 def implement_optimal_opd(mode = "science"):
-    ''' 
-    Take the data from the scan, calculate where OPD=0 is, and implement it by moving the SPC
+    #Take the data from the scan, calculate where OPD=0 is, and implement it by moving the SPC
 
-    INPUTS:
-    d: dictionary containing
-        "coeffs": the coefficients of the fit to the residuals
-        "scan_data": the data on the residuals, and piston positions of moveable beam combiner elements
-    '''
+    #INPUTS:
+    #d: dictionary containing
+    #    "coeffs": the coefficients of the fit to the residuals
+    #    "scan_data": the data on the residuals, and piston positions of moveable beam combiner elements
 
     if (mode == "total_passive"):
 	return
@@ -325,25 +382,3 @@ def implement_optimal_opd(mode = "science"):
         pi.setINDI("LMIRCAM.fizRun.value=Off")
 
     return
-
-
-def optimize_opd_fizeau_airy(mode = "science"):
-    # this dials OPD until the center of the coherence envelope is found
-
-    # scan in OPD until there is a clear *global* maximum in the FFT_amp high-freq lobe amplitudes (i.e., the visibility of the fringes is highest)
-
-    ## ## 1. take FFT of science PSF
-    AmpPE, ArgPE = fft_img.fft(img_before_padding_before_FT)
-
-    ## ## 2. measure amplitude of MTF high-freq node
-
-    
-    ## ## 3. command: move HPC in piston
-
-
-    ## ## 4. repeat the above 3 steps, displaying the power each time and fitting a parabola to the data
-    ## ## 5. let user press a key for either of the following two eventualities:
-    ## ##    a. they are satisfied the fit is good, and command the HPC to go to the PL location of max power, or
-    ## ##    b. the PL scan seems to be going in the wrong direction, and command the HPC to go back to the starting point and scan anew
-
-    ## ## Last step: set FITS header flag 'FIZ_OPD_AIRY=1'
