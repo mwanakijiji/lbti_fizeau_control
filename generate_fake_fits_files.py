@@ -41,8 +41,8 @@ def move_mimic_fits(framenum):
 # one good Fizeau-Airy sequence from 180507 Altair data:
 # 8849-9175
 
-framenum = 5706
-stop_framenum = 5816
+framenum = 8849
+stop_framenum = 9175
 
 while (framenum < stop_framenum):
     time_start = time.time()

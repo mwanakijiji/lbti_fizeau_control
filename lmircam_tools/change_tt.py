@@ -23,11 +23,10 @@ from lmircam_tools import process_readout
 #################################################
 # USER INPUTS: set units of the observation
 
-wavel_lambda = 4.051e-6 # filter central wavel (meters); n.b. Br-alpha is 4.051 um
 D = 8.25 # diameter of one downstopped primary mirror (meters)
 B_c2c = 14.4 # center-to-center separation (meters)
 B_e2e = 22.65 # edge-to-edge separation (meters)
-plateScale = 0.0107 # (asec/pixel)
+plateScale = plateScale_LMIR # (asec/pixel)
 global asecInRad # define global value
 asecInRad = 206264.81 # (asec/rad)
 #################################################
@@ -42,6 +41,30 @@ min2 = 2.233
 max3 = 2.679
 min3 = 3.238
 max4 = 3.699
+
+
+def needed_tt_setpt_corrxn(alpha,PS,Nx,Ny):
+    ''' 
+    Calculates the needed correction to the tip-tilt setpoints of the FPC,
+    given a gradient vector of the PTF
+    (see LBTI Controlled Fizeau research log, 2019 Feb 15)
+
+    INPUTS:
+    alpha: a vector [a,b] containing the gradient (in radians per Fourier pixel) in x and y
+    PS: LMIR plate scale (asec per LMIR pixel)
+    Nx: number of samples in x on LMIR (i.e., length in x of the array to be FFTed)
+    Ny: same as Nx, but for y
+
+    OUTPUT:
+    corrxn_tilt_tip: a vector [delx,dely] of required tilt (x) and tip (y) changes to current setpoints
+    '''
+
+    delta = 1 # sampling spacing is 1 LMIR pixel
+    beta_x = -2*alpha[0]*PS*Nx*delta # (asec; the minus sign is because alpha and beta have opposite sign)
+    beta_y = -2*alpha[1]*PS*Ny*delta # (asec; the minus sign is because alpha and beta have opposite sign)
+
+    # return the opposite (in units mas); this is the [tilt,tip] setpoint correction
+    return -np.multiply([beta_x,beta_y],1000)
 
 
 def findFFTloc(baseline,imageShapeAlong1Axis,wavel_lambda,plateScale,lOverD=1.):
@@ -236,13 +259,13 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
     # stdev of the same regions
     dictFFTstuff["std_highFreqPerfect_L"] = std_highFreqPerfect_L
 
-    # median of right-side high-freq lobe
+    # stdev of right-side high-freq lobe
     dictFFTstuff["std_highFreqPerfect_R"] = std_highFreqPerfect_R
 
-    # median of low-frequency lobe
+    # stdev of low-frequency lobe
     dictFFTstuff["std_lowFreqPerfect"] = std_lowFreqPerfect
 
-    # median of rectangle that is drawn to contain both high- and low-freq lobes
+    # stdev of rectangle that is drawn to contain both high- and low-freq lobes
     dictFFTstuff["std_rect"] = std_rect
 
     # normal vectors to the high- and low- frequency 
@@ -270,7 +293,7 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
     return dictFFTstuff
 
 
-def print_write_fft_info(integ_time, mode = "science"):
+def print_write_fft_info(integ_time, sci_wavel, mode = "science"):
     ''' 
     Take FFT of PSF, and calculate new Phasecam PL and TT setpoints
 
@@ -309,7 +332,7 @@ def print_write_fft_info(integ_time, mode = "science"):
 
         time_start = time.time() # start timer
 
-        '''
+        ''' 
         # this is for individual test images
         if ((mode == "fake_fits") or (mode == "total_passive")):
             files_start = glob.glob(dir_to_monitor + "*.fits")
@@ -360,7 +383,8 @@ def print_write_fft_info(integ_time, mode = "science"):
                 cookie_cut = image[psf_loc[0]-cookie_size:psf_loc[0]+cookie_size,psf_loc[1]-cookie_size:psf_loc[1]+cookie_size]
             else:
                 cookie_cut = np.copy(image)
-            amp, arg = fft_img(cookie_cut).fft(padding=int(5*cookie_size), mask_thresh=1e5)
+            padding_choice = int(5*cookie_size)
+            amp, arg = fft_img(cookie_cut).fft(padding=padding_choice, mask_thresh=1e5)
 
             # save image to check
             hdu = pyfits.PrimaryHDU(cookie_cut)
@@ -382,9 +406,9 @@ def print_write_fft_info(integ_time, mode = "science"):
             #    continue
 
             # analyze FFTs
-            fftInfo_amp = fftMask(amp,wavel_lambda,plateScale,
+            fftInfo_amp = fftMask(amp,sci_wavel,plateScale,
                                   fyi_string=" FFT amp")
-            fftInfo_arg = fftMask(arg,wavel_lambda,plateScale,
+            fftInfo_arg = fftMask(arg,sci_wavel,plateScale,
                                   fyi_string=" FFT phase")
 
             # save fyi FITS files to see the masks, etc.
@@ -485,15 +509,18 @@ def print_write_fft_info(integ_time, mode = "science"):
 
             counter_num += 1 # advance counter
 
-    return num_psfs_to_analyze
+    # return
+    # 1. number of psfs over which we will take median
+    # 2. the shape of the image we FFT so as to interpret the PTF slope
+    return num_psfs_to_analyze, np.shape(amp)
 
 
-def get_apply_pc_setpts(integ_time, num_psfs, mode = "science"):
+def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "science"):
 
     start_time = time.time()
 
     # restore the pickle file with the fit coefficients and scan data
-    '''
+    ''' 
     # for a single pickle file
     with open(fft_pickle_read_name) as f:
         fftInfo_amp, fftInfo_arg = pickle.load(f)
@@ -594,6 +621,18 @@ def get_apply_pc_setpts(integ_time, num_psfs, mode = "science"):
     angle_gradient = math.atan2(y_grad_perf_high_R,x_grad_perf_high_R)*180./np.pi
     print(angle_gradient)
     print("--------------------------")
+
+    # find needed correction to FPC TT setpoints (mas)
+    alpha_high_freq = [x_grad_perf_high_R, y_grad_perf_high_R] # gradient in x and y: [a,b]
+    Nx = fftimg_shape[1]
+    Ny = fftimg_shape[0]
+    corrxn_tt = needed_tt_setpt_corrxn(alpha_high_freq,plateScale_LMIR,Nx,Ny) # (x,y)  
+
+    # find needed correction to FPC PL setpoint (degrees in K-band)
+    # (even if there is a slope in the PTF, the median would be zero if PL error is zero)
+    sci_to_K = np.divide(sci_wavel,2.2e-6) # factor to convert degrees in sci to degrees in K
+    corrxn_pl = -fftInfo_arg["med_highFreqPerfect_R"].values[0]*(np.pi/180.)*sci_to_K
+
     if (mode != "total_passive"):
         print("Current FPC tip setpoint:")
         fpc_tip_setpoint = pi.getINDI("PLC.UBCSettings.TipSetpoint")
@@ -601,11 +640,17 @@ def get_apply_pc_setpts(integ_time, num_psfs, mode = "science"):
         print("Current FPC tilt setpoint:")
         fpc_tilt_setpoint = pi.getINDI("PLC.UBCSettings.TiltSetpoint")
         print(fpc_tilt_setpoint)
-        print("Manually change FPC tip-tilt setpoints. What was the scale?")
+        print("Adding FPC tip (y) setpoint correction (mas):")
+        print(str(int(corrxn_tt[1])))
+        print("Adding FPC tilt (x) setpoint correction (mas):")
+        print(str(int(corrxn_tt[0])))
+        pi.setINDI("PLC.UBCSettings.TipSetpoint="+str(np.add(fpc_tip_setpoint,int(corrxn_tt[1])))) # tip: y
+        pi.setINDI("PLC.UBCSettings.TiltSetpoint="+str(np.add(fpc_tilt_setpoint,int(corrxn_tt[0])))) # tilt: x
+        #print("Manually change FPC tip-tilt setpoints. What was the scale?")
 
     #######################################################################
     # lines to run on the command line to test application of corrections
-
+    ''' 
     # LOW PRIORITY: To correct Airy PSF overlap, or TT in Fizeau PSF
     new_tip_setpoint = 0
     new_tilt_setpoint = 0
@@ -631,20 +676,19 @@ def get_apply_pc_setpts(integ_time, num_psfs, mode = "science"):
     # FYI: EDIT TO MAKE MOMENTARY CHANGES IN FPC TT
     if ((mode == "science") or (mode == "fake_fits") or (mode == "az_source")):
         pi.setINDI("Acromag.FPC.Tip="+'{0:.1f}'.format(vector_move_asec[0])+";Tilt="+'{0:.1f}'.format(vector_move_asec[1])+";Piston=0;Mode=1")
+    '''
 
     # print needed corrections
     print("--------------------------------------")
     print("--------------------------------------")
-    print("NEEDED TIP (y) CORRECTION TO FPC SETPOINT:")
-    avg_phase_grad_y_low_high_freq = np.mean([y_grad_perf_high_R,y_grad_perf_lowfreq])
-    print("coeff*"+str(-avg_phase_grad_y_low_high_freq))
-    print("-")
-    print("NEEDED TILT (x) CORRECTION TO FPC SETPOINT:")
-    avg_phase_grad_x_low_high_freq = np.mean([x_grad_perf_high_R,x_grad_perf_lowfreq])
-    print("coeff*"+str(-avg_phase_grad_x_low_high_freq))
-    print("-")
+    print("NEEDED TIP (y) CORRECTION TO FPC SETPOINT (mas):")
+    print(str(int(corrxn_tt[1])))
+    print("---")
+    print("NEEDED TILT (x) CORRECTION TO FPC SETPOINT (mas):")
+    print(str(int(corrxn_tt[0])))
+    print("---")
     print("NEEDED PL CORRECTION TO FPC SETPOINT (degrees):")
-    print(-fftInfo_arg["med_highFreqPerfect_R"].values[0])
+    print(-fftInfo_arg["med_highFreqPerfect_R"].values[0]*(np.pi/180.))
 
     stop_time = time.time()
     print("-")

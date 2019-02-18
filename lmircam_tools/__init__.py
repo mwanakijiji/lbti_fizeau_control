@@ -10,6 +10,7 @@ integ_time = 100 # integration time, msec
 
 dir_to_monitor = "fake_monitor/" # directory to monitor for newly-written images
 del_t = 1.0 # pause cadence (sec) with which to monitor that directory
+plateScale_LMIR = 0.0107 # in asec/pix
 
 #psf_loc_fake = (114,864) # (y,x) approximate location of PSF when reading in fake/old FITS files
 psf_loc_fake = (292,853) # a grism sequence
@@ -97,7 +98,8 @@ class fft_img:
         PhaseExtract = np.fft.fftshift(PhaseExtract)
 
         AmpPE = np.absolute(PhaseExtract)
-        ArgPE = np.multiply(np.angle(PhaseExtract),180./np.pi)
+        #ArgPE = np.multiply(np.angle(PhaseExtract),180./np.pi) # degrees
+        ArgPE = np.angle(PhaseExtract) # radians
 
         if mask:
             # mask out low-power regions

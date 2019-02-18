@@ -22,6 +22,9 @@ print("-------------------------------------------------------------------------
 raw_input("Place an ROI, no larger than 512x512, over the Phasecam sweet spot for LMIRcam, and move telescopes\n to put Airy PSFs somethere inside the ROI. \nROI size needs to be "+\
 	"large enough to include the grism PSF and possible movement\nPress [Enter] when done.")
 
+# science wavelength
+wavel_lambda = 4.051e-6 # filter central wavel (m)
+
 # Phasecam sweet spot on detector, in ROI coordinates (y, x)
 fiz_lmir_sweet_spot = [200,100] 
 
@@ -30,7 +33,7 @@ fiz_lmir_sweet_spot = [200,100]
 #    "total_passive": read in fake FITS files, and no getFITS or setINDI commands are sent (but getINDI are)
 #    "fake_fits":     read in fake FITS files, but also send INDI commands to cameras and mirrors (but not the telescope)
 #    "nac_source":    use detector images involving the NAC source (downstream of the UBC) in closed-dome, but don't send commands to UBC mirrors or telescope
-#    "az_source":     use detector images involving the AZ source (upstream of the UBC) in closed-dome, and send commands to UBC mirrors but not the telescope 
+#    "az_source":     use detector images involving the AZ source OR the pinholes (upstream of the UBC mirrors) in closed-dome, and send commands to UBC mirrors but not the telescope 
 #    "science":       send commands to cameras, mirrors, and telescope like we're on-sky
 print("----------------------------------------------------------------------------------")
 mode_choice = "total_passive"
@@ -74,7 +77,7 @@ raw_input("Now align Phasecam and close the phase loop")
 
 
 # print fft info, see how it compares with the set thresholds
-num_psfs = print_write_fft_info(integ_time, mode = mode_choice)
+num_psfs, fftimg_shape = print_write_fft_info(integ_time, sci_wavel = wavel_lambda, mode = mode_choice)
 
 # calculate and apply Phasecam setpoints
-get_apply_pc_setpts(integ_time, num_psfs, mode = mode_choice)
+get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel = wavel_lambda, mode = mode_choice)
