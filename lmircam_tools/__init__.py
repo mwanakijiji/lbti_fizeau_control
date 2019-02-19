@@ -4,16 +4,31 @@ from numpy import ma
 from pyindi import *
 from scipy import ndimage, sqrt, stats, misc, signal
 
+
+#########################
+### BEGIN USER INPUTS ###
+#########################
+
+# science wavelength
+wavel_lambda = 4.051e-6 # filter central wavel (m)
+
+# physical psf location, if code is being used to read in written FITS files
+#psf_loc_fake = [114,864] # (y,x) in FITS coordinates
+psf_loc_fake = [292,853] # a grism sequence
+# desired OR current psf location, if code is using ROI/INDI machinery
+fiz_lmir_sweet_spot = [200,100] # (y,x) in ROI coordinates
+
+#######################
+### END USER INPUTS ###
+####################### 
+
+
 pi = PyINDI(verbose=False)
-
-integ_time = 100 # integration time, msec
-
+integ_time = 100 # integration time, msec (probably not needed; this is from when I was explicitly requesting $
 dir_to_monitor = "fake_monitor/" # directory to monitor for newly-written images
 del_t = 1.0 # pause cadence (sec) with which to monitor that directory
 plateScale_LMIR = 0.0107 # in asec/pix
 
-#psf_loc_fake = (114,864) # (y,x) approximate location of PSF when reading in fake/old FITS files
-psf_loc_fake = (292,853) # a grism sequence
 
 # define 2D gaussian for fitting PSFs
 def gaussian_x(x, mu, sig):

@@ -623,15 +623,19 @@ def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "s
     print("--------------------------")
 
     # find needed correction to FPC TT setpoints (mas)
-    alpha_high_freq = [x_grad_perf_high_R, y_grad_perf_high_R] # gradient in x and y: [a,b]
+    alpha_high_freq = [x_grad_perf_high_R, y_grad_perf_high_R] # gradient high freq lobe of PTF in x and y: [a,b]
+    alpha_low_freq = [x_grad_perf_lowfreq, y_grad_perf_lowfreq] # same, in low freq lobe
+    alpha_mean = np.mean([alpha_high_freq,alpha_low_freq],axis=0) # corrections should be based on gradients common to lobes (see Spalding+ SPIE 2018, Table 3)
     Nx = fftimg_shape[1]
     Ny = fftimg_shape[0]
-    corrxn_tt = needed_tt_setpt_corrxn(alpha_high_freq,plateScale_LMIR,Nx,Ny) # (x,y)  
+    corrxn_tt = needed_tt_setpt_corrxn(alpha=alpha_mean,PS=plateScale_LMIR,Nx=Nx,Ny=Ny) # (x,y)
+    corrxn_tilt_x = int(corrxn_tt[1])
+    corrxn_tilt_y = int(corrxn_tt[0])
 
     # find needed correction to FPC PL setpoint (degrees in K-band)
     # (even if there is a slope in the PTF, the median would be zero if PL error is zero)
     sci_to_K = np.divide(sci_wavel,2.2e-6) # factor to convert degrees in sci to degrees in K
-    corrxn_pl = -fftInfo_arg["med_highFreqPerfect_R"].values[0]*(np.pi/180.)*sci_to_K
+    corrxn_pl = -fftInfo_arg["med_highFreqPerfect_R"].values[0]*(180./np.pi)*sci_to_K
 
     if (mode != "total_passive"):
         print("Current FPC tip setpoint:")
@@ -640,12 +644,19 @@ def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "s
         print("Current FPC tilt setpoint:")
         fpc_tilt_setpoint = pi.getINDI("PLC.UBCSettings.TiltSetpoint")
         print(fpc_tilt_setpoint)
+        print("Current FPC pl setpoint:")
+        fpc_tilt_setpoint = pi.getINDI("PLC.UBCSettings.PLSetpoint")
+        print("-----")
         print("Adding FPC tip (y) setpoint correction (mas):")
-        print(str(int(corrxn_tt[1])))
+        print(str(corrxn_tilt_y))
         print("Adding FPC tilt (x) setpoint correction (mas):")
-        print(str(int(corrxn_tt[0])))
-        pi.setINDI("PLC.UBCSettings.TipSetpoint="+str(np.add(fpc_tip_setpoint,int(corrxn_tt[1])))) # tip: y
-        pi.setINDI("PLC.UBCSettings.TiltSetpoint="+str(np.add(fpc_tilt_setpoint,int(corrxn_tt[0])))) # tilt: x
+        print(str(corrxn_tilt_x))
+        print("Adding FPC pl (piston) setpoint correction (deg):")
+        print(str(corrxn_pl))
+        print("-----")
+        pi.setINDI("PLC.UBCSettings.TipSetpoint="+str(np.add(fpc_tip_setpoint,corrxn_tip_y))) # tip: y
+        pi.setINDI("PLC.UBCSettings.TiltSetpoint="+str(np.add(fpc_tilt_setpoint,corrxn_tilt_x))) # tilt: x
+        pi.setINDI("PLC.UBCSettings.PLSetpoint="+str(np.add(fpc_pl_setpoint,corrxn_pl))) # pathlength
         #print("Manually change FPC tip-tilt setpoints. What was the scale?")
 
     #######################################################################
@@ -688,7 +699,7 @@ def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "s
     print(str(int(corrxn_tt[0])))
     print("---")
     print("NEEDED PL CORRECTION TO FPC SETPOINT (degrees):")
-    print(-fftInfo_arg["med_highFreqPerfect_R"].values[0]*(np.pi/180.))
+    print(str(corrxn_pl))
 
     stop_time = time.time()
     print("-")

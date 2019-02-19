@@ -144,9 +144,16 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
             print("----------------------------------------------------------------")
             if ((mode == "fake_fits") or (mode == "az_source") or (mode == "science")):
                 print("Moving SPC_Trans for large OPD movement of "+str(int(diff_movement_total_opd))+" um or "+str(diff_movement_total_cts)+" translation counts")
+                spc_trans_position_pre = pi.getINDI("Ubcs.SPC_Trans_status.PosNum") # translation stage before command (absolute position, 0.02 um)
+                spc_trans_position_now = spc_trans_position_pre
+                spc_trans_position_goal = spc_trans_position_pre + diff_movement_total_cts
                 pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(diff_movement_total_cts))
+                # wait for the SPC_Trans movement to finish
+                while (spc_trans_position_now != spc_trans_position_goal):
+                    spc_trans_position_now = pi.getINDI("Ubcs.SPC_Trans_status.PosNum") # check status of SPC_Trans
+                    time.sleep(0.5) # wait a moment
             else:
-                print("Not moving SPC_Trans, since this is in testing mode")
+                print("Not moving SPC_Trans, since this is in testing mode. But calculated needed movement is " + str(int(diff_movement_total_opd))+" um or "+str(diff_movement_total_cts)+" translation counts")
 
     return
 

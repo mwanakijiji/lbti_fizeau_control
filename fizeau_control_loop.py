@@ -22,12 +22,6 @@ print("-------------------------------------------------------------------------
 raw_input("Place an ROI, no larger than 512x512, over the Phasecam sweet spot for LMIRcam, and move telescopes\n to put Airy PSFs somethere inside the ROI. \nROI size needs to be "+\
 	"large enough to include the grism PSF and possible movement\nPress [Enter] when done.")
 
-# science wavelength
-wavel_lambda = 4.051e-6 # filter central wavel (m)
-
-# Phasecam sweet spot on detector, in ROI coordinates (y, x)
-fiz_lmir_sweet_spot = [200,100] 
-
 # Is this script being run as a test, or are we doing on-sky science?
 # Options: "total_passive", "fake_fits", "artif_source", "science"
 #    "total_passive": read in fake FITS files, and no getFITS or setINDI commands are sent (but getINDI are)
