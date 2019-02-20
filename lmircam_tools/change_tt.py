@@ -735,14 +735,14 @@ def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "s
     return
 
 
-def compare_setpts(pickle_pre, pickle_post):
+def compare_setpts(pickle_pre, pickle_post, mode = "science"):
     ''' 
     Check that the PSF has been improved with the new setpoints. (Due to sign degeneracies,
     they might have made things worse after the first try.)
 
     INPUTS:
     pickle_pre: filename of pickle file containing TT,PL setpoint corrections after the 1st correction
-    pickle_post: same as above, except that it contains needed corrections, calculated AFTER
+    pickle_post: same as above, except its for the needed corrections AFTER the 1st was made
 
     OUTPUTS:
     '''
@@ -769,9 +769,18 @@ def compare_setpts(pickle_pre, pickle_post):
 
     # if not, make a 2x reverse correction
     # check if correction has gone further away from zero
-    if ((np.abs(corrxn_tt_post[0]) > np.abs(corrxn_tt_pre[0]) and (np.sign(corrxn_tt_post[0]) == np.sign(corrxn_tt_pre[0])):
-        print("problem! now correct it...")
-    if ((np.abs(corrxn_tt_post[1]) > np.abs(corrxn_tt_pre[1]) and (np.sign(corrxn_tt_post[1]) == np.sign(corrxn_tt_pre[1])):
-        print("problem! now correct it...")
-    if ((np.abs(corrxn_pl_post) > np.abs(corrxn_pl_pre) and (np.sign(corrxn_pl_post) == np.sign(corrxn_pl_pre)):
-        print("problem! now correct it...")
+    if ((  np.abs(corrxn_tt_post[0]) > np.abs(corrxn_tt_pre[0])  ) and (  np.sign(corrxn_tt_post[0]) == np.sign(corrxn_tt_pre[0])  )):
+        if (mode != "total_passive"):
+            print("Re-correcting the tip (y) setpoint correction")
+            fpc_tip_setpoint = pi.getINDI("PLC.UBCSettings.TipSetpoint")
+            pi.setINDI("PLC.UBCSettings.TipSetpoint="+str(np.add(fpc_tip_setpoint,-2*corrxn_tt_pre[0]))) # tip: y
+    if ((  np.abs(corrxn_tt_post[1]) > np.abs(corrxn_tt_pre[1])  ) and (  np.sign(corrxn_tt_post[1]) == np.sign(corrxn_tt_pre[1])  )):
+        if (mode != "total_passive"):
+            print("Re-correcting the tilt (x) setpoint correction")
+            fpc_tilt_setpoint = pi.getINDI("PLC.UBCSettings.TiltSetpoint")
+            pi.setINDI("PLC.UBCSettings.TiltSetpoint="+str(np.add(fpc_tilt_setpoint,-2*corrxn_tt_pre[1]))) # tilt: x
+    if ((  np.abs(corrxn_pl_post) > np.abs(corrxn_pl_pre)  ) and (  np.sign(corrxn_pl_post) == np.sign(corrxn_pl_pre)  )):
+        if (mode != "total_passive"):
+            print("Re-correcting the PL setpoint correction")
+            fpc_pl_setpoint = pi.getINDI("PLC.UBCSettings.PLSetpoint")
+            pi.setINDI("PLC.UBCSettings.PLSetpoint="+str(np.add(fpc_pl_setpoint,-2*corrxn_pl_pre))) # pathlength

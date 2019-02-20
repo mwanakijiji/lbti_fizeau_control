@@ -74,13 +74,15 @@ raw_input("Now align Phasecam and close the phase loop")
 num_psfs, fftimg_shape = print_write_fft_info(integ_time, sci_wavel = wavel_lambda, mode = mode_choice)
 
 # calculate and apply Phasecam setpoints; write them to a pickle file to check the correction
-get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel = wavel_lambda, mode = mode_choice, pickle_name = "setpoints_pickle_pre.pkl", apply = True)
+setpoints_pickle_pre = "setpoints_pickle_pre.pkl"
+get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel = wavel_lambda, mode = mode_choice, pickle_name = setpoints_pickle_pre, apply = True)
 
 # print/calculate FFT info after the change so as to check setpoints for sign (code cant tell which PSF is SX and DX)
 num_psfs, fftimg_shape = print_write_fft_info(integ_time, sci_wavel = wavel_lambda, mode = mode_choice, checker=True) # note checker=True
 
 # recalculate setpoints, but dont apply a new correction just yet
-get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel = wavel_lambda, mode = mode_choice, , pickle_name = "setpoints_pickle_post.pkl", apply = False)
+setpoints_pickle_post = "setpoints_pickle_post.pkl"
+get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel = wavel_lambda, mode = mode_choice, pickle_name = setpoints_pickle_post, apply = False)
 
 # compare setpoints; if any one aspect (TT, PL) is worse, flip it back the other way, 2x
-compare_setpoints(setpoints_pickle_pre, setpoints_pickle_post)
+compare_setpts(setpoints_pickle_pre, setpoints_pickle_post, mode = mode_choice)
