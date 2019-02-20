@@ -4,7 +4,7 @@ import pdb
 from lmircam_tools import *
 from lmircam_tools.overlap_psfs import overlap_psfs
 from lmircam_tools.dial_opd import find_optimal_opd_fizeau_grism, live_opd_correction_fizeau_grism, implement_optimal_opd
-from lmircam_tools.change_tt import print_write_fft_info, get_apply_pc_setpts
+from lmircam_tools.change_tt import print_write_fft_info, get_apply_pc_setpts, compare_setpts
 
 #################################################################################
 ###############         ALIGNMENT         #######################################
@@ -73,5 +73,14 @@ raw_input("Now align Phasecam and close the phase loop")
 # print fft info, see how it compares with the set thresholds
 num_psfs, fftimg_shape = print_write_fft_info(integ_time, sci_wavel = wavel_lambda, mode = mode_choice)
 
-# calculate and apply Phasecam setpoints
-get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel = wavel_lambda, mode = mode_choice)
+# calculate and apply Phasecam setpoints; write them to a pickle file to check the correction
+get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel = wavel_lambda, mode = mode_choice, pickle_name = "setpoints_pickle_pre.pkl", apply = True)
+
+# print/calculate FFT info after the change so as to check setpoints for sign (code cant tell which PSF is SX and DX)
+num_psfs, fftimg_shape = print_write_fft_info(integ_time, sci_wavel = wavel_lambda, mode = mode_choice, checker=True) # note checker=True
+
+# recalculate setpoints, but dont apply a new correction just yet
+get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel = wavel_lambda, mode = mode_choice, , pickle_name = "setpoints_pickle_post.pkl", apply = False)
+
+# compare setpoints; if any one aspect (TT, PL) is worse, flip it back the other way, 2x
+compare_setpoints(setpoints_pickle_pre, setpoints_pickle_post)

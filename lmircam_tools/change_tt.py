@@ -293,13 +293,16 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
     return dictFFTstuff
 
 
-def print_write_fft_info(integ_time, sci_wavel, mode = "science"):
+def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pickle = " ", checker=False):
     ''' 
     Take FFT of PSF, and calculate new Phasecam PL and TT setpoints
 
     INPUTS:
     fft_pickle_write_name: name of the csv file to which FFT information will be printed
     mode: testing or science
+    setpoints_pickle: filename of pickle file containing previous setpoints, so we can compare
+    checker=True: this function is being run to check effect of a previous correction
+
     OUTPUTS:
     N/A; FFT info from series of Fizeau PSFs is pickled
     '''
@@ -323,6 +326,8 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science"):
         time.sleep(del_t)
 
         fft_pickle_write_name = "fft_info_"+str("{:0>2d}".format(counter_num))+".pkl" # filename for pickled FFT info
+        #if (checker == True): # if we are checking a previous correction, lets distinguish the pickle file name
+        #    fft_pickle_write_name = "fft_info_check_"+str("{:0>2d}".format(counter_num))+".pkl"
 
         # check to see if there were new files from last check
         files_later = glob.glob(dir_to_monitor + "/*.fits")
@@ -515,7 +520,15 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science"):
     return num_psfs_to_analyze, np.shape(amp)
 
 
-def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "science"):
+def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "science", pickle_name = "setpts.pkl", apply = True):
+    ''' 
+    integ_time: vestigial, from when camera was being commanded by the Fizeau code
+    num_psfs: number of PSFs to analyze
+    fftimg_shape: shape of the array which actually gets FFTed
+    sci_wavel: science wavelength
+    mode: select testing or science mode
+    apply=True: apply the corrections after they have been calculated; otherwise, just calculate them
+    '''
 
     start_time = time.time()
 
@@ -654,10 +667,12 @@ def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "s
         print("Adding FPC pl (piston) setpoint correction (deg):")
         print(str(corrxn_pl))
         print("-----")
-        pi.setINDI("PLC.UBCSettings.TipSetpoint="+str(np.add(fpc_tip_setpoint,corrxn_tip_y))) # tip: y
-        pi.setINDI("PLC.UBCSettings.TiltSetpoint="+str(np.add(fpc_tilt_setpoint,corrxn_tilt_x))) # tilt: x
-        pi.setINDI("PLC.UBCSettings.PLSetpoint="+str(np.add(fpc_pl_setpoint,corrxn_pl))) # pathlength
-        #print("Manually change FPC tip-tilt setpoints. What was the scale?")
+
+        if (apply == True):
+            pi.setINDI("PLC.UBCSettings.TipSetpoint="+str(np.add(fpc_tip_setpoint,corrxn_tip_y))) # tip: y
+            pi.setINDI("PLC.UBCSettings.TiltSetpoint="+str(np.add(fpc_tilt_setpoint,corrxn_tilt_x))) # tilt: x
+            pi.setINDI("PLC.UBCSettings.PLSetpoint="+str(np.add(fpc_pl_setpoint,corrxn_pl))) # pathlength
+            #print("Manually change FPC tip-tilt setpoints. What was the scale?")
 
     #######################################################################
     # lines to run on the command line to test application of corrections
@@ -689,6 +704,10 @@ def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "s
         pi.setINDI("Acromag.FPC.Tip="+'{0:.1f}'.format(vector_move_asec[0])+";Tilt="+'{0:.1f}'.format(vector_move_asec[1])+";Piston=0;Mode=1")
     '''
 
+    # pickle the calculated corrections, so that they can be checked in the next function
+    with open(pickle_name, "w") as f:
+        pickle.dump((corrxn_tt,corrxn_pl), f)
+
     # print needed corrections
     print("--------------------------------------")
     print("--------------------------------------")
@@ -699,6 +718,7 @@ def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "s
     print(str(int(corrxn_tt[0])))
     print("---")
     print("NEEDED PL CORRECTION TO FPC SETPOINT (degrees):")
+    # positive number means jailbars should be moved to the right on LMIR by this amount
     print(str(corrxn_pl))
 
     stop_time = time.time()
@@ -713,3 +733,45 @@ def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "s
         pi.setINDI("LMIRCAM.fizRun.value=Off")
 
     return
+
+
+def compare_setpts(pickle_pre, pickle_post):
+    ''' 
+    Check that the PSF has been improved with the new setpoints. (Due to sign degeneracies,
+    they might have made things worse after the first try.)
+
+    INPUTS:
+    pickle_pre: filename of pickle file containing TT,PL setpoint corrections after the 1st correction
+    pickle_post: same as above, except that it contains needed corrections, calculated AFTER
+
+    OUTPUTS:
+    '''
+
+    # restore the pickle file containing the 1st calculated corrections
+    with open(pickle_pre) as f:
+        corrxn_tt_pre, corrxn_pl_pre = pickle.load(f)
+
+    # restore pickle file with needed corrections after the 1st correction
+    with open(pickle_post) as g:
+        corrxn_tt_post, corrxn_pl_post = pickle.load(g)
+
+    # print info
+    print("-----------------")
+    print("Needed tip (y) correction, pre and post the application of the first correction:")
+    print("Pre: " + str(corrxn_tt_pre[0]))
+    print("Post: " + str(corrxn_tt_post[0]))
+    print("Needed tilt (x) correction, pre and post the application of the first correction:")
+    print("Pre: " + str(corrxn_tt_post[1]))
+    print("Post: " + str(corrxn_tt_post[1]))
+    print("Needed pathlength correction, pre and post the application of the first correction:")
+    print("Pre: " + str(corrxn_pl_pre))
+    print("Post: " + str(corrxn_pl_post))
+
+    # if not, make a 2x reverse correction
+    # check if correction has gone further away from zero
+    if ((np.abs(corrxn_tt_post[0]) > np.abs(corrxn_tt_pre[0]) and (np.sign(corrxn_tt_post[0]) == np.sign(corrxn_tt_pre[0])):
+        print("problem! now correct it...")
+    if ((np.abs(corrxn_tt_post[1]) > np.abs(corrxn_tt_pre[1]) and (np.sign(corrxn_tt_post[1]) == np.sign(corrxn_tt_pre[1])):
+        print("problem! now correct it...")
+    if ((np.abs(corrxn_pl_post) > np.abs(corrxn_pl_pre) and (np.sign(corrxn_pl_post) == np.sign(corrxn_pl_pre)):
+        print("problem! now correct it...")

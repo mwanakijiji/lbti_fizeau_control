@@ -41,8 +41,13 @@ def move_mimic_fits(framenum):
 # one good Fizeau-Airy sequence from 180507 Altair data:
 # 8849-9175
 
-framenum = 5706
-stop_framenum = 5816
+# Fizeau-Airy sequences around a fringe jump:
+# 8259-8265, (y,x)=(115,864) (bright inner jailbar fringe slightly to the right)
+# 8266-8284, (y,x)=Ibid. (looks symmetrical)
+# 8285-8289, (y,x)=Ibid. (fringe jump; one dark jailbar down center)
+
+framenum = 8849
+stop_framenum = 9175
 
 while (framenum < stop_framenum):
     time_start = time.time()
