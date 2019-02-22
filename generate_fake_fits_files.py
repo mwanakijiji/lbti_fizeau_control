@@ -8,8 +8,11 @@ import pyfits
 import numpy as np
 import sched, time
 
-retrieve_dir = "/opt/local/LBTI_INDI/data/LMIRCAM/180507/" # directory where we retrieve already-written frames
-check_dir = "fake_monitor/" # directory for this night, which we are monitoring for new frames
+datestring = "190222"
+retrieve_dir = "/opt/local/LBTI_INDI/data/LMIRCAM/190222/" # directory where we retrieve already-written frames
+#retrieve_dir = "/opt/local/LBTI_INDI/data/LMIRCAM/180507/junk/"
+#check_dir = "fake_monitor/" # directory for this night, which we are monitoring for new frames
+deposit_dir = "/opt/local/LBTI_INDI/data/LMIRCAM/180507/junk/"
 
 
 def write_fake_fits(framenum):
@@ -28,8 +31,8 @@ def move_mimic_fits(framenum):
     Move old frames to another directory, to mimic
     writing new files to that directory
     '''
-    hdulist = pyfits.open(retrieve_dir+"lm_180507_"+str("{:0>6d}".format(framenum))+".fits")
-    hdulist.writeto(check_dir+"lm_180507_"+str("{:0>6d}".format(framenum))+".fits", clobber=True)
+    hdulist = pyfits.open(retrieve_dir+"lm_"+datestring+"_"+str("{:0>6d}".format(framenum))+".fits")
+    hdulist.writeto(deposit_dir+"lm_"+datestring+"_"+str("{:0>6d}".format(framenum))+".fits", clobber=True)
 
 
 # good Fizeau-grism sequences from 180507 Altair data:
@@ -46,12 +49,12 @@ def move_mimic_fits(framenum):
 # 8266-8284, (y,x)=Ibid. (looks symmetrical)
 # 8285-8289, (y,x)=Ibid. (fringe jump; one dark jailbar down center)
 
-framenum = 8849
-stop_framenum = 9175
+framenum = 2500
+stop_framenum = 2900
 
 while (framenum < stop_framenum):
     time_start = time.time()
-    time.sleep(1.0)
+    time.sleep(0.5)
     #write_fake_fits(framenum)
     move_mimic_fits(framenum)
     framenum += 1

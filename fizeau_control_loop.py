@@ -30,13 +30,14 @@ raw_input("Place an ROI, no larger than 512x512, over the Phasecam sweet spot fo
 #    "az_source":     use detector images involving the AZ source OR the pinholes (upstream of the UBC mirrors) in closed-dome, and send commands to UBC mirrors but not the telescope 
 #    "science":       send commands to cameras, mirrors, and telescope like we're on-sky
 print("----------------------------------------------------------------------------------")
-mode_choice = "total_passive"
+mode_choice = "az_source"
 print("This optimization code is running in mode " + mode_choice)
 print("Stop continuous aquisition of the camera.")
 print("----------------------------------------------------------------------------------")
 
 pdb.set_trace()
-overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = mode_choice, bkgd_mode = bkgd_choice, psf_type = "airy") # filter-agnostic
+# the below function is best for being run on-sky; note the indi_ROI background subtraction
+overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = mode_choice, bkgd_mode = "indi_ROI", psf_type = "airy") # filter-agnostic
 
 ## ## see old sweet spots (can also locate them on NOMIC, and then see where they are on LMIR)
 ## ## see nomic nulling to see how nod with wheel is done

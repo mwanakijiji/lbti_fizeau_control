@@ -28,7 +28,7 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science", bkgd_mode = "
 
     counter_num = 0 # for counting number of analyzed PSFs
 
-    take_roi_background(mode)
+    take_roi_background(mode, bkgd_mode)
     raw_input("User: remove the Blank in FW4, then press return when done")
 
     # read in any new images written out to a directory
@@ -51,10 +51,10 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science", bkgd_mode = "
         time_start = time.time() # start timer
 
         # Old acquire code
-        if ((mode != "total_passive") and (bkgd_choice != "quick_dirt")):
-            print("Taking a background-subtracted frame")
-            pi.setINDI("LMIRCAM_save.enable_save.value=On")
-            f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
+        #if ((mode != "total_passive") and (bkgd_choice != "quick_dirt")):
+        #    print("Taking a background-subtracted frame")
+        #    pi.setINDI("LMIRCAM_save.enable_save.value=On")
+        #    f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
         # if there are new files
         if (len(new_list) > 2):
@@ -172,7 +172,7 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science", bkgd_mode = "qui
     sig = 5 # sigma of Gaussian profile in x (in pix)
     length_y = 200 # length in y of the psf (in pix)
 
-    take_roi_background(mode)
+    take_roi_background(mode, bkgd_mode)
     raw_input("User: remove the Blank in FW4, then press return when done")
 
     # initialize dataframe for pathlength and residual data

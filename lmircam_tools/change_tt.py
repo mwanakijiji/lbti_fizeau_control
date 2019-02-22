@@ -313,7 +313,7 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", bkgd_mode = "q
 
     counter_num = 0 # for counting number of analyzed PSFs
 
-    take_roi_background(mode)
+    take_roi_background(mode, bkgd_mode)
     raw_input("User: remove the Blank in FW4, then press return when done")
 
     # read in any new images written out to a directory
@@ -367,8 +367,6 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", bkgd_mode = "q
                 image = f[0].data[-1,:,:] # images from LMIRcam (> summer 2018) are cubes of nondestructive reads
             else:
                 image = np.squeeze(f[0].data)
-
-            print(np.shape(image))
 
             if (bkgd_choice == "quick_dirt"):
                 image = process_readout.processImg(image,"median") # simple background subtraction
