@@ -39,7 +39,7 @@ def move_mimic_fits(framenum):
 # 6949-7084, (y,x)=(328,818)
 
 # one good Fizeau-Airy sequence from 180507 Altair data:
-# 8849-9175
+# 8849-9175, (y,x)=(115,864)
 
 # Fizeau-Airy sequences around a fringe jump:
 # 8259-8265, (y,x)=(115,864) (bright inner jailbar fringe slightly to the right)

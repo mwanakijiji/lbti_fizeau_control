@@ -293,7 +293,7 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
     return dictFFTstuff
 
 
-def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pickle = " ", checker=False):
+def print_write_fft_info(integ_time, sci_wavel, mode = "science", bkgd_mode = "quick_dirt", setpoints_pickle = " ", checker=False):
     ''' 
     Take FFT of PSF, and calculate new Phasecam PL and TT setpoints
 
@@ -325,7 +325,7 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
         time_start = time.time()
         time.sleep(del_t)
 
-        fft_pickle_write_name = "fft_info_"+str("{:0>2d}".format(counter_num))+".pkl" # filename for pickled FFT info
+        fft_pickle_write_name = "pickled_info/fft_info_"+str("{:0>2d}".format(counter_num))+".pkl" # filename for pickled FFT info
         #if (checker == True): # if we are checking a previous correction, lets distinguish the pickle file name
         #    fft_pickle_write_name = "fft_info_check_"+str("{:0>2d}".format(counter_num))+".pkl"
 
@@ -363,15 +363,20 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
             file_name_full = os.path.basename(second_newest) # filename without the path
             file_name_base = os.path.splitext(file_name_full)[0] # filename without the extension, too
 
-            image = f[0].data
+            if (np.ndim(f[0].data) > 2):
+                image = f[0].data[-1,:,:] # images from LMIRcam (> summer 2018) are cubes of nondestructive reads
+            else:
+                image = np.squeeze(f[0].data)
 
-            if ((mode == "fake_fits") or (mode == "total_passive")):
+            print(np.shape(image))
+
+            if (bkgd_choice == "quick_dirt"):
                 image = process_readout.processImg(image,"median") # simple background subtraction
 
 	    # save detector image to check (overwrites previous)
-	    hdu = pyfits.PrimaryHDU(image)
-            hdulist = pyfits.HDUList([hdu])
-            hdu.writeto("junk_other_tests/junk_test_image_seen.fits", clobber=True)
+	    #hdu = pyfits.PrimaryHDU(image)
+            #hdulist = pyfits.HDUList([hdu])
+            #hdu.writeto("junk_other_tests/junk_test_image_seen.fits", clobber=True)
 
             # locate PSF
             psf_loc = find_grism_psf(image, sig=5, length_y=5)
@@ -394,15 +399,15 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
             # save image to check
             hdu = pyfits.PrimaryHDU(cookie_cut)
             hdulist = pyfits.HDUList([hdu])
-            hdu.writeto("junk_other_tests/junk_test_cookie_seen_"+str("{:0>2d}".format(counter_num))+".fits", clobber=True)
+            hdu.writeto("log_images/cookie_prepadding_prefft_" + file_name_base + ".fits", clobber=True)
 
             # test: see what the FFT looks like
             hdu = pyfits.PrimaryHDU(amp.data)
             hdulist = pyfits.HDUList([hdu])
-            hdu.writeto(dir_to_monitor + "log_images/fft_amp_" + file_name_base + ".fits", clobber=True)
+            hdu.writeto("log_images/fft_amp_" + file_name_base + ".fits", clobber=True)
             hdu = pyfits.PrimaryHDU(arg.data)
             hdulist = pyfits.HDUList([hdu])
-            hdu.writeto(dir_to_monitor + "log_images/fft_arg_" + file_name_base + ".fits", clobber=True)
+            hdu.writeto("log_images/fft_arg_" + file_name_base + ".fits", clobber=True)
 
             # --commented out because it was triggering on NxM frames where N!=M--
             # sanity check (and to avoid getting for loop stuck)
@@ -417,6 +422,7 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
                                   fyi_string=" FFT phase")
 
             # save fyi FITS files to see the masks, etc.
+            ''' 
             hdu = pyfits.PrimaryHDU(fftInfo_amp["sciImg1"])
             hdulist = pyfits.HDUList([hdu])
             hdu.writeto("junk_other_tests/junk_test_mask_amp_maskedRegion1.fits", clobber=True)
@@ -435,6 +441,7 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
             hdu = pyfits.PrimaryHDU(arg.data)
             hdulist = pyfits.HDUList([hdu])
             hdu.writeto("junk_other_tests/junk_test_arg_psf.fits", clobber=True)
+            '''
 
             ## take info from the FFTs to send corrective movements
 
@@ -497,12 +504,12 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
 
             # print fyi
             time_elapsed = time.time() - time_start
-            print("PSF "+str(f)+" analysed in time (secs):")
+            print("PSF "+file_name_full+" analyzed in time (secs):")
             print(time_elapsed)
 
             # write to csv to check on a local machine (this info will also be pickled)
-            fftInfo_amp_df.to_csv("fft_amp.csv")
-            fftInfo_arg_df.to_csv("fft_arg.csv")
+            fftInfo_amp_df.to_csv("pickled_info/csvs/fft_amp.csv")
+            fftInfo_arg_df.to_csv("pickled_info/csvs/fft_arg.csv")
             ## ## note I havent used log_name anywhere yet
 
             # pack info from the series of FFTs into dictionaries, and pickle them
@@ -520,7 +527,7 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
     return num_psfs_to_analyze, np.shape(amp)
 
 
-def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "science", pickle_name = "setpts.pkl", apply = True):
+def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "science", bkgd_mode = "quick_dirt", pickle_name = "setpts.pkl", apply = True):
     ''' 
     integ_time: vestigial, from when camera was being commanded by the Fizeau code
     num_psfs: number of PSFs to analyze
@@ -545,7 +552,7 @@ def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "s
     d_all_amp = {}
     d_all_arg = {}
     for pickle_num in range(0,num_psfs): # loop over the number of PSFs which have been analyzed
-        fft_pickle_read_name = "fft_info_"+str("{:0>2d}".format(pickle_num))+".pkl" 
+        fft_pickle_read_name = "pickled_info/fft_info_"+str("{:0>2d}".format(pickle_num))+".pkl" 
 
         # open individual pickle files (one per PSF) and put them into a larger dict
         # N.b. there are two dictionaries (for amp and arg) that come out of each pickle file
@@ -643,7 +650,7 @@ def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "s
     Ny = fftimg_shape[0]
     corrxn_tt = needed_tt_setpt_corrxn(alpha=alpha_mean,PS=plateScale_LMIR,Nx=Nx,Ny=Ny) # (x,y)
     corrxn_tilt_x = int(corrxn_tt[1])
-    corrxn_tilt_y = int(corrxn_tt[0])
+    corrxn_tip_y = int(corrxn_tt[0])
 
     # find needed correction to FPC PL setpoint (degrees in K-band)
     # (even if there is a slope in the PTF, the median would be zero if PL error is zero)
@@ -661,7 +668,7 @@ def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "s
         fpc_tilt_setpoint = pi.getINDI("PLC.UBCSettings.PLSetpoint")
         print("-----")
         print("Adding FPC tip (y) setpoint correction (mas):")
-        print(str(corrxn_tilt_y))
+        print(str(corrxn_tip_y))
         print("Adding FPC tilt (x) setpoint correction (mas):")
         print(str(corrxn_tilt_x))
         print("Adding FPC pl (piston) setpoint correction (deg):")
@@ -735,7 +742,7 @@ def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "s
     return
 
 
-def compare_setpts(pickle_pre, pickle_post, mode = "science"):
+def compare_setpts(pickle_pre, pickle_post, mode = "science", bkgd_mode = "quick_dirt"):
     ''' 
     Check that the PSF has been improved with the new setpoints. (Due to sign degeneracies,
     they might have made things worse after the first try.)
@@ -761,7 +768,7 @@ def compare_setpts(pickle_pre, pickle_post, mode = "science"):
     print("Pre: " + str(corrxn_tt_pre[0]))
     print("Post: " + str(corrxn_tt_post[0]))
     print("Needed tilt (x) correction, pre and post the application of the first correction:")
-    print("Pre: " + str(corrxn_tt_post[1]))
+    print("Pre: " + str(corrxn_tt_pre[1]))
     print("Post: " + str(corrxn_tt_post[1]))
     print("Needed pathlength correction, pre and post the application of the first correction:")
     print("Pre: " + str(corrxn_pl_pre))

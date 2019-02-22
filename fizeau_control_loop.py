@@ -36,14 +36,14 @@ print("Stop continuous aquisition of the camera.")
 print("----------------------------------------------------------------------------------")
 
 pdb.set_trace()
-overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = mode_choice, psf_type = "airy") # filter-agnostic
+overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = mode_choice, bkgd_mode = bkgd_choice, psf_type = "airy") # filter-agnostic
 
 ## ## see old sweet spots (can also locate them on NOMIC, and then see where they are on LMIR)
 ## ## see nomic nulling to see how nod with wheel is done
 
 ############## PUT IN GRISM AND REFINE GRISM-PSF OVERLAP
 put_in_grism(mode = mode_choice)
-overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = mode_choice, psf_type = "grism")
+overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = mode_choice, bkgd_mode = bkgd_choice, psf_type = "grism")
 
 
 ############## IN GRISM MODE, DIAL OPD WITH HPC AND FIND CENTER OF COHERENCE ENVELOPE, THEN REMOVE GRISM
@@ -56,11 +56,11 @@ overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = mode_choice, psf_type = "gr
 # the following function is for a one-off correction once you have a grism PSF with visible fringes at an angle
 # once its seen to work well, then it should be applied periodically while data is being taken (like once the angle is see to be >5 degrees, or something like that)
 ## ## ONLY WORKS IN GRISM MODE, THOUGH
-live_opd_correction_fizeau_grism(integ_time, mode = mode_choice)
+live_opd_correction_fizeau_grism(integ_time, mode = mode_choice, bkgd_mode = bkgd_choice)
 
 # the following is for doing a big, automated scan... but it may be more efficient to do the scan manually
-find_optimal_opd_fizeau_grism(integ_time, mode = mode_choice) # might also use argument of the re-established Fizeau/grism PSF instead of the coordinate where it's supposed to be
-implement_optimal_opd(mode = mode_choice)
+find_optimal_opd_fizeau_grism(integ_time, mode = mode_choice, bkgd_mode = bkgd_choice) # might also use argument of the re-established Fizeau/grism PSF instead of the coordinate where it's supposed to be
+implement_optimal_opd(mode = mode_choice, bkgd_mode = bkgd_choice)
 print("----------------------------------------------------------------------------------")
 raw_input("Now align Phasecam and close the phase loop")
 
@@ -71,18 +71,18 @@ raw_input("Now align Phasecam and close the phase loop")
 
 
 # print fft info, see how it compares with the set thresholds
-num_psfs, fftimg_shape = print_write_fft_info(integ_time, sci_wavel = wavel_lambda, mode = mode_choice)
+num_psfs, fftimg_shape = print_write_fft_info(integ_time, sci_wavel = wavel_lambda, mode = mode_choice, bkgd_mode = bkgd_choice)
 
 # calculate and apply Phasecam setpoints; write them to a pickle file to check the correction
 setpoints_pickle_pre = "setpoints_pickle_pre.pkl"
-get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel = wavel_lambda, mode = mode_choice, pickle_name = setpoints_pickle_pre, apply = True)
+get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel = wavel_lambda, mode = mode_choice, bkgd_mode = bkgd_choice, pickle_name = setpoints_pickle_pre, apply = True)
 
 # print/calculate FFT info after the change so as to check setpoints for sign (code cant tell which PSF is SX and DX)
-num_psfs, fftimg_shape = print_write_fft_info(integ_time, sci_wavel = wavel_lambda, mode = mode_choice, checker=True) # note checker=True
+num_psfs, fftimg_shape = print_write_fft_info(integ_time, sci_wavel = wavel_lambda, mode = mode_choice, bkgd_mode = bkgd_choice, checker=True) # note checker=True
 
 # recalculate setpoints, but dont apply a new correction just yet
 setpoints_pickle_post = "setpoints_pickle_post.pkl"
-get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel = wavel_lambda, mode = mode_choice, pickle_name = setpoints_pickle_post, apply = False)
+get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel = wavel_lambda, mode = mode_choice, bkgd_mode = bkgd_choice, pickle_name = setpoints_pickle_post, apply = False)
 
 # compare setpoints; if any one aspect (TT, PL) is worse, flip it back the other way, 2x
-compare_setpts(setpoints_pickle_pre, setpoints_pickle_post, mode = mode_choice)
+compare_setpts(setpoints_pickle_pre, setpoints_pickle_post, mode = mode_choice, bkgd_mode = bkgd_choice)

@@ -12,7 +12,7 @@ import glob
 from lmircam_tools import *
 from lmircam_tools import process_readout
 
-def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
+def live_opd_correction_fizeau_grism(integ_time, mode = "science", bkgd_mode = "quick_dirt"):
     ''' 
     Measures the angle of fringes in grism mode, and calculates
     and implements the needed SPC translation stage movement
@@ -40,7 +40,7 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
         time_start = time.time()
         time.sleep(del_t)
 
-        fft_pickle_write_name = "fft_info_"+str("{:0>2d}".format(counter_num))+".pkl" # filename for pickled FFT info
+        fft_pickle_write_name = "pickled_info/fft_info_"+str("{:0>2d}".format(counter_num))+".pkl" # filename for pickled FFT info
 
         # check to see if there were new files from last check
         files_later = glob.glob(dir_to_monitor + "/*.fits")
@@ -50,13 +50,11 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
 
         time_start = time.time() # start timer
 
-        ''' 
         # Old acquire code
-        if (mode != "total_passive"):
+        if ((mode != "total_passive") and (bkgd_choice != "quick_dirt")):
             print("Taking a background-subtracted frame")
-        pi.setINDI("LMIRCAM_save.enable_save.value=On")
-        f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
-        '''
+            pi.setINDI("LMIRCAM_save.enable_save.value=On")
+            f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
         # if there are new files
         if (len(new_list) > 2):
@@ -71,15 +69,18 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
             file_name_full = os.path.basename(second_newest) # filename without the path
             file_name_base = os.path.splitext(file_name_full)[0] # filename without the extension, too
 
-            image = f[0].data
+            if (np.ndim(f[0].data) > 2):
+                image = f[0].data[-1,:,:] # images from LMIRcam (> summer 2018) are cubes of nondestructive reads
+            else:
+                image = np.squeeze(f[0].data)
 
             if ((mode == "fake_fits") or (mode == "total_passive")):
                 image = process_readout.processImg(image,"median") # simple background subtraction
 
             # save detector image to check (overwrites previous)
-            hdu = pyfits.PrimaryHDU(image)
-            hdulist = pyfits.HDUList([hdu])
-            hdu.writeto("junk_other_tests/junk_test_image_seen.fits", clobber=True)
+            #hdu = pyfits.PrimaryHDU(image)
+            #hdulist = pyfits.HDUList([hdu])
+            #hdu.writeto("junk_other_tests/junk_test_image_seen.fits", clobber=True)
 
 
             # determine grism Fizeau PSF center
@@ -98,15 +99,15 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
             # save image to check
             hdu = pyfits.PrimaryHDU(img_before_padding_before_FT)
             hdulist = pyfits.HDUList([hdu])
-            hdu.writeto(dir_to_monitor + "log_images/img_seen_prepradding_" + file_name_base + ".fits", clobber=True)
+            hdu.writeto("log_images/img_seen_prepradding_" + file_name_base + ".fits", clobber=True)
 
             # test: see what the FFT looks like
             hdu = pyfits.PrimaryHDU(AmpPE.data)
             hdulist = pyfits.HDUList([hdu])
-            hdu.writeto(dir_to_monitor + "log_images/fft_amp_" + file_name_base + ".fits", clobber=True)
+            hdu.writeto("log_images/fft_amp_" + file_name_base + ".fits", clobber=True)
             hdu = pyfits.PrimaryHDU(ArgPE.data)
             hdulist = pyfits.HDUList([hdu])
-            hdu.writeto(dir_to_monitor + "log_images/fft_arg_" + file_name_base + ".fits", clobber=True)
+            hdu.writeto("log_images/fft_arg_" + file_name_base + ".fits", clobber=True)
 
             # find angle of fringes
             # is there an off-center dot in FFT amplitude?
@@ -120,7 +121,7 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
             # save image to check
             hdu = pyfits.PrimaryHDU(center_masked_data)
             hdulist = pyfits.HDUList([hdu])
-            hdu.writeto(dir_to_monitor + "log_images/img_when_centroiding_fringe_angle_" + file_name_base + ".fits", clobber=True)
+            hdu.writeto("log_images/img_when_centroiding_fringe_angle_" + file_name_base + ".fits", clobber=True)
 
             print("Analyzing "+file_name_base)
             print("Dot location:")
@@ -159,7 +160,7 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
 
 
 
-def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
+def find_optimal_opd_fizeau_grism(integ_time, mode = "science", bkgd_mode = "quick_dirt"):
     #Takes well-overlapped grism PSFs and dials the optical path
     #difference such that barber-pole fringes become vertical
 
@@ -190,7 +191,7 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
 
 	step_size_opd = 10. # step size per opd_step count (um, total OPD)
 
-        if (mode != "total_passive"):
+        if ((mode != "total_passive") and (mode != "quick_dirt")):
             print("Taking a background-subtracted frame")
             pi.setINDI("LMIRCAM_save.enable_save.value=On")
             f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
@@ -198,7 +199,11 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
 	if ((mode == "fake_fits") or (mode == "total_passive")):
             f = pyfits.open("test_fits_files/test_frame_grismFiz_small.fits")
 
-        imgb4 = f[0].data
+        if (np.ndim(f[0].data) > 2):
+            imgb4 = f[0].data[-1,:,:] # images from LMIRcam (> summer 2018) are cubes of nondestructive reads
+        else:
+            imgb4 = np.squeeze(f[0].data)
+
         image = process_readout.processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
 
         # determine grism Fizeau PSF center
@@ -330,13 +335,13 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
 
     # pickle the coefficients and the scan data to be restored by the next function
     # (note this includes the data that was written as a csv for checking)
-    with open("scan_objs.pkl", "w") as f:
+    with open("pickled_info/scan_objs.pkl", "w") as f:
         pickle.dump([coeffs, df], f)
 
     return
 
 
-def implement_optimal_opd(mode = "science"):
+def implement_optimal_opd(mode = "science", bkgd_mode = "quick_dirt"):
     #Take the data from the scan, calculate where OPD=0 is, and implement it by moving the SPC
 
     #INPUTS:
@@ -352,7 +357,7 @@ def implement_optimal_opd(mode = "science"):
     file_name = "resids_test.csv"
 
     # restore the pickle file with the fit coefficients and scan data
-    with open("scan_objs.pkl") as f:
+    with open("pickled_info/scan_objs.pkl") as f:
         coeffs, df = pickle.load(f)
 
     # find the minimum; set the HPC path length position accordingly

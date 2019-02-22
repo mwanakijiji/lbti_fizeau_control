@@ -13,10 +13,19 @@ from scipy import ndimage, sqrt, stats, misc, signal
 wavel_lambda = 4.051e-6 # filter central wavel (m)
 
 # physical psf location, if code is being used to read in written FITS files
-psf_loc_fake = [114,864] # (y,x) in FITS coordinates
+psf_loc_fake = [115,864] # (y,x) in FITS coordinates
 #psf_loc_fake = [292,853] # a grism sequence
 # desired OR current psf location, if code is using ROI/INDI machinery
 fiz_lmir_sweet_spot = [200,100] # (y,x) in ROI coordinates
+
+# directory to monitor for newly-written images
+#dir_to_monitor = "fake_monitor/"
+dir_to_monitor = "/opt/local/LBTI_INDI/data/LMIRCAM/190222/"
+
+# background-subtraction options
+# 1. indi_ROI: using indi ROIs, which requires a new frame to be taken with a blank in LMIR FW4
+# 2. quick_dirt: just reading in written FITS files and doing a quick-and-dirty background subtraction
+bkgd_choice = "quick_dirt"
 
 #######################
 ### END USER INPUTS ###
@@ -25,7 +34,6 @@ fiz_lmir_sweet_spot = [200,100] # (y,x) in ROI coordinates
 
 pi = PyINDI(verbose=False)
 integ_time = 100 # integration time, msec (probably not needed; this is from when I was explicitly requesting $
-dir_to_monitor = "fake_monitor/" # directory to monitor for newly-written images
 del_t = 0.1 # pause cadence (sec) with which to monitor that directory
 plateScale_LMIR = 0.0107 # in asec/pix
 
@@ -168,12 +176,13 @@ def take_roi_background(mode):
 
     # take a background
     # allow aquisition from ROI box (keep smaller than 512x512!)
-    if (mode != "total_passive"):
+    print("N.b. ROI background subtraction has been deactivated so as to do quick-and-dirty background subtraction with Vanessas algorithm")
+
+    if ((mode != "total_passive") and (bkgd_mode != "quick_dirt")):
         start_time = time.time()
         print("Setting ROI aquisition flag")
         pi.setINDI("LMIRCAM.fizRun.value=On")
         print("Moving in a blank to take a background")
-        ## ## BELOW LINE WAS COMMENTED OUT DUE TO FW 4 STUCK 2018 dEC 29
         pi.setINDI("Lmir.lmir_FW4.command", "Blank", wait=True)
         print("Taking a background")
         f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=0;int_time=%i;is_bg=1;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
@@ -181,6 +190,7 @@ def take_roi_background(mode):
         end_time = time.time()
         print(end_time - start_time)
         print("-------------------")
+
     return
 
 
@@ -201,22 +211,23 @@ def put_in_grism(mode = "science", image = "yes"):
 
     if (image and (mode != "total_passive")):
 
-        # turn on fizeau flag
-        print("Activating ROI aquisition flag")
-        pi.setINDI("LMIRCAM.fizRun.value=On")
+        if (bkgd_choice != "quick_dirt"):
+            # turn on fizeau flag
+            print("Activating ROI aquisition flag")
+            pi.setINDI("LMIRCAM.fizRun.value=On")
 
-        # take a new frame to see what things look like now
-        pi.setINDI("LMIRCAM_save.enable_save.value=On")
-        f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
+            # take a new frame to see what things look like now
+            pi.setINDI("LMIRCAM_save.enable_save.value=On")
+            f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
-        # turn off fizeau flag to avoid problems with other observations
-        print("De-activating ROI aquisition flag")
-        pi.setINDI("LMIRCAM.fizRun.value=Off")
+            # turn off fizeau flag to avoid problems with other observations
+            print("De-activating ROI aquisition flag")
+            pi.setINDI("LMIRCAM.fizRun.value=Off")
 
         end_time = time.time()
         print("Grism put in in (secs)")
         print(end_time - start_time)
-        print("-------------------")	
+        print("---------------------")
 
     return
 

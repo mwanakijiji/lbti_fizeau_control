@@ -62,7 +62,7 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
     while True:
 
         # take a frame with background subtracting
-        if (mode != "total_passive"):
+        if ((mode != "total_passive") and (bkgd_choice != "quick_dirt")):
 	    print("Taking a background-subtracted frame")
             pi.setINDI("LMIRCAM_save.enable_save.value=On")
 	    f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
@@ -73,7 +73,11 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
 	elif (((mode == "fake_fits") or (mode == "total_passive")) and (psf_type == "grism")):
 	    f = pyfits.open("test_fits_files/test_frame_grismFiz_small.fits")
 
-        imgb4 = f[0].data
+        if (np.ndim(f[0].data) > 2):
+            imgb4 = f[0].data[-1,:,:] # images from LMIRcam (> summer 2018) are cubes of nondestructive reads
+        else:
+            imgb4 = np.squeeze(f[0].data)
+
         imgb4bk = process_readout.processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
 
         # locate the PSF
@@ -98,7 +102,7 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
             wait4AORunning('both') # let AO close
 
         ### re-locate PSF; correction needed?
-        if (mode != "total_passive"):
+        if ((mode != "total_passive") and (bkgd_choice != "quick_dirt")):
             print("Taking a background-subtracted frame")
             pi.setINDI("LMIRCAM_save.enable_save.value=On")
 	    f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
@@ -106,7 +110,11 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
 	if ((mode == "fake_fits") or (mode == "total_passive")):
 	    f = pyfits.open("test_fits_files/test_frame_fiz_small.fits")
 
-	imgb4 = f[0].data
+        if (np.ndim(f[0].data) > 2):
+            imgb4 = f[0].data[-1,:,:] # images from LMIRcam (> summer 2018) are cubes of nondestructive reads
+        else:
+            imgb4 = np.squeeze(f[0].data)
+
         imgb4bk = process_readout.processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
 
         ## ## DO I REALLY WANT TO USE FIND_GRISM?
@@ -142,7 +150,7 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
 	    break
 
 
-def overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = "science", psf_type = "airy"):
+def overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = "science", bkgd_mode = "quick_dirt", psf_type = "airy"):
 
     start_time = time.time()
 
@@ -159,7 +167,7 @@ def overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = "science", psf_type = "
         pi.setINDI("Lmir.lmir_FW2.command", 'Open', wait=True)
 
     # take a new frame to see what things look like now
-    if (mode != "total_passive"):
+    if ((mode != "total_passive") and (bkgd_choice != "quick_dirt")):
         pi.setINDI("LMIRCAM_save.enable_save.value=On")
         f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
