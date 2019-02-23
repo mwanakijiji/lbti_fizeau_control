@@ -20,11 +20,12 @@ fiz_lmir_sweet_spot = [200,100] # (y,x) in ROI coordinates
 
 # directory to monitor for newly-written images
 #dir_to_monitor = "fake_monitor/"
-dir_to_monitor = "/opt/local/LBTI_INDI/data/LMIRCAM/190222/"
+dir_to_monitor = "/opt/local/LBTI_INDI/data/LMIRCAM/190223/"
 
-# background-subtraction options
+# default background-subtraction options
 # 1. indi_ROI: using indi ROIs, which requires a new frame to be taken with a blank in LMIR FW4
 # 2. quick_dirt: just reading in written FITS files and doing a quick-and-dirty background subtraction
+# N.b. some functions may request other type of background-subtraction
 bkgd_choice = "quick_dirt"
 
 #######################
@@ -32,7 +33,9 @@ bkgd_choice = "quick_dirt"
 ####################### 
 
 
-pi = PyINDI(verbose=False)
+pi = PyINDI(verbose=True) # host needs to be default (lbti-web) to control stuff other than the fizeau driver
+pi_fiz = PyINDI(host="localhost", verbose=True) # for accessing the fizeau driver
+
 integ_time = 100 # integration time, msec (probably not needed; this is from when I was explicitly requesting $
 del_t = 0.1 # pause cadence (sec) with which to monitor that directory
 plateScale_LMIR = 0.0107 # in asec/pix
@@ -181,11 +184,11 @@ def take_roi_background(mode, bkgd_mode):
     if ((mode != "total_passive") and (bkgd_mode != "quick_dirt")):
         start_time = time.time()
         print("Setting ROI aquisition flag")
-        pi.setINDI("LMIRCAM.fizRun.value=On")
+        pi_fiz.setINDI("fizeau.enable_run.value=On")
         print("Moving in a blank to take a background")
         pi.setINDI("Lmir.lmir_FW4.command", "Blank", wait=True)
         print("Taking a background")
-        f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=0;int_time=%i;is_bg=1;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
+        f = pi_fiz.getFITS("fizeau.roi_image.file", "LMIRCAM.acquire.enable_bg=0;int_time=%i;is_bg=1;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
         print("Took a new background in (secs)")
         end_time = time.time()
         print(end_time - start_time)
@@ -214,15 +217,15 @@ def put_in_grism(mode = "science", image = "yes"):
         if (bkgd_choice != "quick_dirt"):
             # turn on fizeau flag
             print("Activating ROI aquisition flag")
-            pi.setINDI("LMIRCAM.fizRun.value=On")
+            pi_fiz.setINDI("fizeau.enable_run.value=On")
 
             # take a new frame to see what things look like now
             pi.setINDI("LMIRCAM_save.enable_save.value=On")
-            f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
+            f = pi_fiz.getFITS("fizeau.roi_image.file", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
             # turn off fizeau flag to avoid problems with other observations
             print("De-activating ROI aquisition flag")
-            pi.setINDI("LMIRCAM.fizRun.value=Off")
+            pi_fiz.setINDI("fizeau.enable_run.value=Off")
 
         end_time = time.time()
         print("Grism put in in (secs)")

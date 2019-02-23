@@ -347,7 +347,7 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", bkgd_mode = "q
             # take a frame with background subtracting
             print("Taking a background-subtracted frame")
             pi.setINDI("LMIRCAM_save.enable_save.value=On")
-            f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
+            f = pi_fiz.getFITS("fizeau.roi_image.file", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
         '''
 
         # if there are new files
@@ -735,7 +735,7 @@ def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "s
     # turn off fizeau flag to avoid problems with other observations
     if (mode != "total_passive"):
         print("De-activating ROI aquisition flag")
-        pi.setINDI("LMIRCAM.fizRun.value=Off")
+        pi_fiz.setINDI("fizeau.enable_run.value=Off")
 
     return
 

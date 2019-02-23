@@ -28,8 +28,10 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science", bkgd_mode = "
 
     counter_num = 0 # for counting number of analyzed PSFs
 
-    take_roi_background(mode, bkgd_mode)
-    raw_input("User: remove the Blank in FW4, then press return when done")
+    # commented out because we want quick-and-dirty background subtraction, so
+    # that we can be taking science in the meantime
+    #take_roi_background(mode, bkgd_mode)
+    #raw_input("User: remove the Blank in FW4, then press return when done")
 
     # read in any new images written out to a directory
     files_start = glob.glob(dir_to_monitor + "*.fits") # starting list of files
@@ -54,7 +56,7 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science", bkgd_mode = "
         #if ((mode != "total_passive") and (bkgd_choice != "quick_dirt")):
         #    print("Taking a background-subtracted frame")
         #    pi.setINDI("LMIRCAM_save.enable_save.value=On")
-        #    f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
+        #    f = pi_fiz.getFITS("fizeau.roi_image.file", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
         # if there are new files
         if (len(new_list) > 2):
@@ -194,7 +196,7 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science", bkgd_mode = "qui
         if ((mode != "total_passive") and (mode != "quick_dirt")):
             print("Taking a background-subtracted frame")
             pi.setINDI("LMIRCAM_save.enable_save.value=On")
-            f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
+            f = pi_fiz.getFITS("fizeau.roi_image.file", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
 	if ((mode == "fake_fits") or (mode == "total_passive")):
             f = pyfits.open("test_fits_files/test_frame_grismFiz_small.fits")
@@ -391,6 +393,6 @@ def implement_optimal_opd(mode = "science", bkgd_mode = "quick_dirt"):
     # turn off fizeau flag to avoid problems with other observations
     if (mode != "total_passive"):
         print("De-activating ROI aquisition flag")
-        pi.setINDI("LMIRCAM.fizRun.value=Off")
+        pi_fiz.setINDI("fizeau.enable_run.value=Off")
 
     return

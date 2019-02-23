@@ -21,7 +21,7 @@ def dist_pix(current,goal):
     return dist
 
 
-def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_type = "airy"):
+def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", bkgd_choice = "quick_dirt", psf_type = "airy"):
     ''' 
     Find the PSF and move telescope side or UBC mirror to place it at the setpoint
 
@@ -32,7 +32,7 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
     psf_type: "airy" or "grism"
 
     PREREQS:
-    1.   ROI Aquisition flag: LMIRCAM.fizRun.value=On
+    1.   ROI Aquisition flag: fizeau.enable_run.value=On
     2.	 A background frame must have been taken for the given ROI.
     '''
 
@@ -65,7 +65,7 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
         if ((mode != "total_passive") and (bkgd_choice != "quick_dirt")):
 	    print("Taking a background-subtracted frame")
             pi.setINDI("LMIRCAM_save.enable_save.value=On")
-	    f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
+	    f = pi_fiz.getFITS("fizeau.roi_image.file", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
 	if (((mode == "fake_fits") or (mode == "total_passive")) and (psf_type == "airy")):
             #f = pyfits.open("test_frame_fiz_large.fits")
@@ -105,7 +105,7 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
         if ((mode != "total_passive") and (bkgd_choice != "quick_dirt")):
             print("Taking a background-subtracted frame")
             pi.setINDI("LMIRCAM_save.enable_save.value=On")
-	    f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
+	    f = pi_fiz.getFITS("fizeau.roi_image.file", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
 	if ((mode == "fake_fits") or (mode == "total_passive")):
 	    f = pyfits.open("test_fits_files/test_frame_fiz_small.fits")
@@ -158,9 +158,9 @@ def overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = "science", bkgd_mode = 
 
     raw_input("User: remove the Blank in FW4, then press return when done")
 
-    centroid_and_move(fiz_lmir_sweet_spot, side = "left", mode = mode, psf_type = psf_type)
+    centroid_and_move(fiz_lmir_sweet_spot, side = "left", mode = mode, bkgd_choice = bkgd_mode, psf_type = psf_type)
 
-    centroid_and_move(fiz_lmir_sweet_spot, side = "right", mode = mode, psf_type = psf_type)
+    centroid_and_move(fiz_lmir_sweet_spot, side = "right", mode = mode, bkgd_choice = bkgd_mode, psf_type = psf_type)
 
     if (mode != "total_passive"):
         print('Done moving PSFs. Reopening LMIR FW2.')
@@ -169,12 +169,12 @@ def overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = "science", bkgd_mode = 
     # take a new frame to see what things look like now
     if ((mode != "total_passive") and (bkgd_choice != "quick_dirt")):
         pi.setINDI("LMIRCAM_save.enable_save.value=On")
-        f = pi.getFITS("LMIRCAM.fizPSFImage.File", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
+        f = pi_fiz.getFITS("fizeau.roi_image.file", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
     # turn off fizeau flag to avoid problems with other observations
     if (mode != "total_passive"):
         print("De-activating ROI aquisition flag")
-        pi.setINDI("LMIRCAM.fizRun.value=Off")
+        pi_fiz.setINDI("fizeau.enable_run.value=Off")
         end_time = time.time()
         print("PSF overlapping done in (secs)")
         print(end_time - start_time)

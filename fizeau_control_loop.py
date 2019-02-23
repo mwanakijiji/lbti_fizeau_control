@@ -37,6 +37,7 @@ print("-------------------------------------------------------------------------
 
 pdb.set_trace()
 # the below function is best for being run on-sky; note the indi_ROI background subtraction
+# the below function explicitly takes new LMIR images
 overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = mode_choice, bkgd_mode = "indi_ROI", psf_type = "airy") # filter-agnostic
 
 ## ## see old sweet spots (can also locate them on NOMIC, and then see where they are on LMIR)
@@ -44,7 +45,8 @@ overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = mode_choice, bkgd_mode = "i
 
 ############## PUT IN GRISM AND REFINE GRISM-PSF OVERLAP
 put_in_grism(mode = mode_choice)
-overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = mode_choice, bkgd_mode = bkgd_choice, psf_type = "grism")
+# the below function explicitly takes new LMIR images
+overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = mode_choice, bkgd_mode = "indi_ROI", psf_type = "grism")
 
 
 ############## IN GRISM MODE, DIAL OPD WITH HPC AND FIND CENTER OF COHERENCE ENVELOPE, THEN REMOVE GRISM
@@ -54,13 +56,11 @@ overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = mode_choice, bkgd_mode = bk
 ## ## sometimes new HPC movement causes grisms to separate; may need to re-overlap them each time
 ## ## insert all hpc, fpc piston and TT statuses into headers
 
-# the following function is for a one-off correction once you have a grism PSF with visible fringes at an angle
-# once its seen to work well, then it should be applied periodically while data is being taken (like once the angle is see to be >5 degrees, or something like that)
-## ## ONLY WORKS IN GRISM MODE, THOUGH
+## ## the following function is for grism mode, for making live corrections by translating the SPC
 live_opd_correction_fizeau_grism(integ_time, mode = mode_choice, bkgd_mode = bkgd_choice)
 
 # the following is for doing a big, automated scan... but it may be more efficient to do the scan manually
-find_optimal_opd_fizeau_grism(integ_time, mode = mode_choice, bkgd_mode = bkgd_choice) # might also use argument of the re-established Fizeau/grism PSF instead of the coordinate where it's supposed to be
+find_optimal_opd_fizeau_grism(integ_time, mode = mode_choice, bkgd_mode = "indi_ROI") # might also use argument of the re-established Fizeau/grism PSF instead of the coordinate where it's supposed to be
 implement_optimal_opd(mode = mode_choice, bkgd_mode = bkgd_choice)
 print("----------------------------------------------------------------------------------")
 raw_input("Now align Phasecam and close the phase loop")
