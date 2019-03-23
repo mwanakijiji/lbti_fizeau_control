@@ -21,7 +21,7 @@ def dist_pix(current,goal):
     return dist
 
 
-def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", bkgd_choice = "quick_dirt", psf_type = "airy"):
+def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_type = "airy"):
     ''' 
     Find the PSF and move telescope side or UBC mirror to place it at the setpoint
 
@@ -32,8 +32,7 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", bkgd
     psf_type: "airy" or "grism"
 
     PREREQS:
-    1.   ROI Aquisition flag: fizeau.enable_run.value=On
-    2.	 A background frame must have been taken for the given ROI.
+    ROI Aquisition flag: fizeau.enable_run.value=On
     '''
 
     if (side == "left"):
@@ -54,34 +53,27 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", bkgd
 	length_y = 200
 
     ### move in half-moon to see the Airy PSF of one side
-    if (mode != "total_passive"):
-        print("Putting in "+half_moon_filter+" to see "+x_side)
-        pi.setINDI("Lmir.lmir_FW2.command", half_moon_filter, timeout=45, wait=True)
+    print("Putting in "+half_moon_filter+" to see "+x_side)
+    pi.setINDI("Lmir.lmir_FW2.command", half_moon_filter, timeout=45, wait=True)
 
     ### iterate to try to get Airy PSF on the same pixel
     while True:
 
-        # take a frame with background subtracting
-        if ((mode != "total_passive") and (bkgd_choice != "quick_dirt")):
-	    print("Taking a background-subtracted frame")
-            pi.setINDI("LMIRCAM_save.enable_save.value=On")
-	    f = pi_fiz.getFITS("fizeau.roi_image.file", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
+        # take a background-subtracted frame
+	print("Taking a background-subtracted frame")
+        pi.setINDI("LMIRCAM_save.enable_save.value=On")
+        f = pi_fiz.getFITS("fizeau.roi_image.file", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
-	if (((mode == "fake_fits") or (mode == "total_passive")) and (psf_type == "airy")):
-            #f = pyfits.open("test_frame_fiz_large.fits")
-            f = pyfits.open("test_fits_files/test_frame_fiz_small.fits")
-	elif (((mode == "fake_fits") or (mode == "total_passive")) and (psf_type == "grism")):
-	    f = pyfits.open("test_fits_files/test_frame_grismFiz_small.fits")
-
+        # get the right image slice
         if (np.ndim(f[0].data) > 2):
             imgb4 = f[0].data[-1,:,:] # images from LMIRcam (> summer 2018) are cubes of nondestructive reads
         else:
             imgb4 = np.squeeze(f[0].data)
 
-        imgb4bk = process_readout.processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
+        imgb4bk = np.copy(imgb4) # vestigial; image should already be background-subtracted
 
         # locate the PSF
-        ## ## DO I REALLY WANT TO USE FIND_GRISM?
+        ## ## (do I really want to use find_grism for an Airy PSF? it seems to work pretty well...)
         psf_loc = find_grism_psf(imgb4bk, sig = sig, length_y = length_y)
         print('-------------')
         print(x_side + " PSF located at ROI coords (y,x) in pix")
@@ -102,22 +94,18 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", bkgd
             wait4AORunning('both') # let AO close
 
         ### re-locate PSF; correction needed?
-        if ((mode != "total_passive") and (bkgd_choice != "quick_dirt")):
-            print("Taking a background-subtracted frame")
-            pi.setINDI("LMIRCAM_save.enable_save.value=On")
-	    f = pi_fiz.getFITS("fizeau.roi_image.file", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
+        print("Taking a background-subtracted frame")
+        pi.setINDI("LMIRCAM_save.enable_save.value=On")
+	f = pi_fiz.getFITS("fizeau.roi_image.file", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
-	if ((mode == "fake_fits") or (mode == "total_passive")):
-	    f = pyfits.open("test_fits_files/test_frame_fiz_small.fits")
-
+        # make sure we get right image slice
         if (np.ndim(f[0].data) > 2):
             imgb4 = f[0].data[-1,:,:] # images from LMIRcam (> summer 2018) are cubes of nondestructive reads
         else:
             imgb4 = np.squeeze(f[0].data)
 
-        imgb4bk = process_readout.processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
+        imgb4bk = np.copy(imgb4) # vestigial; image should already be background-subtracted
 
-        ## ## DO I REALLY WANT TO USE FIND_GRISM?
         psf_loc = find_grism_psf(imgb4bk, sig = sig, length_y = length_y) # find PSF
 
         print("-------------------")
@@ -127,7 +115,7 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", bkgd
         print(psf_loc)
 
         # if PSFs are closer than N pixels from each other, break
-        ## ## TOLERANCE ON SKY SHOULD BE N=5 OR BETTER
+        ## ## TOLERANCE ON SKY SHOULD BE N=5 OR SMALLER
         N = tolerance
         if (dist_pix(psf_loc,psf_loc_setpt) < tolerance):
             print("-------------------")
@@ -137,47 +125,36 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", bkgd
 	else:
 	    # fine-tune with FPC or HPC
 	    if (side == "left"):
-                if ((mode == "fake_fits") or (mode == "az_source") or (mode == "science")):
-            	    print("Moving SX PSF again, now with FPC movement")
-            	    pi.setINDI("Acromag.FPC.Tip="+'{0:.1f}'.format(vector_move_asec[0])+";Tilt="+'{0:.1f}'.format(vector_move_asec[1])+";Piston=0;Mode=1")
+            	print("Moving SX PSF again, now with FPC movement")
+            	pi.setINDI("Acromag.FPC.Tip="+'{0:.1f}'.format(vector_move_asec[0])+";Tilt="+'{0:.1f}'.format(vector_move_asec[1])+";Piston=0;Mode=1")
 	    elif (side == "right"):
-		if ((mode == "fake_fits") or (mode == "az_source") or (mode == "science")):
-                    print("Moving DX PSF again, now with HPC movement")
-		    pi.setINDI("Acromag.HPC.Tip="+'{0:.1f}'.format(vector_move_asec[0])+";Tilt="+'{0:.1f}'.format(vector_move_asec[1])+";Piston=0;Mode=1")
-
-	if ((mode == "fake_fits") or (mode == "total_passive") or (mode == "nac_source")):
-	    # need to break, because otherwise the FPC/HPC mirrors won't converge
-	    break
+                print("Moving DX PSF again, now with HPC movement")
+		pi.setINDI("Acromag.HPC.Tip="+'{0:.1f}'.format(vector_move_asec[0])+";Tilt="+'{0:.1f}'.format(vector_move_asec[1])+";Piston=0;Mode=1")
 
 
-def overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = "science", bkgd_mode = "quick_dirt", psf_type = "airy"):
+def overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = "science", psf_type = "airy"):
 
     start_time = time.time()
 
-    take_roi_background(mode, bkgd_mode)
-
     raw_input("User: remove the Blank in FW4, then press return when done")
 
-    centroid_and_move(fiz_lmir_sweet_spot, side = "left", mode = mode, bkgd_choice = bkgd_mode, psf_type = psf_type)
+    centroid_and_move(fiz_lmir_sweet_spot, side = "left", mode = mode, psf_type = psf_type)
 
-    centroid_and_move(fiz_lmir_sweet_spot, side = "right", mode = mode, bkgd_choice = bkgd_mode, psf_type = psf_type)
+    centroid_and_move(fiz_lmir_sweet_spot, side = "right", mode = mode, psf_type = psf_type)
 
-    if (mode != "total_passive"):
-        print('Done moving PSFs. Reopening LMIR FW2.')
-        pi.setINDI("Lmir.lmir_FW2.command", 'Open', wait=True)
+    print('Done moving PSFs. Reopening LMIR FW2.')
+    pi.setINDI("Lmir.lmir_FW2.command", 'Open', wait=True)
 
     # take a new frame to see what things look like now
-    if ((mode != "total_passive") and (bkgd_choice != "quick_dirt")):
-        pi.setINDI("LMIRCAM_save.enable_save.value=On")
-        f = pi_fiz.getFITS("fizeau.roi_image.file", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
+    pi.setINDI("LMIRCAM_save.enable_save.value=On")
+    f = pi_fiz.getFITS("fizeau.roi_image.file", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
     # turn off fizeau flag to avoid problems with other observations
-    if (mode != "total_passive"):
-        print("De-activating ROI aquisition flag")
-        pi_fiz.setINDI("fizeau.enable_run.value=Off")
-        end_time = time.time()
-        print("PSF overlapping done in (secs)")
-        print(end_time - start_time)
-        print("-------------------")
+    print("De-activating ROI aquisition flag")
+    pi_fiz.setINDI("fizeau.enable_run.value=Off")
+    end_time = time.time()
+    print("PSF overlapping done in (secs)")
+    print(end_time - start_time)
+    print("-------------------")
 
     return

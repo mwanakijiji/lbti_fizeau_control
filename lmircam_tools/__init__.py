@@ -175,6 +175,7 @@ def find_airy_psf(image):
 def take_roi_background(mode, bkgd_mode):
     ''' 
     This flips the Fizeau PSF flag to on, and takes a new background for that ROI
+    (probably obsolete, since user is suppsed to already take a background --2019 Mar 23, E.S.)
     '''
 
     # take a background
