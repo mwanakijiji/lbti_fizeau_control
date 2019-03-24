@@ -12,7 +12,7 @@ import glob
 from lmircam_tools import *
 from lmircam_tools import process_readout
 
-def live_opd_correction_fizeau_grism(integ_time, mode = "science", bkgd_mode = "quick_dirt"):
+def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
     ''' 
     Measures the angle of fringes in grism mode, and calculates
     and implements the needed SPC translation stage movement
@@ -28,135 +28,144 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science", bkgd_mode = "
 
     counter_num = 0 # for counting number of analyzed PSFs
 
-    # commented out because we want quick-and-dirty background subtraction, so
-    # that we can be taking science in the meantime
-    #take_roi_background(mode, bkgd_mode)
-    #raw_input("User: remove the Blank in FW4, then press return when done")
-
     # read in any new images written out to a directory
     files_start = glob.glob(dir_to_monitor + "*.fits") # starting list of files
     num_psfs_to_analyze = 2 # number of PSFs to sample
 
-    while counter_num < num_psfs_to_analyze:
+    # if we're just reading in fake FITS files, monitor a directory
+    # and read in a new file
+    if (mode == "fake_fits"):
 
-        time_start = time.time()
-        time.sleep(del_t)
+        #while counter_num < num_psfs_to_analyze:
+        while True:
 
-        fft_pickle_write_name = "pickled_info/fft_info_"+str("{:0>2d}".format(counter_num))+".pkl" # filename for pickled FFT info
+            time_start = time.time()
+            time.sleep(del_t)
 
-        # check to see if there were new files from last check
-        files_later = glob.glob(dir_to_monitor + "/*.fits")
+            # filename for pickled FFT info
+            fft_pickle_write_name = "pickled_info/fft_info_"+str("{:0>2d}".format(counter_num))+".pkl"
 
-        # are there new files?
-        new_list = np.setdiff1d(files_later,files_start)
+            # check to see if there were new files from last check
+            files_later = glob.glob(dir_to_monitor + "/*.fits")
 
-        time_start = time.time() # start timer
+            # are there new files?
+            new_list = np.setdiff1d(files_later,files_start)
 
-        # Old acquire code
-        #if ((mode != "total_passive") and (bkgd_choice != "quick_dirt")):
-        #    print("Taking a background-subtracted frame")
-        #    pi.setINDI("LMIRCAM_save.enable_save.value=On")
-        #    f = pi_fiz.getFITS("fizeau.roi_image.file", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
+            time_start = time.time() # start timer
 
-        # if there are new files
-        if (len(new_list) > 2):
+            # if there are no new files, cycle back through
+            if (len(new_list) <= 2):
+                continue
 
-            # reassign these files to be next starting point
-            files_start = files_later
+            # if there are new files, read one of them in
+            elif (len(new_list) > 2):
+                # reassign these files to be next starting point
+                files_start = files_later
 
-            # filename of second-newst file (in case the newest is still being written)
-            second_newest = sorted(files_later)[-2]
+                # filename of second-newest file (in case the newest is still being written)
+                second_newest = sorted(files_later)[-2]
 
-            f = pyfits.open(second_newest)
-            file_name_full = os.path.basename(second_newest) # filename without the path
-            file_name_base = os.path.splitext(file_name_full)[0] # filename without the extension, too
+                # read in file
+                f = pyfits.open(second_newest)
+                file_name_full = os.path.basename(second_newest) # filename without the path
+                file_name_base = os.path.splitext(file_name_full)[0] # filename without the extension, too
 
-            if (np.ndim(f[0].data) > 2):
-                image = f[0].data[-1,:,:] # images from LMIRcam (> summer 2018) are cubes of nondestructive reads
-            else:
-                image = np.squeeze(f[0].data)
+                # break out of the 'while True'
+                break
 
-            if ((mode == "fake_fits") or (mode == "total_passive")):
-                image = process_readout.processImg(image,"median") # simple background subtraction
+    # if we're reading in real frames from LMIR, catch them as they are read out
+    elif ((mode == "az_source") or (mode == "science")):
 
-            # save detector image to check (overwrites previous)
-            #hdu = pyfits.PrimaryHDU(image)
-            #hdulist = pyfits.HDUList([hdu])
-            #hdu.writeto("junk_other_tests/junk_test_image_seen.fits", clobber=True)
+        f = pi_fiz.getFITS("fizeau.roi_image.file", timeout=60)
 
 
-            # determine grism Fizeau PSF center
-            center_grism = find_grism_psf(image, sig, length_y) # locate the grism PSF center (THIS IS IN OVERLAP_PSFS.PY; SHOULD IT BE IN INIT?)
-            if ((mode == "fake_fits") or (mode == "total_passive")):
-                center_grism = psf_loc_fake # if we are reading in fake FITS files, we may have to just set the location
+    # get the right image slice
+    if (np.ndim(f[0].data) > 2):
+        image = f[0].data[-1,:,:] # images from LMIRcam (> summer 2018) are cubes of nondestructive reads
+    else:
+        image = np.squeeze(f[0].data)
 
-            # cut out the grism image (best to have rectangle, rather than square cutout)
-            #img_before_padding_before_FT = np.copy(image)
-            img_before_padding_before_FT = image[center_grism[0]-int(200):center_grism[0]+int(200),center_grism[1]-int(100):center_grism[1]+int(100)]
+    # if this is a fake fits file, do a quick-and-dirty background subtraction
+    if (mode == "fake_fits"):
+        image = process_readout.processImg(image,"median")
 
-            # take FFT; no padding for now
-            ## ## DO I WANT A SMALL CUTOUT OR THE ORIGINAL IMAGE?
-            AmpPE, ArgPE = fft_img(img_before_padding_before_FT).fft(padding=0)
+    # save detector image to check (overwrites previous)
+    #hdu = pyfits.PrimaryHDU(image)
+    #hdulist = pyfits.HDUList([hdu])
+    #hdu.writeto("junk_other_tests/junk_test_image_seen.fits", clobber=True)
 
-            # save image to check
-            hdu = pyfits.PrimaryHDU(img_before_padding_before_FT)
-            hdulist = pyfits.HDUList([hdu])
-            hdu.writeto("log_images/img_seen_prepradding_" + file_name_base + ".fits", clobber=True)
+    # determine grism Fizeau PSF center
+    center_grism = find_grism_psf(image, sig, length_y) # locate the grism PSF center (THIS IS IN OVERLAP_PSFS.PY; SHOULD IT BE IN INIT?)
+    # if we are reading in fake FITS files, we may have to just set the location
+    if (mode == "fake_fits"):
+        center_grism = psf_loc_fake
+        # cut out the grism image (best to have rectangle, rather than square cutout)
+        #img_before_padding_before_FT = np.copy(image)
+        img_before_padding_before_FT = image[center_grism[0]-int(200):center_grism[0]+int(200),center_grism[1]-int(100):center_grism[1]+int(100)]
 
-            # test: see what the FFT looks like
-            hdu = pyfits.PrimaryHDU(AmpPE.data)
-            hdulist = pyfits.HDUList([hdu])
-            hdu.writeto("log_images/fft_amp_" + file_name_base + ".fits", clobber=True)
-            hdu = pyfits.PrimaryHDU(ArgPE.data)
-            hdulist = pyfits.HDUList([hdu])
-            hdu.writeto("log_images/fft_arg_" + file_name_base + ".fits", clobber=True)
+    # take FFT; no padding for now
+    ## ## DO I WANT A SMALL CUTOUT OR THE ORIGINAL IMAGE?
+    AmpPE, ArgPE = fft_img(img_before_padding_before_FT).fft(padding=0)
 
-            # find angle of fringes
-            # is there an off-center dot in FFT amplitude?
-            # blot out low-frequency center of FFT ampl
-            center_masked_data = AmpPE.data
-            center_masked_data[int(0.5*np.shape(center_masked_data)[0])-20:int(0.5*np.shape(center_masked_data)[0])+20,
+    # save image to check
+    hdu = pyfits.PrimaryHDU(img_before_padding_before_FT)
+    hdulist = pyfits.HDUList([hdu])
+    hdu.writeto("log_images/img_seen_prepradding_" + file_name_base + ".fits", clobber=True)
+
+    # test: see what the FFT looks like
+    hdu = pyfits.PrimaryHDU(AmpPE.data)
+    hdulist = pyfits.HDUList([hdu])
+    hdu.writeto("log_images/fft_amp_" + file_name_base + ".fits", clobber=True)
+    hdu = pyfits.PrimaryHDU(ArgPE.data)
+    hdulist = pyfits.HDUList([hdu])
+    hdu.writeto("log_images/fft_arg_" + file_name_base + ".fits", clobber=True)
+
+    # find angle of fringes
+    # is there an off-center dot in FFT amplitude?
+    # blot out low-frequency center of FFT ampl
+    center_masked_data = AmpPE.data
+    center_masked_data[int(0.5*np.shape(center_masked_data)[0])-20:int(0.5*np.shape(center_masked_data)[0])+20,
                            int(0.5*np.shape(center_masked_data)[1])-20:int(0.5*np.shape(center_masked_data)[1])+20] = np.nan
-            dot_loc = find_airy_psf(center_masked_data)
-            #dot_loc = find_grism_psf(np.multiply(amp.data,amp.mask), 5, 5)
+    dot_loc = find_airy_psf(center_masked_data)
+    #dot_loc = find_grism_psf(np.multiply(amp.data,amp.mask), 5, 5)
 
-            # save image to check
-            hdu = pyfits.PrimaryHDU(center_masked_data)
-            hdulist = pyfits.HDUList([hdu])
-            hdu.writeto("log_images/img_when_centroiding_fringe_angle_" + file_name_base + ".fits", clobber=True)
+    # save image to check
+    hdu = pyfits.PrimaryHDU(center_masked_data)
+    hdulist = pyfits.HDUList([hdu])
+    hdu.writeto("log_images/img_when_centroiding_fringe_angle_" + file_name_base + ".fits", clobber=True)
 
-            print("Analyzing "+file_name_base)
-            print("Dot location:")
-            print(dot_loc)
-            print("Dot angle:")
-            y_comp = dot_loc[0]-0.5*np.shape(center_masked_data)[0]
-            x_comp = dot_loc[1]-0.5*np.shape(center_masked_data)[1]
-            angle_val = math.atan2(y_comp,x_comp)*180./np.pi
-            print(angle_val)
-            print("-----------------")
+    print("Analyzing "+file_name_base)
+    print("Dot location:")
+    print(dot_loc)
+    print("Dot angle:")
+    y_comp = dot_loc[0]-0.5*np.shape(center_masked_data)[0]
+    x_comp = dot_loc[1]-0.5*np.shape(center_masked_data)[1]
+    angle_val = math.atan2(y_comp,x_comp)*180./np.pi
+    print(angle_val)
+    print("-----------------")
 
-            # as found by using OPD scans in grism mode in 2018A and 2018B, it appears that, for the Lgrism6AR,
-            # for every +degree in the CW direction that the FFT amplitude high-freq node is,
-            # need to move the SPC_Trans in the NEGATIVE direction by 144 counts
-            movement_per_pos_degree = -144
-            diff_movement_total_cts = angle_val * movement_per_pos_degree # units of counts
-            diff_movement_total_opd = 2. * np.divide(diff_movement_total_cts,50.) # factor of 2: linear to OPD; factor of 1/50: counts to um
+    # as found by using OPD scans in grism mode in 2018A and 2018B, it appears that, for the Lgrism6AR,
+    # for every +degree in the CW direction that the FFT amplitude high-freq node is,
+    # need to move the SPC_Trans in the NEGATIVE direction by 144 counts
+    movement_per_pos_degree = -144
+    diff_movement_total_cts = angle_val * movement_per_pos_degree # units of counts
+    diff_movement_total_opd = 2. * np.divide(diff_movement_total_cts,50.) # factor of 2: linear to OPD; factor of 1/50: counts to um
 
-            # correct with the SPC translation stage: Ubcs.SPC_Trans.command=>N
-            # note factor of 10; command is in relative movement of 0.1 um
-            print("----------------------------------------------------------------")
-            if ((mode == "fake_fits") or (mode == "az_source") or (mode == "science")):
-                print("Moving SPC_Trans for large OPD movement of "+str(int(diff_movement_total_opd))+" um or "+str(diff_movement_total_cts)+" translation counts")
-                spc_trans_position_pre = pi.getINDI("Ubcs.SPC_Trans_status.PosNum") # translation stage before command (absolute position, 0.02 um)
-                spc_trans_position_now = spc_trans_position_pre
-                spc_trans_position_goal = spc_trans_position_pre + diff_movement_total_cts
-                pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(diff_movement_total_cts))
-                # wait for the SPC_Trans movement to finish
-                while (spc_trans_position_now != spc_trans_position_goal):
-                    spc_trans_position_now = pi.getINDI("Ubcs.SPC_Trans_status.PosNum") # check status of SPC_Trans
-                    time.sleep(0.5) # wait a moment
-            else:
-                print("Not moving SPC_Trans, since this is in testing mode. But calculated needed movement is " + str(int(diff_movement_total_opd))+" um or "+str(diff_movement_total_cts)+" translation counts")
+    # correct with the SPC translation stage: Ubcs.SPC_Trans.command=>N
+    # note factor of 10; command is in relative movement of 0.1 um
+    print("----------------------------------------------------------------")
+    if ((mode == "az_source") or (mode == "science")):
+        print("Moving SPC_Trans for large OPD movement of "+str(int(diff_movement_total_opd))+" um or "+str(diff_movement_total_cts)+" translation counts")
+        spc_trans_position_pre = pi.getINDI("Ubcs.SPC_Trans_status.PosNum") # translation stage before command (absolute position, 0.02 um)
+        spc_trans_position_now = spc_trans_position_pre
+        spc_trans_position_goal = spc_trans_position_pre + diff_movement_total_cts
+        pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(diff_movement_total_cts))
+        # wait for the SPC_Trans movement to finish
+        while (spc_trans_position_now != spc_trans_position_goal):
+            spc_trans_position_now = pi.getINDI("Ubcs.SPC_Trans_status.PosNum") # check status of SPC_Trans
+            time.sleep(0.5) # wait a moment
+    else:
+        print("Not moving SPC_Trans, since this is in testing mode. But calculated needed movement is " + str(int(diff_movement_total_opd))+" um or "+str(diff_movement_total_cts)+" translation counts")
 
     return
 
