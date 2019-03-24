@@ -41,11 +41,16 @@ def bkgdsub(image, method):
 
 # process the image (background-subtract and bad pix fix)
 ## ## ADD A FLAG TO ENABLE QUICK-AND-DIRTY BACKGROUND SUBTRACTION, WHICH HAS BEEN LEFT IN FOR NOW (EVEN THOUGH WE MAY BE SUBTRACTING ALREADY FROM THE WEB GUI)
-def processImg(imgDummy, methodDummy):
+def processImg(imgDummy, methodDummy, background=False):
 
-    # bias level correction
-    imgSub = bkgdsub(imgDummy,methodDummy) # simple background smoothing
-    imgSub -= np.median(imgSub) # subtract residual background
+    # simple background subtracton option
+    if background:
+        imgSub = bkgdsub(imgDummy,methodDummy) # simple background smoothing
+        imgSub -= np.median(imgSub) # subtract residual background
+    elif (background == False):
+        imgSub = np.copy(imgDummy)
+
+    # smooth
     imgSubM = ndimage.median_filter(imgSub,3) # smoothed image
 
     # define BP mask

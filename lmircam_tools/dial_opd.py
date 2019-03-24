@@ -171,7 +171,7 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
 
 
 
-def find_optimal_opd_fizeau_grism(integ_time, mode = "science", bkgd_mode = "quick_dirt"):
+def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
     #Takes well-overlapped grism PSFs and dials the optical path
     #difference such that barber-pole fringes become vertical
 
@@ -183,7 +183,6 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science", bkgd_mode = "qui
     sig = 5 # sigma of Gaussian profile in x (in pix)
     length_y = 200 # length in y of the psf (in pix)
 
-    take_roi_background(mode, bkgd_mode)
     raw_input("User: remove the Blank in FW4, then press return when done")
 
     # initialize dataframe for pathlength and residual data
@@ -202,12 +201,13 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science", bkgd_mode = "qui
 
 	step_size_opd = 10. # step size per opd_step count (um, total OPD)
 
-        if ((mode != "total_passive") and (mode != "quick_dirt")):
+        if (mode != "fake_fits"):
             print("Taking a background-subtracted frame")
             pi.setINDI("LMIRCAM_save.enable_save.value=On")
             f = pi_fiz.getFITS("fizeau.roi_image.file", timeout=60)
 
-	if ((mode == "fake_fits") or (mode == "total_passive")):
+	elif (mode == "fake_fits"):
+            ## ## CHANGE THIS TO MONITOR A DIRECTORY
             f = pyfits.open("test_fits_files/test_frame_grismFiz_small.fits")
 
         if (np.ndim(f[0].data) > 2):
@@ -215,14 +215,20 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science", bkgd_mode = "qui
         else:
             imgb4 = np.squeeze(f[0].data)
 
-        image = process_readout.processImg(imgb4, 'median') # return background-subtracted, bad-pix-corrected image
+        if (mode == "fake_fits"):
+            # return background-subtracted, bad-pix-corrected image
+            image = process_readout.processImg(imgb4, 'median', background = True)
+        elif (mode == "az_source") or (mode == "science")):
+            # just return bad-pix-corrected image
+            image = process_readout.processImg(imgb4, 'median', background = False)
+
 
         # determine grism Fizeau PSF center
         center_grism = find_grism_psf(image, sig, length_y) # locate the grism PSF center (THIS IS IN OVERLAP_PSFS.PY; SHOULD IT BE IN INIT?)
 
         # cut out the grism image
         img_before_padding_before_FT = np.copy(image)
-        '''
+        ''' 
         img_before_padding_before_FT = image[center_grism[0]-int(0.5*length_y):center_grism[0]+int(0.5*length_y),
                                      center_grism[1]-2*sig:center_grism[1]+2*sig]
         '''
@@ -321,9 +327,11 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science", bkgd_mode = "qui
 	# big steps with the SPC translation stage: Ubcs.SPC_Trans.command=>5
 	# note factor of 10; command is in relative movement of 0.1 um
         print("----------------------------------------------------------------")
-        if ((mode == "fake_fits") or (mode == "az_source") or (mode == "science")):
+        if ((mode == "az_source") or (mode == "science")):
 	    print("Moving SPC_Trans for large OPD movement of "+str(int(step_size_opd))+" um (translation of "+str(0.5*step_size_opd)+" um, or "+str(50*0.5*step_size_opd)+" counts)")
 	    pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(50*0.5*step_size_opd))
+        elif (mode == "fake_fits"):
+            print("Since this is fake_fits mode, SPC_Trans will not be moved, but it WOULD have been moved for large OPD movement of "+str(int(step_size_opd))+" um (translation of "+str(0.5*step_size_opd)+" um, or "+str(50*0.5*step_size_opd)
 
     # write data to file for copying and plotting on local machine
     file_name = "resids_test.csv"
@@ -331,9 +339,9 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science", bkgd_mode = "qui
     no_return = df.to_csv(file_name)
 
     # fit a 2nd-order polynomial to the residuals as fcn of SPC position
-    if (mode != "total_passive"):
+    if ((mode == "az_source") or (mode == "science")):
     	coeffs = np.polyfit(df["spc_trans_position"], df["resid"], 2)
-    else:
+    elif (mode == "fake_fits"):
         coeffs = [0,0]
 
     ## WOULD BE COOL TO HAVE A WEBPAGE DISPLAY OF A PLOT OF THE ABOVE
