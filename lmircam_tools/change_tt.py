@@ -293,7 +293,7 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
     return dictFFTstuff
 
 
-def print_write_fft_info(integ_time, sci_wavel, mode = "science", bkgd_mode = "quick_dirt", setpoints_pickle = " ", checker=False):
+def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pickle = " ", checker=False):
     ''' 
     Take FFT of PSF, and calculate new Phasecam PL and TT setpoints
 
@@ -313,211 +313,232 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", bkgd_mode = "q
 
     counter_num = 0 # for counting number of analyzed PSFs
 
-    take_roi_background(mode, bkgd_mode)
-    raw_input("User: remove the Blank in FW4, then press return when done")
-
     # read in any new images written out to a directory
     files_start = glob.glob(dir_to_monitor + "*.fits") # starting list of files
     num_psfs_to_analyze = 5 # number of PSFs to sample
 
     while counter_num < num_psfs_to_analyze:
 
-        time_start = time.time()
-        time.sleep(del_t)
+        # if we're just reading in fake FITS files, monitor a directory
+        # and read in a new file
+        if (mode == "fake_fits"):
 
-        fft_pickle_write_name = "pickled_info/fft_info_"+str("{:0>2d}".format(counter_num))+".pkl" # filename for pickled FFT info
-        #if (checker == True): # if we are checking a previous correction, lets distinguish the pickle file name
-        #    fft_pickle_write_name = "fft_info_check_"+str("{:0>2d}".format(counter_num))+".pkl"
+            while True:
 
-        # check to see if there were new files from last check
-        files_later = glob.glob(dir_to_monitor + "/*.fits")
+            	time_start = time.time()
+            	time.sleep(del_t)
 
-        # are there new files?
-        new_list = np.setdiff1d(files_later,files_start)
+            	fft_pickle_write_name = "pickled_info/fft_info_"+str("{:0>2d}".format(counter_num))+".pkl" # filename for pickled FFT info
+            	#if (checker == True): # if we are checking a previous correction, lets distinguish the pickle file name
+            	#    fft_pickle_write_name = "fft_info_check_"+str("{:0>2d}".format(counter_num))+".pkl"
 
-        time_start = time.time() # start timer
+            	# check to see if there were new files from last check
+            	files_later = glob.glob(dir_to_monitor + "/*.fits")
 
-        ''' 
-        # this is for individual test images
-        if ((mode == "fake_fits") or (mode == "total_passive")):
-            files_start = glob.glob(dir_to_monitor + "*.fits")
-            #f = pyfits.open("test_fits_files/test_frame_fiz_large.fits")
-            f = pyfits.open("test_fits_files/test_frame_fiz_small.fits")
-        elif ((mode == "science") or (mode == "nac_source") or (mode == "az_source")):
-            # take a frame with background subtracting
-            print("Taking a background-subtracted frame")
-            pi.setINDI("LMIRCAM_save.enable_save.value=On")
-            f = pi_fiz.getFITS("fizeau.roi_image.file", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
-        '''
+            	# are there new files?
+            	new_list = np.setdiff1d(files_later,files_start)
 
-        # if there are new files
-        if (len(new_list) > 2):
+            	time_start = time.time() # start timer
 
-            # reassign these files to be next starting point
-            files_start = files_later
+            	''' 
+            	# this is for individual test images
+            	if ((mode == "fake_fits") or (mode == "total_passive")):
+                    files_start = glob.glob(dir_to_monitor + "*.fits")
+                    #f = pyfits.open("test_fits_files/test_frame_fiz_large.fits")
+                    f = pyfits.open("test_fits_files/test_frame_fiz_small.fits")
+                elif ((mode == "science") or (mode == "nac_source") or (mode == "az_source")):
+                    # take a frame with background subtracting
+                    print("Taking a background-subtracted frame")
+                    pi.setINDI("LMIRCAM_save.enable_save.value=On")
+                f = pi_fiz.getFITS("fizeau.roi_image.file", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
+                '''
 
-            # filename of second-newst file (in case the newest is still being written)
-            second_newest = sorted(files_later)[-2]
+            	# if there are no new files, cycle back through
+            	if (len(new_list) <= 2):
+              	    continue
 
-            f = pyfits.open(second_newest)
-            file_name_full = os.path.basename(second_newest) # filename without the path
-            file_name_base = os.path.splitext(file_name_full)[0] # filename without the extension, too
+            	# if there are new files, read one of them in
+            	elif (len(new_list) > 2):
 
-            if (np.ndim(f[0].data) > 2):
-                image = f[0].data[-1,:,:] # images from LMIRcam (> summer 2018) are cubes of nondestructive reads
-            else:
-                image = np.squeeze(f[0].data)
+                    print("New·files·detected...")
 
-            if (bkgd_choice == "quick_dirt"):
-                image = process_readout.processImg(image,"median") # simple background subtraction
+                    # reassign these files to be next starting point
+                    files_start = files_later
 
-	    # save detector image to check (overwrites previous)
-	    #hdu = pyfits.PrimaryHDU(image)
-            #hdulist = pyfits.HDUList([hdu])
-            #hdu.writeto("junk_other_tests/junk_test_image_seen.fits", clobber=True)
+                    # filename of second-newst file (in case the newest is still being written)
+                    second_newest = sorted(files_later)[-2]
 
-            # locate PSF
-            psf_loc = find_grism_psf(image, sig=5, length_y=5)
-            if ((mode == "fake_fits") or (mode == "total_passive")):
-                psf_loc = psf_loc_fake # if we are reading in fake FITS files
+                    # read in file
+                    f = pyfits.open(second_newest)
+                    file_name_full = os.path.basename(second_newest) # filename without the path
+                    file_name_base = os.path.splitext(file_name_full)[0] # filename without the extension, too
+
+                    # break out of the 'while True'
+                    break
+
+    	# if we're reading in real frames from LMIR, catch them as they are read out
+    	elif ((mode == "az_source") or (mode == "science")):
+
+            f = pi_fiz.getFITS("fizeau.roi_image.file", timeout=60)
+            file_name_base = "test_placeholder" # string to add to log image files
+
+    	# get the right image slice
+    	if (np.ndim(f[0].data) > 2):
+            image = f[0].data[-1,:,:] # images from LMIRcam (> summer 2018) are cubes of nondestructive reads
+    	else:
+            image = np.squeeze(f[0].data)
+
+    	# if this is a fake fits file, do a quick-and-dirty background subtraction
+    	if (mode == "fake_fits"):
+            image = process_readout.processImg(image,"median") # simple background subtraction
+
+    	# save detector image to check (overwrites previous)
+    	#hdu = pyfits.PrimaryHDU(image)
+    	#hdulist = pyfits.HDUList([hdu])
+    	#hdu.writeto("junk_other_tests/junk_test_image_seen.fits", clobber=True)
+
+    	# locate PSF
+    	psf_loc = find_grism_psf(image, sig=5, length_y=5)
+    	if (mode == "fake_fits"):
+            psf_loc = psf_loc_fake # if we are reading in fake FITS files
             ## ## if time, test the following line
             #psf_loc = find_airy_psf(image)
 
-            # size of cookie cut-out (measured center-to-edge)
-            cookie_size = 100 # maximum control radius as of 2018 July corresponds to 130.0 pixels
+        # size of cookie cut-out (measured center-to-edge)
+        cookie_size = 100 # maximum control radius as of 2018 July corresponds to 130.0 pixels
 
-            # take FFT
-            if ((mode == "fake_fits") or (mode == "total_passive")):
-                cookie_cut = image[psf_loc[0]-cookie_size:psf_loc[0]+cookie_size,psf_loc[1]-cookie_size:psf_loc[1]+cookie_size]
-            else:
-                cookie_cut = np.copy(image)
-            padding_choice = int(5*cookie_size)
-            amp, arg = fft_img(cookie_cut).fft(padding=padding_choice, mask_thresh=1e5)
+        # take FFT
+        if (mode == "fake_fits"):
+            cookie_cut = image[psf_loc[0]-cookie_size:psf_loc[0]+cookie_size,psf_loc[1]-cookie_size:psf_loc[1]+cookie_size]
+        else:
+            cookie_cut = np.copy(image)
+    	padding_choice = int(5*cookie_size)
+    	amp, arg = fft_img(cookie_cut).fft(padding=padding_choice, mask_thresh=1e5)
 
-            # save image to check
-            hdu = pyfits.PrimaryHDU(cookie_cut)
-            hdulist = pyfits.HDUList([hdu])
-            hdu.writeto("log_images/cookie_prepadding_prefft_" + file_name_base + ".fits", clobber=True)
+    	# save image to check
+    	hdu = pyfits.PrimaryHDU(cookie_cut)
+    	hdulist = pyfits.HDUList([hdu])
+    	hdu.writeto("log_images/cookie_prepadding_prefft_" + file_name_base + ".fits", clobber=True)
 
-            # test: see what the FFT looks like
-            hdu = pyfits.PrimaryHDU(amp.data)
-            hdulist = pyfits.HDUList([hdu])
-            hdu.writeto("log_images/fft_amp_" + file_name_base + ".fits", clobber=True)
-            hdu = pyfits.PrimaryHDU(arg.data)
-            hdulist = pyfits.HDUList([hdu])
-            hdu.writeto("log_images/fft_arg_" + file_name_base + ".fits", clobber=True)
+    	# test: see what the FFT looks like
+    	hdu = pyfits.PrimaryHDU(amp.data)
+    	hdulist = pyfits.HDUList([hdu])
+    	hdu.writeto("log_images/fft_amp_" + file_name_base + ".fits", clobber=True)
+    	hdu = pyfits.PrimaryHDU(arg.data)
+    	hdulist = pyfits.HDUList([hdu])
+    	hdu.writeto("log_images/fft_arg_" + file_name_base + ".fits", clobber=True)
 
-            # --commented out because it was triggering on NxM frames where N!=M--
-            # sanity check (and to avoid getting for loop stuck)
-            #if (np.shape(amp)[0] != np.shape(amp)[1]): # if the FFT doesn't make sense (i.e., if PSF was not found)
-            #    print('PSF does not make sense ... aborting this one ...')
-            #    continue
+    	# --commented out because it was triggering on NxM frames where N!=M--
+    	# sanity check (and to avoid getting for loop stuck)
+    	#if (np.shape(amp)[0] != np.shape(amp)[1]): # if the FFT doesn't make sense (i.e., if PSF was not found)
+    	#    print('PSF does not make sense ... aborting this one ...')
+    	#    continue
 
-            # analyze FFTs
-            fftInfo_amp = fftMask(amp,sci_wavel,plateScale,
+    	# analyze FFTs
+    	fftInfo_amp = fftMask(amp,sci_wavel,plateScale,
                                   fyi_string=" FFT amp")
-            fftInfo_arg = fftMask(arg,sci_wavel,plateScale,
+    	fftInfo_arg = fftMask(arg,sci_wavel,plateScale,
                                   fyi_string=" FFT phase")
 
-            # save fyi FITS files to see the masks, etc.
-            ''' 
-            hdu = pyfits.PrimaryHDU(fftInfo_amp["sciImg1"])
-            hdulist = pyfits.HDUList([hdu])
-            hdu.writeto("junk_other_tests/junk_test_mask_amp_maskedRegion1.fits", clobber=True)
-            hdu = pyfits.PrimaryHDU(fftInfo_amp["sciImg2"])
-            hdulist = pyfits.HDUList([hdu])
-            hdu.writeto("junk_other_tests/junk_test_mask_amp_maskedRegion2.fits", clobber=True)
-            hdu = pyfits.PrimaryHDU(fftInfo_amp["sciImg3"])
-            hdulist = pyfits.HDUList([hdu])
-            hdu.writeto("junk_other_tests/junk_test_mask_amp_maskedRegion3.fits", clobber=True)
-            hdu = pyfits.PrimaryHDU(fftInfo_amp["sciImg4"])
-            hdulist = pyfits.HDUList([hdu])
-            hdu.writeto("junk_other_tests/junk_test_mask_amp_maskedRegion4.fits", clobber=True)
-            hdu = pyfits.PrimaryHDU(amp.data)
-            hdulist = pyfits.HDUList([hdu])
-            hdu.writeto("junk_other_tests/junk_test_amp_psf.fits", clobber=True)
-            hdu = pyfits.PrimaryHDU(arg.data)
-            hdulist = pyfits.HDUList([hdu])
-            hdu.writeto("junk_other_tests/junk_test_arg_psf.fits", clobber=True)
-            '''
+    	# save fyi FITS files to see the masks, etc.
+    	''' 
+    	hdu = pyfits.PrimaryHDU(fftInfo_amp["sciImg1"])
+    	hdulist = pyfits.HDUList([hdu])
+    	hdu.writeto("junk_other_tests/junk_test_mask_amp_maskedRegion1.fits", clobber=True)
+    	hdu = pyfits.PrimaryHDU(fftInfo_amp["sciImg2"])
+    	hdulist = pyfits.HDUList([hdu])
+    	hdu.writeto("junk_other_tests/junk_test_mask_amp_maskedRegion2.fits", clobber=True)
+    	hdu = pyfits.PrimaryHDU(fftInfo_amp["sciImg3"])
+    	hdulist = pyfits.HDUList([hdu])
+    	hdu.writeto("junk_other_tests/junk_test_mask_amp_maskedRegion3.fits", clobber=True)
+    	hdu = pyfits.PrimaryHDU(fftInfo_amp["sciImg4"])
+    	hdulist = pyfits.HDUList([hdu])
+    	hdu.writeto("junk_other_tests/junk_test_mask_amp_maskedRegion4.fits", clobber=True)
+    	hdu = pyfits.PrimaryHDU(amp.data)
+    	hdulist = pyfits.HDUList([hdu])
+    	hdu.writeto("junk_other_tests/junk_test_amp_psf.fits", clobber=True)
+    	hdu = pyfits.PrimaryHDU(arg.data)
+    	hdulist = pyfits.HDUList([hdu])
+    	hdu.writeto("junk_other_tests/junk_test_arg_psf.fits", clobber=True)
+    	'''
 
-            ## take info from the FFTs to send corrective movements
+    	## take info from the FFTs to send corrective movements
 
-            # thresholds
-            fft_ampl_high_freq_lowlimit = 2.4e5 # min threshold for good fringe visibility
-            fft_ampl_low_freq_lowlimit = 1.4e6 # min threshold for acceptable AO correction
-            fft_phase_vec_high_freq_highlimit = 5 # max threshold for Airy overlap
-            std_lowFreqPerfect_lowlimit = 10 # max threshold for Airy overlap
-            phase_normVec_highFreqPerfect_R_x = 100 # max threshold for phase of high-freq fringes
+    	# thresholds
+    	fft_ampl_high_freq_lowlimit = 2.4e5 # min threshold for good fringe visibility
+    	fft_ampl_low_freq_lowlimit = 1.4e6 # min threshold for acceptable AO correction
+    	fft_phase_vec_high_freq_highlimit = 5 # max threshold for Airy overlap
+    	std_lowFreqPerfect_lowlimit = 10 # max threshold for Airy overlap
+    	phase_normVec_highFreqPerfect_R_x = 100 # max threshold for phase of high-freq fringes
 
 
-            ## MONITOR REALTIME STATUS OF PSF QUALITY CRITERIA
+    	## MONITOR REALTIME STATUS OF PSF QUALITY CRITERIA
 
-            # Overlap of the Airy PSFs?
-            print("--------------------------")
-            print("Std of phase of low freq lobe:")
-            print(fftInfo_arg["std_lowFreqPerfect"])
-            # TO CORRECT: TT THE HPC TO TRANSLATE DX AIRY PSF
-            ## ## (MAYBE TRY TTING THE FPC LATER?)
+    	# Overlap of the Airy PSFs?
+    	print("--------------------------")
+    	print("Std of phase of low freq lobe:")
+    	print(fftInfo_arg["std_lowFreqPerfect"])
+    	# TO CORRECT: TT THE HPC TO TRANSLATE DX AIRY PSF
+    	## ## (MAYBE TRY TTING THE FPC LATER?)
 
-            # High-freq fringe visibility (median)
-            print("--------------------------")
-            print("Median of ampl of high freq lobe:")
-            print(fftInfo_amp["med_highFreqPerfect_R"])
-            # TO CORRECT: MOVE THE SPC_TRANS TO FIND CENTER OF COHERENCE ENVELOPE
+    	# High-freq fringe visibility (median)
+    	print("--------------------------")
+    	print("Median of ampl of high freq lobe:")
+    	print(fftInfo_amp["med_highFreqPerfect_R"])
+    	# TO CORRECT: MOVE THE SPC_TRANS TO FIND CENTER OF COHERENCE ENVELOPE
 
-            # High-freq phase gradient
-            print("--------------------------")
-            print("Phase gradient in x of high freq in PTF:")
-            print(fftInfo_arg["normVec_highFreqPerfect_R_x"])
-            print("Phase gradient in y of high freq in PTF:")
-            print(fftInfo_arg["normVec_highFreqPerfect_R_y"])
-            print("--------------------------")
-            # TO CORRECT: TT THE FPC? (NOT SURE HERE...)
-            ## ## N.B. 1. Differential tip: phase gradient is all up-down, and the low-freq node in FT amplitude takes on a crushed ellipticity.
-            ## ## N.B. 2. Differential tilt: phase gradient is left-right, but it is not continuous; it is divided among the three nodes.
+    	# High-freq phase gradient
+    	print("--------------------------")
+    	print("Phase gradient in x of high freq in PTF:")
+    	print(fftInfo_arg["normVec_highFreqPerfect_R_x"])
+    	print("Phase gradient in y of high freq in PTF:")
+    	print(fftInfo_arg["normVec_highFreqPerfect_R_y"])
+    	print("--------------------------")
+    	# TO CORRECT: TT THE FPC? (NOT SURE HERE...)
+    	## ## N.B. 1. Differential tip: phase gradient is all up-down, and the low-freq node in FT amplitude takes on a crushed ellipticity.
+    	## ## N.B. 2. Differential tilt: phase gradient is left-right, but it is not continuous; it is divided among the three nodes.
 
-            ## HOW DO THE ABOVE PRINTED QUANTITIES COMPARE WITH THE THRESHOLDS? 
+    	## HOW DO THE ABOVE PRINTED QUANTITIES COMPARE WITH THE THRESHOLDS? 
 
-            # other quality control metrics from Phasecam (email from D. Defrere, 2018 Dec 17)
-            # PCMSNR: S/N of K-band fringes
-            # PCPHSTD: noise of phase in the integration time of NOMIC
+    	# other quality control metrics from Phasecam (email from D. Defrere, 2018 Dec 17)
+    	# PCMSNR: S/N of K-band fringes
+    	# PCPHSTD: noise of phase in the integration time of NOMIC
 
-            # also find time
-            timestamp = time.time()
-            fftInfo_amp["time"] = timestamp
-            fftInfo_arg["time"] = timestamp
+    	# also find time
+    	timestamp = time.time()
+    	fftInfo_amp["time"] = timestamp
+    	fftInfo_arg["time"] = timestamp
 
-            # convert dictionaries to dataframes that are easy to write to file
-            # have to delete the 2D arrays from the dictionaries so they can be converted to dataframes
-            del fftInfo_amp["sciImg1"], fftInfo_amp["sciImg2"], fftInfo_amp["sciImg3"], fftInfo_amp["sciImg4"]
-            del fftInfo_arg["sciImg1"], fftInfo_arg["sciImg2"], fftInfo_arg["sciImg3"], fftInfo_arg["sciImg4"]
-            #fftInfo_amp_df = fftInfo_amp.drop(['sciImg1', 'sciImg2', 'sciImg3', 'sciImg4'])
-            #fftInfo_arg_df = fftInfo_arg.drop(['sciImg1', 'sciImg2', 'sciImg3', 'sciImg4'])
-            ## ## for some reason, the dataframes make 3 identical rows; maybe because there are some (x,y) vectors 
-            fftInfo_amp_df_this_frame = pd.DataFrame(fftInfo_amp)
-            fftInfo_arg_df_this_frame = pd.DataFrame(fftInfo_arg)
-            fftInfo_amp_df = fftInfo_amp_df.append(fftInfo_amp_df_this_frame, ignore_index=True)
-            fftInfo_arg_df = fftInfo_arg_df.append(fftInfo_arg_df_this_frame, ignore_index=True)
+    	# convert dictionaries to dataframes that are easy to write to file
+    	# have to delete the 2D arrays from the dictionaries so they can be converted to dataframes
+    	del fftInfo_amp["sciImg1"], fftInfo_amp["sciImg2"], fftInfo_amp["sciImg3"], fftInfo_amp["sciImg4"]
+    	del fftInfo_arg["sciImg1"], fftInfo_arg["sciImg2"], fftInfo_arg["sciImg3"], fftInfo_arg["sciImg4"]
+    	#fftInfo_amp_df = fftInfo_amp.drop(['sciImg1', 'sciImg2', 'sciImg3', 'sciImg4'])
+    	#fftInfo_arg_df = fftInfo_arg.drop(['sciImg1', 'sciImg2', 'sciImg3', 'sciImg4'])
+    	## ## for some reason, the dataframes make 3 identical rows; maybe because there are some (x,y) vectors 
+    	fftInfo_amp_df_this_frame = pd.DataFrame(fftInfo_amp)
+    	fftInfo_arg_df_this_frame = pd.DataFrame(fftInfo_arg)
+    	fftInfo_amp_df = fftInfo_amp_df.append(fftInfo_amp_df_this_frame, ignore_index=True)
+    	fftInfo_arg_df = fftInfo_arg_df.append(fftInfo_arg_df_this_frame, ignore_index=True)
 
-            # print fyi
-            time_elapsed = time.time() - time_start
-            print("PSF "+file_name_full+" analyzed in time (secs):")
-            print(time_elapsed)
+    	# print fyi
+    	time_elapsed = time.time() - time_start
+    	print("PSF "+file_name_full+" analyzed in time (secs):")
+    	print(time_elapsed)
 
-            # write to csv to check on a local machine (this info will also be pickled)
-            fftInfo_amp_df.to_csv("pickled_info/csvs/fft_amp.csv")
-            fftInfo_arg_df.to_csv("pickled_info/csvs/fft_arg.csv")
-            ## ## note I havent used log_name anywhere yet
+    	# write to csv to check on a local machine (this info will also be pickled)
+    	fftInfo_amp_df.to_csv("pickled_info/csvs/fft_amp_"+str(int(counter_num))+".csv")
+    	fftInfo_arg_df.to_csv("pickled_info/csvs/fft_arg_"+str(int(counter_num))+".csv")
+    	## ## note I havent used log_name anywhere yet
 
-            # pack info from the series of FFTs into dictionaries, and pickle them
-            #d = {"fftInfo_amp": fftInfo_amp, "fftInfo_arg": fftInfo_arg}
-            with open(fft_pickle_write_name, "w") as f:
-                pickle.dump((fftInfo_amp, fftInfo_arg), f)
+    	# pack info from the series of FFTs into dictionaries, and pickle them
+    	#d = {"fftInfo_amp": fftInfo_amp, "fftInfo_arg": fftInfo_arg}
+    	with open(fft_pickle_write_name, "w") as f:
+            pickle.dump((fftInfo_amp, fftInfo_arg), f)
 
-            print("Done analyzing one PSF.")
+        print("Done analyzing one PSF.")
 
-            counter_num += 1 # advance counter
+        counter_num += 1 # advance counter
 
     # return
     # 1. number of psfs over which we will take median
@@ -585,7 +606,8 @@ def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "s
     print("----------------------------------")
     print("Checking overlap of the Airy PSFs via std of FFT phase low freq node:")
     print(np.median(fftInfo_arg["std_lowFreqPerfect"]))
-    if (mode != "total_passive"):
+    #if (mode != "total_passive"):
+    if True: # total_passive is not a mode now
         hpc_tip_position_now = pi.getINDI("Acromag.HPC_status.Tip") # HPC tip pos
         hpc_tilt_position_now = pi.getINDI("Acromag.HPC_status.Tilt") # HPC tilt pos
         fpc_tip_setpoint_now = pi.getINDI("PLC.UBCSettings.TipSetpoint") # FPC tip setpoint
@@ -607,7 +629,8 @@ def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "s
     print("Checking high-freq fringe visibility via median of ampl of high freq lobe in MTF:")
     print(np.median(fftInfo_amp["med_highFreqPerfect_R"]))
     print("----------------------------------")
-    if (mode != "total_passive"):
+    #if (mode != "total_passive"):
+    if True: # total_passive is not a mode now
         print("Current SPC_Trans position:")
         spc_trans_position_now = pi.getINDI("Ubcs.SPC_Trans_status.PosNum") # translation stage (absolute position, 0.02 um)
         print(spc_trans_position_now)
@@ -655,29 +678,28 @@ def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "s
     sci_to_K = np.divide(sci_wavel,2.2e-6) # factor to convert degrees in sci to degrees in K
     corrxn_pl = -fftInfo_arg["med_highFreqPerfect_R"].values[0]*(180./np.pi)*sci_to_K
 
-    if (mode != "total_passive"):
-        print("Current FPC tip setpoint:")
-        fpc_tip_setpoint = pi.getINDI("PLC.UBCSettings.TipSetpoint")
-        print(fpc_tip_setpoint)
-        print("Current FPC tilt setpoint:")
-        fpc_tilt_setpoint = pi.getINDI("PLC.UBCSettings.TiltSetpoint")
-        print(fpc_tilt_setpoint)
-        print("Current FPC pl setpoint:")
-        fpc_tilt_setpoint = pi.getINDI("PLC.UBCSettings.PLSetpoint")
-        print("-----")
-        print("Adding FPC tip (y) setpoint correction (mas):")
-        print(str(corrxn_tip_y))
-        print("Adding FPC tilt (x) setpoint correction (mas):")
-        print(str(corrxn_tilt_x))
-        print("Adding FPC pl (piston) setpoint correction (deg):")
-        print(str(corrxn_pl))
-        print("-----")
+    print("Current FPC tip setpoint:")
+    fpc_tip_setpoint = pi.getINDI("PLC.UBCSettings.TipSetpoint")
+    print(fpc_tip_setpoint)
+    print("Current FPC tilt setpoint:")
+    fpc_tilt_setpoint = pi.getINDI("PLC.UBCSettings.TiltSetpoint")
+    print(fpc_tilt_setpoint)
+    print("Current FPC pl setpoint:")
+    fpc_tilt_setpoint = pi.getINDI("PLC.UBCSettings.PLSetpoint")
+    print("-----")
+    print("Adding FPC tip (y) setpoint correction (mas):")
+    print(str(corrxn_tip_y))
+    print("Adding FPC tilt (x) setpoint correction (mas):")
+    print(str(corrxn_tilt_x))
+    print("Adding FPC pl (piston) setpoint correction (deg):")
+    print(str(corrxn_pl))
+    print("-----")
 
-        if (apply == True):
-            pi.setINDI("PLC.UBCSettings.TipSetpoint="+str(np.add(fpc_tip_setpoint,corrxn_tip_y))) # tip: y
-            pi.setINDI("PLC.UBCSettings.TiltSetpoint="+str(np.add(fpc_tilt_setpoint,corrxn_tilt_x))) # tilt: x
-            pi.setINDI("PLC.UBCSettings.PLSetpoint="+str(np.add(fpc_pl_setpoint,corrxn_pl))) # pathlength
-            #print("Manually change FPC tip-tilt setpoints. What was the scale?")
+    if (apply == True):
+        pi.setINDI("PLC.UBCSettings.TipSetpoint="+str(np.add(fpc_tip_setpoint,corrxn_tip_y))) # tip: y
+        pi.setINDI("PLC.UBCSettings.TiltSetpoint="+str(np.add(fpc_tilt_setpoint,corrxn_tilt_x))) # tilt: x
+        pi.setINDI("PLC.UBCSettings.PLSetpoint="+str(np.add(fpc_pl_setpoint,corrxn_pl))) # pathlength
+        #print("Manually change FPC tip-tilt setpoints. What was the scale?")
 
     #######################################################################
     # lines to run on the command line to test application of corrections
@@ -733,9 +755,8 @@ def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "s
     print("-----------------------------------")
 
     # turn off fizeau flag to avoid problems with other observations
-    if (mode != "total_passive"):
-        print("De-activating ROI aquisition flag")
-        pi_fiz.setINDI("fizeau.enable_run.value=Off")
+    print("De-activating ROI aquisition flag")
+    pi_fiz.setINDI("fizeau.enable_run.value=Off")
 
     return
 
@@ -775,17 +796,14 @@ def compare_setpts(pickle_pre, pickle_post, mode = "science", bkgd_mode = "quick
     # if not, make a 2x reverse correction
     # check if correction has gone further away from zero
     if ((  np.abs(corrxn_tt_post[0]) > np.abs(corrxn_tt_pre[0])  ) and (  np.sign(corrxn_tt_post[0]) == np.sign(corrxn_tt_pre[0])  )):
-        if (mode != "total_passive"):
-            print("Re-correcting the tip (y) setpoint correction")
-            fpc_tip_setpoint = pi.getINDI("PLC.UBCSettings.TipSetpoint")
-            pi.setINDI("PLC.UBCSettings.TipSetpoint="+str(np.add(fpc_tip_setpoint,-2*corrxn_tt_pre[0]))) # tip: y
+        print("Re-correcting the tip (y) setpoint correction")
+        fpc_tip_setpoint = pi.getINDI("PLC.UBCSettings.TipSetpoint")
+        pi.setINDI("PLC.UBCSettings.TipSetpoint="+str(np.add(fpc_tip_setpoint,-2*corrxn_tt_pre[0]))) # tip: y
     if ((  np.abs(corrxn_tt_post[1]) > np.abs(corrxn_tt_pre[1])  ) and (  np.sign(corrxn_tt_post[1]) == np.sign(corrxn_tt_pre[1])  )):
-        if (mode != "total_passive"):
-            print("Re-correcting the tilt (x) setpoint correction")
-            fpc_tilt_setpoint = pi.getINDI("PLC.UBCSettings.TiltSetpoint")
-            pi.setINDI("PLC.UBCSettings.TiltSetpoint="+str(np.add(fpc_tilt_setpoint,-2*corrxn_tt_pre[1]))) # tilt: x
+        print("Re-correcting the tilt (x) setpoint correction")
+        fpc_tilt_setpoint = pi.getINDI("PLC.UBCSettings.TiltSetpoint")
+        pi.setINDI("PLC.UBCSettings.TiltSetpoint="+str(np.add(fpc_tilt_setpoint,-2*corrxn_tt_pre[1]))) # tilt: x
     if ((  np.abs(corrxn_pl_post) > np.abs(corrxn_pl_pre)  ) and (  np.sign(corrxn_pl_post) == np.sign(corrxn_pl_pre)  )):
-        if (mode != "total_passive"):
-            print("Re-correcting the PL setpoint correction")
-            fpc_pl_setpoint = pi.getINDI("PLC.UBCSettings.PLSetpoint")
-            pi.setINDI("PLC.UBCSettings.PLSetpoint="+str(np.add(fpc_pl_setpoint,-2*corrxn_pl_pre))) # pathlength
+        print("Re-correcting the PL setpoint correction")
+        fpc_pl_setpoint = pi.getINDI("PLC.UBCSettings.PLSetpoint")
+        pi.setINDI("PLC.UBCSettings.PLSetpoint="+str(np.add(fpc_pl_setpoint,-2*corrxn_pl_pre))) # pathlength

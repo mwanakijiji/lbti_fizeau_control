@@ -8,11 +8,11 @@ import pyfits
 import numpy as np
 import sched, time
 
-datestring = "190222"
-retrieve_dir = "/opt/local/LBTI_INDI/data/LMIRCAM/190222/" # directory where we retrieve already-written frames
+datestring = "180507"
+retrieve_dir = "/opt/local/LBTI_INDI/data/LMIRCAM/180507/" # directory where we retrieve already-written frames
 #retrieve_dir = "/opt/local/LBTI_INDI/data/LMIRCAM/180507/junk/"
-#check_dir = "fake_monitor/" # directory for this night, which we are monitoring for new frames
-deposit_dir = "/opt/local/LBTI_INDI/data/LMIRCAM/180507/junk/"
+deposit_dir = "fake_monitor/" # directory for this night, which we are monitoring for new frames
+#deposit_dir = "/opt/local/LBTI_INDI/data/LMIRCAM/junk/"
 
 
 def write_fake_fits(framenum):
@@ -49,8 +49,9 @@ def move_mimic_fits(framenum):
 # 8266-8284, (y,x)=Ibid. (looks symmetrical)
 # 8285-8289, (y,x)=Ibid. (fringe jump; one dark jailbar down center)
 
-framenum = 2500
-stop_framenum = 2900
+start_framenum = 5706
+stop_framenum = 5816
+framenum = np.copy(start_framenum)
 
 while (framenum < stop_framenum):
     time_start = time.time()

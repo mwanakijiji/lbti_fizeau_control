@@ -19,7 +19,8 @@ from lmircam_tools.change_tt import print_write_fft_info, get_apply_pc_setpts, c
 # default integration time is set in the __init__ file (vestigial now --2019Feb10)
 
 print("----------------------------------------------------------------------------------")
-raw_input("Place an ROI, no larger than 512x512, over the Phasecam sweet spot for LMIRcam, and move telescopes\n to put Airy PSFs somethere inside the ROI. \nROI size needs to be "+\
+raw_input("Place an ROI, no larger than 512x512, over the Phasecam sweet spot for LMIRcam, and " + \
+	"move telescopes\n to put Airy PSFs somethere inside the ROI. \nROI size needs to be "+\
 	"large enough to include the grism PSF and possible movement\nPress [Enter] when done.")
 
 # Operating mode
@@ -37,10 +38,8 @@ print("-------------------------------------------------------------------------
 
 pdb.set_trace()
 # modes: "az_source" / "science"
-overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = mode_choice, bkgd_mode = "indi_ROI", psf_type = "airy") # filter-agnostic
+overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = mode_choice, psf_type = "airy") # filter-agnostic
 
-## ## see old sweet spots (can also locate them on NOMIC, and then see where they are on LMIR)
-## ## see nomic nulling to see how nod with wheel is done
 
 ############## PUT IN GRISM AND REFINE GRISM-PSF OVERLAP
 
@@ -48,22 +47,18 @@ overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = mode_choice, bkgd_mode = "i
 put_in_grism(mode = mode_choice)
 
 # modes: "az_source" / "science"
-overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = mode_choice, bkgd_mode = "indi_ROI", psf_type = "grism")
+overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = mode_choice, psf_type = "grism")
 
 
 ############## IN GRISM MODE, DIAL OPD WITH HPC AND FIND CENTER OF COHERENCE ENVELOPE, THEN REMOVE GRISM
 
-## ## remove psf_loc_setpoint from func; obsolete optim airy fcn
-## ## add length of scan (in total OPD?)
-## ## sometimes new HPC movement causes grisms to separate; may need to re-overlap them each time
-## ## insert all hpc, fpc piston and TT statuses into headers
+# modes: "fake_fits" / "az_source" / "science"
+# this should be run WHILE taking science data
+live_opd_correction_fizeau_grism(integ_time, mode = mode_choice)
 
-# modes: "az_source" / "science"
-live_opd_correction_fizeau_grism(integ_time, mode = mode_choice, bkgd_mode = bkgd_choice)
-
-# modes: "az_source" / "science"
-find_optimal_opd_fizeau_grism(integ_time, mode = mode_choice, bkgd_mode = "indi_ROI")
-implement_optimal_opd(mode = mode_choice, bkgd_mode = bkgd_choice)
+# modes: "fake_fits" / "az_source" / "science"
+find_optimal_opd_fizeau_grism(integ_time, mode = mode_choice)
+implement_optimal_opd(mode = mode_choice)
 print("----------------------------------------------------------------------------------")
 raw_input("Science detector alignment done. Now align Phasecam and close the phase loop")
 
@@ -75,22 +70,22 @@ raw_input("Science detector alignment done. Now align Phasecam and close the pha
 
 # print fft info, see how it compares with the set thresholds
 # modes: "fake_fits" / "az_source" / "science"
-num_psfs, fftimg_shape = print_write_fft_info(integ_time, sci_wavel = wavel_lambda, mode = mode_choice, bkgd_mode = bkgd_choice)
+num_psfs, fftimg_shape = print_write_fft_info(integ_time, sci_wavel = wavel_lambda, mode = mode_choice)
 
 # calculate and apply Phasecam setpoints; write them to a pickle file to check the correction
 setpoints_pickle_pre = "setpoints_pickle_pre.pkl"
 # modes: "fake_fits" / "az_source" / "science"
-get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel = wavel_lambda, mode = mode_choice, bkgd_mode = bkgd_choice, pickle_name = setpoints_pickle_pre, apply = True)
+get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel = wavel_lambda, mode = mode_choice, pickle_name = setpoints_pickle_pre, apply = True)
 
 # print/calculate FFT info after the change so as to check setpoints for sign (code cant tell which PSF is SX and DX)
 # modes: "fake_fits" / "az_source" / "science"
-num_psfs, fftimg_shape = print_write_fft_info(integ_time, sci_wavel = wavel_lambda, mode = mode_choice, bkgd_mode = bkgd_choice, checker=True) # note checker=True
+num_psfs, fftimg_shape = print_write_fft_info(integ_time, sci_wavel = wavel_lambda, mode = mode_choice, checker=True) # note checker=True, because we're checking the correction
 
 # recalculate setpoints, but dont apply a new correction just yet
 setpoints_pickle_post = "setpoints_pickle_post.pkl"
 # modes: "fake_fits" / "az_source" / "science"
-get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel = wavel_lambda, mode = mode_choice, bkgd_mode = bkgd_choice, pickle_name = setpoints_pickle_post, apply = False)
+get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel = wavel_lambda, mode = mode_choice, pickle_name = setpoints_pickle_post, apply = False)
 
 # compare setpoints; if any one aspect (TT, PL) is worse, flip it back the other way, 2x
 # modes: "fake_fits" / "az_source" / "science"
-compare_setpts(setpoints_pickle_pre, setpoints_pickle_post, mode = mode_choice, bkgd_mode = bkgd_choice)
+compare_setpts(setpoints_pickle_pre, setpoints_pickle_post, mode = mode_choice)
