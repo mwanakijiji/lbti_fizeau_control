@@ -360,7 +360,7 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
             	# if there are new files, read one of them in
             	elif (len(new_list) > 2):
 
-                    print("New·files·detected...")
+                    print("New files detected.")
 
                     # reassign these files to be next starting point
                     files_start = files_later
@@ -475,6 +475,7 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
     	## MONITOR REALTIME STATUS OF PSF QUALITY CRITERIA
 
     	# Overlap of the Airy PSFs?
+        print("--------------------------")
     	print("--------------------------")
     	print("Std of phase of low freq lobe:")
     	print(fftInfo_arg["std_lowFreqPerfect"])
@@ -489,6 +490,10 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
 
     	# High-freq phase gradient
     	print("--------------------------")
+        print("Median of phase (science PSF):")
+        print(fftInfo_arg["med_highFreqPerfect_R"]*(180./np.pi))
+        print("Pathlength correction needed (um):")
+        print(fftInfo_arg["med_highFreqPerfect_R"]*((180./np.pi)/360.)*sci_wavel*1e6)
     	print("Phase gradient in x of high freq in PTF:")
     	print(fftInfo_arg["normVec_highFreqPerfect_R_x"])
     	print("Phase gradient in y of high freq in PTF:")

@@ -10,11 +10,11 @@ from scipy import ndimage, sqrt, stats, misc, signal
 #########################
 
 # science wavelength
-wavel_lambda = 4.051e-6 # filter central wavel (m)
+wavel_lambda = 5.e-6 # filter central wavel (m)
 
 # physical psf location, if code is being used to read in written FITS files
-#psf_loc_fake = [115,864] # (y,x) in FITS coordinates
-psf_loc_fake = [292,853] # a grism sequence
+psf_loc_fake = [1024,1024] # (y,x) in FITS coordinates
+#psf_loc_fake = [292,853] # a grism sequence
 # desired OR current psf location, if code is using ROI/INDI machinery
 fiz_lmir_sweet_spot = [200,100] # (y,x) in ROI coordinates
 

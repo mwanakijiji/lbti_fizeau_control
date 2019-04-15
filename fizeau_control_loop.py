@@ -36,6 +36,9 @@ print("This optimization code is running in mode " + mode_choice)
 print("Stop continuous aquisition of the camera for alignment and set the integration time in the init file.")
 print("----------------------------------------------------------------------------------")
 
+print("Science wavelength:")
+print(wavel_lambda)
+
 pdb.set_trace()
 # modes: "az_source" / "science"
 overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = mode_choice, psf_type = "airy") # filter-agnostic

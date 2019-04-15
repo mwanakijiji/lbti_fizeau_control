@@ -9,14 +9,15 @@ import numpy as np
 import sched, time
 
 datestring = "180507"
-retrieve_dir = "/opt/local/LBTI_INDI/data/LMIRCAM/180507/" # directory where we retrieve already-written frames
+#retrieve_dir = "/opt/local/LBTI_INDI/data/LMIRCAM/180507/" # directory where we retrieve already-written frames
 #retrieve_dir = "/opt/local/LBTI_INDI/data/LMIRCAM/180507/junk/"
+retrieve_dir = "fake_retrieve/"
 deposit_dir = "fake_monitor/" # directory for this night, which we are monitoring for new frames
 #deposit_dir = "/opt/local/LBTI_INDI/data/LMIRCAM/junk/"
 
 
 def write_fake_fits(framenum):
-    '''
+    ''' 
     Write entirely new frames
     '''
     fake_frame = np.random.rand(2048,2048).astype(np.uint16)
@@ -27,13 +28,27 @@ def write_fake_fits(framenum):
 
 
 def move_mimic_fits(framenum):
-    '''
+    ''' 
     Move old frames to another directory, to mimic
     writing new files to that directory
     '''
     hdulist = pyfits.open(retrieve_dir+"lm_"+datestring+"_"+str("{:0>6d}".format(framenum))+".fits")
     hdulist.writeto(deposit_dir+"lm_"+datestring+"_"+str("{:0>6d}".format(framenum))+".fits", clobber=True)
 
+
+
+def move_fits_simple(framenum):
+    ''' 
+    Move a single fits frame to another directory, over and over, under new names
+    '''
+
+    file_name_stem = "chrom_mono_avgwavel_5000_opd_00200_tip_0000_tilt_0000_transl_000_PS_10"
+    #file_name_stem = "half_um_test"
+    hdulist = pyfits.open(retrieve_dir+file_name_stem+".fits")
+    hdulist.writeto(deposit_dir+file_name_stem+"_"+str("{:0>6d}".format(framenum))+".fits", clobber=True)
+
+
+### SEQUENCES OF FRAMES
 
 # good Fizeau-grism sequences from 180507 Altair data:
 # frames, rough PSF location
@@ -49,6 +64,7 @@ def move_mimic_fits(framenum):
 # 8266-8284, (y,x)=Ibid. (looks symmetrical)
 # 8285-8289, (y,x)=Ibid. (fringe jump; one dark jailbar down center)
 
+''' 
 start_framenum = 5706
 stop_framenum = 5816
 framenum = np.copy(start_framenum)
@@ -61,5 +77,17 @@ while (framenum < stop_framenum):
     framenum += 1
     print('written, time elapsed')
     print(str(time.time() - time_start))
+'''
 
+### THE SAME FRAME, OVER AND OVER
+
+start_framenum = 0
+framenum = np.copy(start_framenum)
+while True:
+    time_start = time.time()
+    time.sleep(0.5)
+    move_fits_simple(framenum)
+    framenum += 1
+    print('written, time elapsed')
+    print(str(time.time() - time_start))
 
