@@ -171,17 +171,22 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
     # note factor of 10; command is in relative movement of 0.1 um
     print("----------------------------------------------------------------")
     if ((mode == "az_source") or (mode == "science")):
-        print("Moving SPC_Trans for large OPD movement of "+str(int(diff_movement_total_opd))+" um or "+str(diff_movement_total_cts)+" translation counts")
-        spc_trans_position_pre = pi.getINDI("Ubcs.SPC_Trans_status.PosNum") # translation stage before command (absolute position, 0.02 um)
+        print("Moving SPC_Trans for large OPD movement of " + str(int(diff_movement_total_opd)) + " um or " + \
+              str(diff_movement_total_cts) + " translation counts")
+
+        # translation stage before command (absolute position, 0.02 um)
+        spc_trans_position_pre = pi.getINDI("Ubcs.SPC_Trans_status.PosNum") 
         spc_trans_position_now = spc_trans_position_pre
         spc_trans_position_goal = spc_trans_position_pre + diff_movement_total_cts
         pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(diff_movement_total_cts))
+        
         # wait for the SPC_Trans movement to finish
         while (spc_trans_position_now != spc_trans_position_goal):
             spc_trans_position_now = pi.getINDI("Ubcs.SPC_Trans_status.PosNum") # check status of SPC_Trans
             time.sleep(0.5) # wait a moment
     else:
-        print("Not moving SPC_Trans, since this is in testing mode. But calculated needed movement is " + str(int(diff_movement_total_opd))+" um or "+str(diff_movement_total_cts)+" translation counts")
+        print("Not moving SPC_Trans, since this is in testing mode. But calculated needed movement is " + \
+              str(int(diff_movement_total_opd))+" um or "+str(diff_movement_total_cts)+" translation counts")
 
     return
 
@@ -254,7 +259,7 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
 	AmpPE, ArgPE = fft_img(img_before_padding_before_FT).fft(padding=0)
 
 	# save fyi FITS files
-        '''
+    '''
 	hdu = pyfits.PrimaryHDU(image)
         hdulist = pyfits.HDUList([hdu])
         hdu.writeto('junk_test_original_grism.fits', clobber=True)
@@ -333,8 +338,8 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
 	df = df.append(df_append, ignore_index=True)
 	print(df)
 	# now move the HPC to the next step (small steps with piezos)
-        # small steps, piezos: Acromag.HPC.Tip=0;Tilt=0;Piston=[step_size_opd];Mode=1
-        #hpc_small_step = 0.5*step_size_opd # half the OPD (relative step)
+    # small steps, piezos: Acromag.HPC.Tip=0;Tilt=0;Piston=[step_size_opd];Mode=1
+    #hpc_small_step = 0.5*step_size_opd # half the OPD (relative step)
 	#hpc_piezo_next_pos = np.add(spc_trans_position, opd_step*hpc_small_step) # piezo command is in absolute position, units of um
 	#print("----------------------------------------------------------------")
 	#print("Moving HPC for small OPD movement to position "+hpc_piezo_next_pos)
@@ -342,14 +347,14 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
 
 	# big steps with the SPC translation stage: Ubcs.SPC_Trans.command=>5
 	# note factor of 10; command is in relative movement of 0.1 um
-        print("----------------------------------------------------------------")
-        if ((mode == "az_source") or (mode == "science")):
+    print("----------------------------------------------------------------")
+    if ((mode == "az_source") or (mode == "science")):
 	    print("Moving SPC_Trans for large OPD movement of "+str(int(step_size_opd))+" um (translation of "+str(0.5*step_size_opd)+\
-		" um, or "+str(50*0.5*step_size_opd)+" counts)")
+              " um, or "+str(50*0.5*step_size_opd)+" counts)")
 	    pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(50*0.5*step_size_opd))
-        elif (mode == "fake_fits"):
-            print("Since this is fake_fits mode, SPC_Trans will not be moved, but it WOULD have been moved for large OPD movement of "+\
-		str(int(step_size_opd))+" um (translation of "+str(0.5*step_size_opd)+" um, or "+str(50*0.5*step_size_opd))
+    elif (mode == "fake_fits"):
+        print("Since this is fake_fits mode, SPC_Trans will not be moved, but it WOULD have been moved for large OPD movement of "+\
+              str(int(step_size_opd))+" um (translation of "+str(0.5*step_size_opd)+" um, or "+str(50*0.5*step_size_opd))
 
     # write data to file for copying and plotting on local machine
     file_name = "resids_test.csv"

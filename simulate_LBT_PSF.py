@@ -253,12 +253,12 @@ def main():
     ## USER INPUTS
 
     opd_start = 0.0e-6
-    #opd_stop = 0.0e-6
-    opd_stop = 50.0e-6 # inclusive
+    opd_stop = 0.0e-6
+    #opd_stop = 50.0e-6 # inclusive
     opd_increment = 0.5e-6 # change in OPD at each step; in m
 
     tilt_start = 0.0
-    tilt_stop = 0.0 # asec 
+    tilt_stop = 0.1 # asec 
     tilt_increment = 0.01
 
     tip_start = 0.

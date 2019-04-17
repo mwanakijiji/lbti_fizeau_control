@@ -60,7 +60,7 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
     while True:
 
         # take a background-subtracted frame
-	print("Taking a background-subtracted frame")
+        print("Taking a background-subtracted frame")
         pi.setINDI("LMIRCAM_save.enable_save.value=On")
         f = pi_fiz.getFITS("fizeau.roi_image.file", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
