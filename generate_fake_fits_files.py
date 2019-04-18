@@ -42,7 +42,9 @@ def move_fits_simple(framenum):
     Move a single fits frame to another directory, over and over, under new names
     '''
 
-    file_name_stem = "chrom_mono_avgwavel_5000_opd_00200_tip_0000_tilt_0000_transl_000_PS_10"
+    #file_name_stem = "chrom_mono_avgwavel_5000_opd_00200_tip_0000_tilt_0000_transl_000_PS_10"
+    #file_name_stem = "chrom_mono_avgwavel_5000_opd_00000_tip_0000_tilt_0010_transl_000_PS_10"
+    file_name_stem = "chrom_mono_avgwavel_5000_opd_00000_tip_0000_tilt_0090_transl_000_PS_10"
     #file_name_stem = "half_um_test"
     hdulist = pyfits.open(retrieve_dir+file_name_stem+".fits")
     hdulist.writeto(deposit_dir+file_name_stem+"_"+str("{:0>6d}".format(framenum))+".fits", clobber=True)
