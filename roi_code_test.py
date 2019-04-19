@@ -9,7 +9,7 @@ pi = PyINDI(host="localhost", verbose=False)
 
 pi.setINDI("fizeau.enable_run.value=On")
 
-#pi.setINDI("LMIRCAM_save.enable_save.value=On")
+#pi.setINDI("lmircam_save.enable_save.value=On")
 
 # if images are being taken continuously
 #f = pi.getFITS("fizeau.roi_image.file")

@@ -7,7 +7,7 @@ from scipy import ndimage, sqrt, misc, stats,signal
 from lmircam_tools import *
 from lmircam_tools import pi, process_readout, gaussian_x, find_airy_psf, find_grism_psf
 from lmircam_tools.utils import nod, wait4AORunning
-
+from lmircam_tools.exposures import get_lmircam_frames
 
 ###### TO DO: THE OVERLAP FUNCTIONS HAVE A LOT OF SHARED FUNCTIONALITY; MAKE A CLASS STRUCTURE!
 # SEE https://jeffknupp.com/blog/2014/06/18/improve-your-python-python-classes-and-object-oriented-programming/
@@ -60,8 +60,8 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
     while True:
 
         # take a background-subtracted frame
-        print("Taking a background-subtracted frame")
-        pi.setINDI("LMIRCAM_save.enable_save.value=On")
+	print("Taking a background-subtracted frame")
+        pi.setINDI("lmircam_save.enable_save.value=On")
         f = pi_fiz.getFITS("fizeau.roi_image.file", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
         # get the right image slice
@@ -95,7 +95,7 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
 
         ### re-locate PSF; correction needed?
         print("Taking a background-subtracted frame")
-        pi.setINDI("LMIRCAM_save.enable_save.value=On")
+        pi.setINDI("lmircam_save.enable_save.value=On")
 	f = pi_fiz.getFITS("fizeau.roi_image.file", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
         # make sure we get right image slice
@@ -146,7 +146,7 @@ def overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = "science", psf_type = "
     pi.setINDI("Lmir.lmir_FW2.command", 'Open', wait=True)
 
     # take a new frame to see what things look like now
-    pi.setINDI("LMIRCAM_save.enable_save.value=On")
+    pi.setINDI("lmircam_save.enable_save.value=On")
     f = pi_fiz.getFITS("fizeau.roi_image.file", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
     # turn off fizeau flag to avoid problems with other observations

@@ -349,9 +349,8 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
                 elif ((mode == "science") or (mode == "nac_source") or (mode == "az_source")):
                     # take a frame with background subtracting
                     print("Taking a background-subtracted frame")
-                    pi.setINDI("LMIRCAM_save.enable_save.value=On")
-                f = pi_fiz.getFITS("fizeau.roi_image.file", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;"+\
-                "is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
+                    pi.setINDI("lmircam_save.enable_save.value=On")
+                f = pi_fiz.getFITS("fizeau.roi_image.file", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
                 '''
 
             	# if there are no new files, cycle back through
@@ -414,6 +413,8 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
         else:
             cookie_cut = np.copy(image)
     	padding_choice = int(5*cookie_size)
+        print("Total length of one side of image being FFTed (pix):")
+        print(np.shape(cookie_cut)[0]+2*padding_choice)
     	amp, arg = fft_img(cookie_cut).fft(padding=padding_choice, mask_thresh=1e5)
 
     	# save image to check
@@ -701,12 +702,11 @@ def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "s
     print(str(corrxn_pl))
     print("-----")
 
-    # apply the new setpoints
     if (apply == True):
         pi.setINDI("PLC.UBCSettings.TipSetpoint="+str(np.add(fpc_tip_setpoint,corrxn_tip_y))) # tip: y
         pi.setINDI("PLC.UBCSettings.TiltSetpoint="+str(np.add(fpc_tilt_setpoint,corrxn_tilt_x))) # tilt: x
         pi.setINDI("PLC.UBCSettings.PLSetpoint="+str(np.add(fpc_pl_setpoint,corrxn_pl))) # pathlength
-        print("Manually change FPC tip-tilt setpoints. What was the scale?")
+        #print("Manually change FPC tip-tilt setpoints. What was the scale?")
 
     #######################################################################
     # lines to run on the command line to test application of corrections

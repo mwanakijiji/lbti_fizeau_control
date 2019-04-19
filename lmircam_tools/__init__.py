@@ -128,6 +128,9 @@ class fft_img:
         #ArgPE = np.multiply(np.angle(PhaseExtract),180./np.pi) # degrees
         ArgPE = np.angle(PhaseExtract) # radians
 
+        print("Size of array being FFTed:")
+        print(np.shape(PhaseExtract))
+
         if mask:
             # mask out low-power regions
             AmpPE_masked = ma.masked_where(AmpPE < mask_thresh, AmpPE, copy=False)
@@ -150,7 +153,7 @@ def find_airy_psf(image):
 
         #imageThis = numpy.copy(image)
 
-        '''
+        ''' 
         if (PSFside == 'left'):
             imageThis[:,1024:-1] = 0
         elif (PSFside == 'right'):
@@ -222,7 +225,7 @@ def put_in_grism(mode = "science", image = "yes"):
             pi_fiz.setINDI("fizeau.enable_run.value=On")
 
             # take a new frame to see what things look like now
-            pi.setINDI("LMIRCAM_save.enable_save.value=On")
+            pi.setINDI("lmircam_save.enable_save.value=On")
             f = pi_fiz.getFITS("fizeau.roi_image.file", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
             # turn off fizeau flag to avoid problems with other observations

@@ -31,7 +31,7 @@ raw_input("Place an ROI, no larger than 512x512, over the Phasecam sweet spot fo
 #                       frames (science stage)          Y                                            N
 #    "science":       (same as "az_source")             Y                                            Y
 print("----------------------------------------------------------------------------------")
-mode_choice = "fake_fits"
+mode_choice = "az_source"
 print("This optimization code is running in mode " + mode_choice)
 print("Stop continuous aquisition of the camera for alignment and set the integration time in the init file.")
 print("----------------------------------------------------------------------------------")
