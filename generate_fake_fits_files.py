@@ -8,10 +8,10 @@ import pyfits
 import numpy as np
 import sched, time
 
-datestring = "180507"
-#retrieve_dir = "/opt/local/LBTI_INDI/data/LMIRCAM/180507/" # directory where we retrieve already-written frames
+datestring = "190419"
+retrieve_dir = "/opt/local/LBTI_INDI/data/LMIRCAM/190419/" # directory where we retrieve already-written frames
 #retrieve_dir = "/opt/local/LBTI_INDI/data/LMIRCAM/180507/junk/"
-retrieve_dir = "fake_retrieve/"
+#retrieve_dir = "fake_retrieve/"
 deposit_dir = "fake_monitor/" # directory for this night, which we are monitoring for new frames
 #deposit_dir = "/opt/local/LBTI_INDI/data/LMIRCAM/junk/"
 
@@ -33,7 +33,7 @@ def move_mimic_fits(framenum):
     writing new files to that directory
     '''
     hdulist = pyfits.open(retrieve_dir+"lm_"+datestring+"_"+str("{:0>6d}".format(framenum))+".fits")
-    hdulist.writeto(deposit_dir+"lm_"+datestring+"_"+str("{:0>6d}".format(framenum))+".fits", clobber=True)
+    hdulist.writeto(deposit_dir+"lm_"+datestring+"_"+str("{:0>6d}".format(framenum))+"_junk.fits", clobber=True)
 
 
 
@@ -66,9 +66,8 @@ def move_fits_simple(framenum):
 # 8266-8284, (y,x)=Ibid. (looks symmetrical)
 # 8285-8289, (y,x)=Ibid. (fringe jump; one dark jailbar down center)
 
-''' 
-start_framenum = 5706
-stop_framenum = 5816
+start_framenum = 22800
+stop_framenum = 22999
 framenum = np.copy(start_framenum)
 
 while (framenum < stop_framenum):
@@ -79,17 +78,18 @@ while (framenum < stop_framenum):
     framenum += 1
     print('written, time elapsed')
     print(str(time.time() - time_start))
-'''
+
 
 ### THE SAME FRAME, OVER AND OVER
-
+''' 
 start_framenum = 0
 framenum = np.copy(start_framenum)
 while True:
     time_start = time.time()
     time.sleep(0.5)
+    #move_mimic_fits(framenum)
     move_fits_simple(framenum)
     framenum += 1
     print('written, time elapsed')
     print(str(time.time() - time_start))
-
+'''
