@@ -56,8 +56,9 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
     print("Putting in "+half_moon_filter+" to see "+x_side)
     pi.setINDI("Lmir.lmir_FW2.command", half_moon_filter, timeout=45, wait=True)
 
-    raw_input("Please take continuous, background-subtracted frames, so that the Airy rings can be overlapped." + \
-              "This script will stop when the PSFS are overlapped to within tolerance.")
+    raw_input("Please take continuous, background-subtracted frames, so that the Airy rings can be overlapped.\n" + \
+              " This script will stop when the PSFS are overlapped to within tolerance.\n" + \
+              " Press [Enter] to continue.")
 
     ### iterate to try to get Airy PSF on the same pixel
     while True:
@@ -114,6 +115,10 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
         print(psf_loc_setpt)
         print("Current " + x_side + " PSF loc in (y,x) pix:")
         print(psf_loc)
+
+        # if in fake_fits mode, just bream after the first calculation
+        if (mode == "fake_fits"):
+            break
 
         # if PSFs are closer than N pixels from each other, break
         ## ## TOLERANCE ON SKY SHOULD BE N=5 OR SMALLER
