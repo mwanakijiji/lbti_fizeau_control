@@ -24,12 +24,11 @@ raw_input("Place an ROI, no larger than 512x512, over the Phasecam sweet spot fo
 	"large enough to include the grism PSF and possible movement\nPress [Enter] when done.")
 
 # Operating mode
-#    [MODE]           [SOURCE OF DATA]                  [COMMANDS TO MIRRORS AND WHEELS]             [COMMANDS TO TELESCOPE]
-#    "fake_fits":     fake/old FITS files               N                                            N
-#    "az_source":     take frames (alignment stage)
-#                       or piggy-back off science
-#                       frames (science stage)          Y                                            N
-#    "science":       (same as "az_source")             Y                                            Y
+#    [MODE]           [SOURCE OF DATA]               [DATA CONFIGURATION]  [CMDS TO MIRRORS AND WHEELS]  [CMDS TO TELESCOPE]
+#    "fake_fits":     fake/old FITS files            written file read in  N                             N
+#    "az_source":     piggy-back off frames user     INDI                  Y                             N
+#                       is taking with LMIR
+#    "science":       (same as "az_source")          INDI                  Y                             Y
 print("----------------------------------------------------------------------------------")
 mode_choice = "fake_fits"
 print("This optimization code is running in mode " + mode_choice)

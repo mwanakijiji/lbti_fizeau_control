@@ -379,8 +379,15 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
     	# if we're reading in real frames from LMIR, catch them as they are read out
     	elif ((mode == "az_source") or (mode == "science")):
 
+            # roi image
             f = pi_fiz.getFITS("fizeau.roi_image.file", timeout=60)
             file_name_base = "test_placeholder" # string to add to log image files
+
+            # FFT mag image (this has to wait for a new frame)
+            fftw_amp = pi_fiz.getFITS("fizeau.mag_image.file", timeout=60)
+
+            # FFT phase image (this has to wait for a new frame(
+            fftw_phase = pi_fiz.getFITS("fizeau.phase_image.file", timeout=60)
 
     	# get the right image slice
     	if (np.ndim(f[0].data) > 2):
@@ -407,7 +414,7 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
         # size of cookie cut-out (measured center-to-edge)
         cookie_size = 100 # maximum control radius as of 2018 July corresponds to 130.0 pixels
 
-        # take FFT
+        # take FFT (some of this is redundant if INDI is putting out FFTs)
         if (mode == "fake_fits"):
             cookie_cut = image[psf_loc[0]-cookie_size:psf_loc[0]+cookie_size,psf_loc[1]-cookie_size:psf_loc[1]+cookie_size]
         else:
@@ -416,6 +423,9 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
         print("Total length of one side of image being FFTed (pix):")
         print(np.shape(cookie_cut)[0]+2*padding_choice)
     	amp, arg = fft_img(cookie_cut).fft(padding=padding_choice, mask_thresh=1e5)
+
+        # this is a kludge for slipping in the INDI FFT amplitude (the phase has a checkerboard pattern until Paul fixes it) in place of the Python one
+        amp = ma.masked_where(fftw_amp == np.nan, fftw_amp, copy=False)
 
     	# save image to check
     	hdu = pyfits.PrimaryHDU(cookie_cut)

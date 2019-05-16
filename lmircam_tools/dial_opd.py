@@ -80,6 +80,11 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
 
             f = pi_fiz.getFITS("fizeau.roi_image.file", timeout=60)
 
+            # FFT mag image (this has to wait for a new frame)
+            fftw_amp = pi_fiz.getFITS("fizeau.mag_image.file", timeout=60)
+
+            # FFT phase image (this has to wait for a new frame(
+            fftw_phase = pi_fiz.getFITS("fizeau.phase_image.file", timeout=60)
 
         # get the right image slice
         if (np.ndim(f[0].data) > 2):
@@ -108,6 +113,9 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
         # take FFT; no padding for now
         ## ## DO I WANT A SMALL CUTOUT OR THE ORIGINAL IMAGE?
         AmpPE, ArgPE = fft_img(img_before_padding_before_FT).fft(padding=0)
+
+        # this is a kludge for slipping in the INDI FFT amplitude (the phase has a checkerboard pattern until Paul fixes it) in place of the Python one
+        AmpPE = ma.masked_where(fftw_amp == np.nan, fftw_amp, copy=False)
 
         # save image to check
         hdu = pyfits.PrimaryHDU(img_before_padding_before_FT)
@@ -219,8 +227,15 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
 
         if (mode != "fake_fits"):
             print("Taking a background-subtracted frame")
-            pi.setINDI("lmircam_save.enable_save.value=On")
+
+            # ROI image
             f = pi_fiz.getFITS("fizeau.roi_image.file", timeout=60)
+
+            # FFT mag image (this has to wait for a new frame)
+            fftw_amp = pi_fiz.getFITS("fizeau.mag_image.file", timeout=60)
+
+            # FFT phase image (this has to wait for a new frame(
+            fftw_phase = pi_fiz.getFITS("fizeau.phase_image.file", timeout=60)
 
 	elif (mode == "fake_fits"):
             ## ## CHANGE THIS TO MONITOR A DIRECTORY
@@ -252,6 +267,9 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
         # take FFT; no padding for now
         ## ## DO I WANT A SMALL CUTOUT OR THE ORIGINAL IMAGE?
 	AmpPE, ArgPE = fft_img(img_before_padding_before_FT).fft(padding=0)
+
+        # this is a kludge for slipping in the INDI FFT amplitude (the phase has a checkerboard pattern until Paul fixes it) in place of the Python one
+        AmpPE = ma.masked_where(fftw_amp == np.nan, fftw_amp, copy=False)
 
 	# save fyi FITS files
         '''
