@@ -216,6 +216,7 @@ def put_in_grism(mode = "science", image = "yes"):
         pi.setINDI("Lmir.lmir_FW3.command", fw3_selection, timeout=45, wait=True)
         pi.setINDI("Lmir.lmir_FW25.command", fw25_selection, timeout=45, wait=True) # blocks some extraneous light
 
+        end_time = time.time()
         print("Grism put in in (secs)")
         print(end_time - start_time)
         print("---------------------")
