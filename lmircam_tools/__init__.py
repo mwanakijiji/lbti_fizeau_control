@@ -216,23 +216,6 @@ def put_in_grism(mode = "science", image = "yes"):
         pi.setINDI("Lmir.lmir_FW3.command", fw3_selection, timeout=45, wait=True)
         pi.setINDI("Lmir.lmir_FW25.command", fw25_selection, timeout=45, wait=True) # blocks some extraneous light
 
-
-    if (image and (mode != "total_passive")):
-
-        if (bkgd_choice != "quick_dirt"):
-            # turn on fizeau flag
-            print("Activating ROI aquisition flag")
-            pi_fiz.setINDI("fizeau.enable_run.value=On")
-
-            # take a new frame to see what things look like now
-            pi.setINDI("lmircam_save.enable_save.value=On")
-            f = pi_fiz.getFITS("fizeau.roi_image.file", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
-
-            # turn off fizeau flag to avoid problems with other observations
-            print("De-activating ROI aquisition flag")
-            pi_fiz.setINDI("fizeau.enable_run.value=Off")
-
-        end_time = time.time()
         print("Grism put in in (secs)")
         print(end_time - start_time)
         print("---------------------")
