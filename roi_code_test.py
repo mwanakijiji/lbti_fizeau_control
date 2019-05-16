@@ -49,7 +49,7 @@ del f, image
 f = pi.getFITS("fizeau.phase_image.file", timeout=60)
 
 # write roi_image to file
-image = f[0].data
+image = np.multiply(f[0].data,np.pi/180.)
 hdu = pyfits.PrimaryHDU(image)
 hdulist = pyfits.HDUList([hdu])
 hdu.writeto("phase_image.fits", clobber=True)

@@ -60,8 +60,8 @@ def needed_tt_setpt_corrxn(alpha,PS,Nx,Ny):
     '''
 
     delta = 1 # sampling spacing is 1 LMIR pixel
-    beta_x = -2*alpha[0]*PS*Nx*delta # (asec; the minus sign is because alpha and beta have opposite sign)
-    beta_y = -2*alpha[1]*PS*Ny*delta # (asec; the minus sign is because alpha and beta have opposite sign)
+    beta_x = -alpha[0]*PS*Nx*delta/np.pi # (asec; the minus sign is because alpha and beta have opposite sign)
+    beta_y = -alpha[1]*PS*Ny*delta/np.pi # (asec; the minus sign is because alpha and beta have opposite sign)
 
     # return the opposite (in units mas); this is the [tilt,tip] setpoint correction
     return -np.multiply([beta_x,beta_y],1000)
@@ -533,19 +533,18 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
     	print("PSF "+file_name_full+" analyzed in time (secs):")
     	print(time_elapsed)
 
-    	# write to csv to check on a local machine (this info will also be pickled)
-    	fftInfo_amp_df.to_csv("pickled_info/csvs/fft_amp_"+str(int(counter_num))+".csv")
-    	fftInfo_arg_df.to_csv("pickled_info/csvs/fft_arg_"+str(int(counter_num))+".csv")
-    	## ## note I havent used log_name anywhere yet
+    print("Done analyzing one PSF.")
+    counter_num += 1 # advance counter
 
-    	# pack info from the series of FFTs into dictionaries, and pickle them
-    	#d = {"fftInfo_amp": fftInfo_amp, "fftInfo_arg": fftInfo_arg}
-    	with open(fft_pickle_write_name, "w") as f:
-            pickle.dump((fftInfo_amp, fftInfo_arg), f)
+    # write to csv to check on a local machine (this info will also be pickled)
+    fftInfo_amp_df.to_csv("pickled_info/csvs/fft_amp_"+str(int(counter_num))+".csv")
+    fftInfo_arg_df.to_csv("pickled_info/csvs/fft_arg_"+str(int(counter_num))+".csv")
+    ## ## note I havent used log_name anywhere yet
 
-        print("Done analyzing one PSF.")
-
-        counter_num += 1 # advance counter
+    # pack info from the series of FFTs into dictionaries, and pickle them
+    #d = {"fftInfo_amp": fftInfo_amp, "fftInfo_arg": fftInfo_arg}
+    with open(fft_pickle_write_name, "w") as f:
+        pickle.dump((fftInfo_amp, fftInfo_arg), f)
 
     # return
     # 1. number of psfs over which we will take median
