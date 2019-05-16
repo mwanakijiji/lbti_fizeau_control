@@ -56,13 +56,15 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
     print("Putting in "+half_moon_filter+" to see "+x_side)
     pi.setINDI("Lmir.lmir_FW2.command", half_moon_filter, timeout=45, wait=True)
 
+    raw_input("Please take continuous, background-subtracted frames, so that the Airy rings can be overlapped." + \
+              "This script will stop when the PSFS are overlapped to within tolerance.")
+
     ### iterate to try to get Airy PSF on the same pixel
     while True:
 
-        # take a background-subtracted frame
+        # snag a background-subtracted frame
 	print("Taking a background-subtracted frame")
-        pi.setINDI("lmircam_save.enable_save.value=On")
-        f = pi_fiz.getFITS("fizeau.roi_image.file", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
+        f = pi_fiz.getFITS("fizeau.roi_image.file", timeout=60)
 
         # get the right image slice
         if (np.ndim(f[0].data) > 2):
@@ -95,8 +97,7 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
 
         ### re-locate PSF; correction needed?
         print("Taking a background-subtracted frame")
-        pi.setINDI("lmircam_save.enable_save.value=On")
-	f = pi_fiz.getFITS("fizeau.roi_image.file", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
+        f = pi_fiz.getFITS("fizeau.roi_image.file", timeout=60)
 
         # make sure we get right image slice
         if (np.ndim(f[0].data) > 2):
@@ -146,12 +147,12 @@ def overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = "science", psf_type = "
     pi.setINDI("Lmir.lmir_FW2.command", 'Open', wait=True)
 
     # take a new frame to see what things look like now
-    pi.setINDI("lmircam_save.enable_save.value=On")
-    f = pi_fiz.getFITS("fizeau.roi_image.file", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
+    #pi.setINDI("lmircam_save.enable_save.value=On")
+    #f = pi_fiz.getFITS("fizeau.roi_image.file", "LMIRCAM.acquire.enable_bg=1;int_time=%i;is_bg=0;is_cont=0;num_coadds=1;num_seqs=1" % integ_time, timeout=60)
 
     # turn off fizeau flag to avoid problems with other observations
-    print("De-activating ROI aquisition flag")
-    pi_fiz.setINDI("fizeau.enable_run.value=Off")
+    #print("De-activating ROI aquisition flag")
+    #pi_fiz.setINDI("fizeau.enable_run.value=Off")
     end_time = time.time()
     print("PSF overlapping done in (secs)")
     print(end_time - start_time)
