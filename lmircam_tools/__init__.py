@@ -1,4 +1,5 @@
 import numpy as np
+import pyfits
 import time
 from numpy import ma
 from pyindi import *
@@ -116,18 +117,23 @@ class fft_img:
         self.image = image
 
     def fft(self, padding=int(0), pad_mode='constant', mask_thresh=1e-10, mask=True):
-
+        print('A')
         padI = np.pad(self.image, padding, pad_mode)
 	# arguments: image, pad size, pad mode, threshold for masking, mask flag
+        print('B')
+        #print(np.shape(self.image))
+        #hdu = pyfits.PrimaryHDU(padI)
+        #hdulist = pyfits.HDUList([hdu])
+        #hdu.writeto("junk.fits", padI, clobber=True)
 
         padI = np.fft.fftshift(padI)
         PhaseExtract = np.fft.fft2(padI)
         PhaseExtract = np.fft.fftshift(PhaseExtract)
-
+        print('C')
         AmpPE = np.absolute(PhaseExtract)
         #ArgPE = np.multiply(np.angle(PhaseExtract),180./np.pi) # degrees
         ArgPE = np.angle(PhaseExtract) # radians
-
+        print('D')
         print("Size of array being FFTed:")
         print(np.shape(PhaseExtract))
 

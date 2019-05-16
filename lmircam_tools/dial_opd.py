@@ -87,10 +87,18 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
             fftw_phase = pi_fiz.getFITS("fizeau.phase_image.file", timeout=60)
 
         # get the right image slice
-        if (np.ndim(f[0].data) > 2):
-            image = f[0].data[-1,:,:] # images from LMIRcam (> summer 2018) are cubes of nondestructive reads
-        else:
-            image = np.squeeze(f[0].data)
+        if (mode == "fake_fits"):
+            if (np.ndim(f[0].data) > 2):
+                image = f[0].data[-1,:,:] # images from LMIRcam (> summer 2018) are cubes of nondestructive reads
+            else:
+                image = np.squeeze(f[0].data)
+        elif ((mode == "az_source") or (mode == "science")):
+            image = np.copy(f[0].data)
+            print(np.shape(f))
+            print(np.shape(f[0]))
+            print(np.shape(f[0].data))
+            print(np.shape(image))
+            print('00')
 
         # if this is a fake fits file, do a quick-and-dirty background subtraction
         if (mode == "fake_fits"):
@@ -109,14 +117,21 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
             # cut out the grism image (best to have rectangle, rather than square cutout)
             #img_before_padding_before_FT = np.copy(image)
             img_before_padding_before_FT = image[center_grism[0]-int(200):center_grism[0]+int(200),center_grism[1]-int(100):center_grism[1]+int(100)]
+        elif ((mode == "az_source") or (mode == "science")):
+            img_before_padding_before_FT = np.copy(f[0].data)
+            file_name_base = str(int(time.time())) + "_" + str(counter_num) # basename has already been defined for fake_fits
 
+        print('1')
+        print()
         # take FFT; no padding for now
         ## ## DO I WANT A SMALL CUTOUT OR THE ORIGINAL IMAGE?
         AmpPE, ArgPE = fft_img(img_before_padding_before_FT).fft(padding=0)
 
+        print('2')
         # this is a kludge for slipping in the INDI FFT amplitude (the phase has a checkerboard pattern until Paul fixes it) in place of the Python one
         AmpPE = ma.masked_where(fftw_amp == np.nan, fftw_amp, copy=False)
 
+        print('3')
         # save image to check
         hdu = pyfits.PrimaryHDU(img_before_padding_before_FT)
         hdulist = pyfits.HDUList([hdu])
@@ -144,6 +159,7 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
         hdulist = pyfits.HDUList([hdu])
         hdu.writeto("log_images/img_when_centroiding_fringe_angle_" + file_name_base + ".fits", clobber=True)
 
+        print('4')
         print("Analyzing "+file_name_base)
         print("Dot location (y,x):")
         print(dot_loc)
