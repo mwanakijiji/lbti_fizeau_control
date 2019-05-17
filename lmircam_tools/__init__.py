@@ -151,12 +151,9 @@ class fft_img_ersatz:
 
         padI = np.pad(self.image, padding, pad_mode)
         # arguments: image, pad size, pad mode, threshold for masking, mask flag
-        padI = np.fft.fftshift(padI)
-        PhaseExtract = np.fft.fft2(padI)
-        PhaseExtract = np.fft.fftshift(PhaseExtract)
-        AmpPE = np.absolute(PhaseExtract)
+        AmpPE = padI
         #ArgPE = np.multiply(np.angle(PhaseExtract),180./np.pi) # degrees
-        ArgPE = np.angle(PhaseExtract) # radians
+        ArgPE = padI # radians
 
         print("Size of array being FFTed:")
         print(np.shape(PhaseExtract))

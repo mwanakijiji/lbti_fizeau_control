@@ -58,6 +58,8 @@ overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = mode_choice, psf_type = "gr
 # this should be run WHILE taking science data
 live_opd_correction_fizeau_grism(integ_time, mode = mode_choice)
 
+## ## CONTINUE FROM HERE
+
 # modes: "fake_fits" / "az_source" / "science"
 find_optimal_opd_fizeau_grism(integ_time, mode = mode_choice)
 implement_optimal_opd(mode = mode_choice)
@@ -72,7 +74,8 @@ raw_input("Science detector alignment done. Now align Phasecam and close the pha
 
 # print fft info, see how it compares with the set thresholds
 # modes: "fake_fits" / "az_source" / "science"
-num_psfs, fftimg_shape = print_write_fft_info(integ_time, sci_wavel = wavel_lambda, mode = mode_choice)
+fft_pickle = "fft_pickle_info.pkl"
+num_psfs, fftimg_shape = print_write_fft_info(integ_time, sci_wavel = wavel_lambda, mode = mode_choice, fft_pickle_write_name = fft_pickle)
 
 # calculate and apply Phasecam setpoints; write them to a pickle file to check the correction
 setpoints_pickle_pre = "setpoints_pickle_pre.pkl"

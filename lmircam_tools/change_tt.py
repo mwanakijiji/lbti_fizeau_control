@@ -293,7 +293,7 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
     return dictFFTstuff
 
 
-def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pickle = " ", checker=False):
+def print_write_fft_info(integ_time, sci_wavel, mode = "science", fft_pickle_write_name = "fft_pickle.pkl", setpoints_pickle = " ", checker=False):
     ''' 
     Take FFT of PSF, and calculate new Phasecam PL and TT setpoints
 
@@ -379,6 +379,10 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
     	# if we're reading in real frames from LMIR, catch them as they are read out
     	elif ((mode == "az_source") or (mode == "science")):
 
+            time_start = time.time()
+
+            file_name_full = str(int(time.time())) + "_" + str(counter_num) # string for written file names
+
             # roi image
             f = pi_fiz.getFITS("fizeau.roi_image.file", timeout=60)
             file_name_base = "test_placeholder" # string to add to log image files
@@ -422,24 +426,31 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
     	padding_choice = int(5*cookie_size)
         print("Total length of one side of image being FFTed (pix):")
         print(np.shape(cookie_cut)[0]+2*padding_choice)
-    	amp, arg = fft_img(cookie_cut).fft(padding=padding_choice, mask_thresh=1e5)
+    	print('1')
+        amp, arg = fft_img(cookie_cut).fft(padding=padding_choice, mask_thresh=1e5)
 
-        # this is a kludge for slipping in the INDI FFT amplitude (the phase has a checkerboard pattern until Paul fixes it) in place of the Python one
-        amp = ma.masked_where(fftw_amp == np.nan, fftw_amp, copy=False)
+        # this is a kludge for slipping in the INDI FFT amplitude in place of the Python one
+        # (the phase has a checkerboard pattern until Paul fixes it, so Im just going to keep 
+        # the Python amplitude)
+        if ((mode == "az_source") or (mode == "science")):
+            amp = fftw_amp[0]
+            amp_ersatz, junk = fft_img(fftw_amp[0].data).fft(padding=padding_choice, mask_thresh=1e5)
+            #amp = np.pad(amp, padding_choice, 'constant') # padding necessary to be consistent with Python FFT phase array size
+            #amp = np.ma.asarray(amp) # turning it into a masked array necessary to feed it into fftMask()
+            amp = amp_ersatz
 
     	# save image to check
     	hdu = pyfits.PrimaryHDU(cookie_cut)
     	hdulist = pyfits.HDUList([hdu])
     	hdu.writeto("log_images/cookie_prepadding_prefft_" + file_name_base + ".fits", clobber=True)
-
     	# test: see what the FFT looks like
-    	hdu = pyfits.PrimaryHDU(amp.data)
+        hdu = pyfits.PrimaryHDU(amp.data)
     	hdulist = pyfits.HDUList([hdu])
     	hdu.writeto("log_images/fft_amp_" + file_name_base + ".fits", clobber=True)
-    	hdu = pyfits.PrimaryHDU(arg.data)
+        hdu = pyfits.PrimaryHDU(arg.data)
     	hdulist = pyfits.HDUList([hdu])
     	hdu.writeto("log_images/fft_arg_" + file_name_base + ".fits", clobber=True)
-
+        print('5')
     	# --commented out because it was triggering on NxM frames where N!=M--
     	# sanity check (and to avoid getting for loop stuck)
     	#if (np.shape(amp)[0] != np.shape(amp)[1]): # if the FFT doesn't make sense (i.e., if PSF was not found)
@@ -449,9 +460,16 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
     	# analyze FFTs
     	fftInfo_amp = fftMask(amp,sci_wavel,plateScale,
                                   fyi_string=" FFT amp")
-    	fftInfo_arg = fftMask(arg,sci_wavel,plateScale,
+    	print('b')
+        fftInfo_arg = fftMask(arg,sci_wavel,plateScale,
                                   fyi_string=" FFT phase")
-
+        print('6')
+        print(type(np.ma.asarray(amp)))
+        print(type(arg))
+        print(type(amp.data))
+        print(type(arg.data))
+        print(np.shape(amp.data))
+        print(np.shape(arg.data))
     	# save fyi FITS files to see the masks, etc.
     	''' 
     	hdu = pyfits.PrimaryHDU(fftInfo_amp["sciImg1"])
@@ -543,8 +561,8 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
     	print("PSF "+file_name_full+" analyzed in time (secs):")
     	print(time_elapsed)
 
-    print("Done analyzing one PSF.")
-    counter_num += 1 # advance counter
+        print("Done analyzing one PSF.")
+        counter_num += 1 # advance counter
 
     # write to csv to check on a local machine (this info will also be pickled)
     fftInfo_amp_df.to_csv("pickled_info/csvs/fft_amp_"+str(int(counter_num))+".csv")
@@ -555,6 +573,9 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
     #d = {"fftInfo_amp": fftInfo_amp, "fftInfo_arg": fftInfo_arg}
     with open(fft_pickle_write_name, "w") as f:
         pickle.dump((fftInfo_amp, fftInfo_arg), f)
+
+    print("--------------------------")
+    print("Done analyzing "+str(num_psfs_to_analyze)+" PSFs.")
 
     # return
     # 1. number of psfs over which we will take median
