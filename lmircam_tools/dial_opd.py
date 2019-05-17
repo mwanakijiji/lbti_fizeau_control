@@ -286,7 +286,8 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
 	AmpPE, ArgPE = fft_img(img_before_padding_before_FT).fft(padding=0)
 
         # this is a kludge for slipping in the INDI FFT amplitude (the phase has a checkerboard pattern until Paul fixes it) in place of the Python one
-        AmpPE = ma.masked_where(fftw_amp == np.nan, fftw_amp, copy=False)
+        if ((mode == "az_source") or (mode == "science")):
+            AmpPE = ma.masked_where(fftw_amp == np.nan, fftw_amp, copy=False)
 
 	# save fyi FITS files
         '''

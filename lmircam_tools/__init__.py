@@ -14,14 +14,14 @@ from scipy import ndimage, sqrt, stats, misc, signal
 wavel_lambda = 5.e-6 # filter central wavel (m)
 
 # physical psf location, if code is being used to read in written FITS files
-psf_loc_fake = [263,969] # (y,x) in FITS coordinates
+psf_loc_fake = [1024,1024] # (y,x) in FITS coordinates
 #psf_loc_fake = [292,853] # a grism sequence
 # desired OR current psf location, if code is using ROI/INDI machinery
 fiz_lmir_sweet_spot = [200,100] # (y,x) in ROI coordinates
 
 # directory to monitor for newly-written images
-#dir_to_monitor = "fake_monitor/"
-dir_to_monitor = "/opt/local/LBTI_INDI/data/LMIRCAM/190420/"
+dir_to_monitor = "fake_monitor/"
+#dir_to_monitor = "/opt/local/LBTI_INDI/data/LMIRCAM/190420/"
 #dir_to_monitor = "/opt/local/LBTI_INDI/data/LMIRCAM/junk/"
 
 # default background-subtraction options
