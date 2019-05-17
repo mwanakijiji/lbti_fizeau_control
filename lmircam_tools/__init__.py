@@ -117,23 +117,16 @@ class fft_img:
         self.image = image
 
     def fft(self, padding=int(0), pad_mode='constant', mask_thresh=1e-10, mask=True):
-        print('A')
+
         padI = np.pad(self.image, padding, pad_mode)
 	# arguments: image, pad size, pad mode, threshold for masking, mask flag
-        print('B')
-        #print(np.shape(self.image))
-        #hdu = pyfits.PrimaryHDU(padI)
-        #hdulist = pyfits.HDUList([hdu])
-        #hdu.writeto("junk.fits", padI, clobber=True)
-
         padI = np.fft.fftshift(padI)
         PhaseExtract = np.fft.fft2(padI)
         PhaseExtract = np.fft.fftshift(PhaseExtract)
-        print('C')
         AmpPE = np.absolute(PhaseExtract)
         #ArgPE = np.multiply(np.angle(PhaseExtract),180./np.pi) # degrees
         ArgPE = np.angle(PhaseExtract) # radians
-        print('D')
+
         print("Size of array being FFTed:")
         print(np.shape(PhaseExtract))
 
@@ -146,6 +139,36 @@ class fft_img:
         else:
             return AmpPE, ArgPE
 
+
+class fft_img_ersatz:
+    # this does nothing to an image except massage it in to a form that mimics Python-made FFTs
+    # this allows me to take a FFTW image and let the downstream code accept it
+
+    def __init__(self, image):
+        self.image = image
+
+    def fft(self, padding=int(0), pad_mode='constant', mask_thresh=1e-10, mask=True):
+
+        padI = np.pad(self.image, padding, pad_mode)
+        # arguments: image, pad size, pad mode, threshold for masking, mask flag
+        padI = np.fft.fftshift(padI)
+        PhaseExtract = np.fft.fft2(padI)
+        PhaseExtract = np.fft.fftshift(PhaseExtract)
+        AmpPE = np.absolute(PhaseExtract)
+        #ArgPE = np.multiply(np.angle(PhaseExtract),180./np.pi) # degrees
+        ArgPE = np.angle(PhaseExtract) # radians
+
+        print("Size of array being FFTed:")
+        print(np.shape(PhaseExtract))
+
+        if mask:
+            # mask out low-power regions
+            AmpPE_masked_ersatz = ma.masked_where(AmpPE < mask_thresh, AmpPE, copy=False)
+            ArgPE_masked_ersatz = ma.masked_where(AmpPE < mask_thresh, ArgPE, copy=False)
+            return AmpPE_masked_ersatz, ArgPE_masked_ersatz
+
+        else:
+            return AmpPE_ersatz, ArgPE_ersatz
 
 # define 2D gaussian for fitting PSFs
 def gaussian_x(x, mu, sig):

@@ -94,11 +94,6 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
                 image = np.squeeze(f[0].data)
         elif ((mode == "az_source") or (mode == "science")):
             image = np.copy(f[0].data)
-            print(np.shape(f))
-            print(np.shape(f[0]))
-            print(np.shape(f[0].data))
-            print(np.shape(image))
-            print('00')
 
         # if this is a fake fits file, do a quick-and-dirty background subtraction
         if (mode == "fake_fits"):
@@ -121,30 +116,34 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
             img_before_padding_before_FT = np.copy(f[0].data)
             file_name_base = str(int(time.time())) + "_" + str(counter_num) # basename has already been defined for fake_fits
 
-        print('1')
-        print()
         # take FFT; no padding for now
         ## ## DO I WANT A SMALL CUTOUT OR THE ORIGINAL IMAGE?
         AmpPE, ArgPE = fft_img(img_before_padding_before_FT).fft(padding=0)
 
-        print('2')
-        # this is a kludge for slipping in the INDI FFT amplitude (the phase has a checkerboard pattern until Paul fixes it) in place of the Python one
-        AmpPE = ma.masked_where(fftw_amp == np.nan, fftw_amp, copy=False)
-
-        print('3')
+        # this is a kludge for slipping in the INDI FFT amplitude in place of the Python one
+        # (the phase has a checkerboard pattern until Paul fixes it, so Im just going to keep 
+        # the Python amplitude)
+        if ((mode == "az_source") or (mode == "science")):
+            AmpPE = fftw_amp[0]
         # save image to check
         hdu = pyfits.PrimaryHDU(img_before_padding_before_FT)
         hdulist = pyfits.HDUList([hdu])
         hdu.writeto("log_images/img_seen_prepradding_" + file_name_base + ".fits", clobber=True)
+        print('4')
 
         # test: see what the FFT looks like
+        #if (mode == "fake_fits"):
+        #    hdu = pyfits.PrimaryHDU(AmpPE.data)
+        #else: # if we are using FFTW FFT magnitude
+        #    hdu = pyfits.PrimaryHDU(fftw_amp[0].data)
         hdu = pyfits.PrimaryHDU(AmpPE.data)
         hdulist = pyfits.HDUList([hdu])
         hdu.writeto("log_images/fft_amp_" + file_name_base + ".fits", clobber=True)
+        print('4b')
         hdu = pyfits.PrimaryHDU(ArgPE.data)
         hdulist = pyfits.HDUList([hdu])
         hdu.writeto("log_images/fft_arg_" + file_name_base + ".fits", clobber=True)
-
+        print('5')
         # find angle of fringes
         # is there an off-center dot in FFT amplitude?
         # blot out low-frequency center of FFT ampl
@@ -154,12 +153,13 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
         dot_loc = find_airy_psf(center_masked_data)
         #dot_loc = find_grism_psf(np.multiply(amp.data,amp.mask), 5, 5)
 
+        print('6')
         # save image to check
         hdu = pyfits.PrimaryHDU(center_masked_data)
         hdulist = pyfits.HDUList([hdu])
         hdu.writeto("log_images/img_when_centroiding_fringe_angle_" + file_name_base + ".fits", clobber=True)
 
-        print('4')
+        print('7')
         print("Analyzing "+file_name_base)
         print("Dot location (y,x):")
         print(dot_loc)
@@ -200,6 +200,7 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
         spc_trans_position_now = spc_trans_position_pre
         spc_trans_position_goal = spc_trans_position_pre + diff_movement_total_cts
         pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(diff_movement_total_cts))
+        time.sleep(5.0) # this pause may be necessary to avoid confusing INDI; SPC very sticky 2019 05 19, E.S.
         # wait for the SPC_Trans movement to finish
         while (spc_trans_position_now != spc_trans_position_goal):
             spc_trans_position_now = pi.getINDI("Ubcs.SPC_Trans_status.PosNum") # check status of SPC_Trans
@@ -295,7 +296,10 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
     	hdu = pyfits.PrimaryHDU(AmpPE.data)
     	hdulist = pyfits.HDUList([hdu])
     	hdu.writeto('junk_test_amp_grism.fits', clobber=True)
-    	hdu = pyfits.PrimaryHDU(ArgPE.data)
+        if (mode == "fake_fits"):
+    	    hdu = pyfits.PrimaryHDU(ArgPE.data)
+        else: # if we are using FFTW FFT magnitude
+            hdu = pyfits.PrimaryHDU(fftw_phase)
     	hdulist = pyfits.HDUList([hdu])
     	hdu.writeto('junk_test_arg_grism.fits', clobber=True)
 	'''
