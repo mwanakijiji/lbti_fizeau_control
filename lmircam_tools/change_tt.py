@@ -293,12 +293,11 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
     return dictFFTstuff
 
 
-def print_write_fft_info(integ_time, sci_wavel, mode = "science", fft_pickle_write_name = "fft_pickle.pkl", setpoints_pickle = " ", checker=False):
+def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pickle = " ", checker=False):
     ''' 
     Take FFT of PSF, and calculate new Phasecam PL and TT setpoints
 
     INPUTS:
-    fft_pickle_write_name: name of the csv file to which FFT information will be printed
     mode: testing or science
     setpoints_pickle: filename of pickle file containing previous setpoints, so we can compare
     checker=True: this function is being run to check effect of a previous correction
@@ -394,13 +393,21 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", fft_pickle_wri
             fftw_phase = pi_fiz.getFITS("fizeau.phase_image.file", timeout=60)
 
     	# get the right image slice
-    	if (np.ndim(f[0].data) > 2):
-            image = f[0].data[-1,:,:] # images from LMIRcam (> summer 2018) are cubes of nondestructive reads
-    	else:
-            image = np.squeeze(f[0].data)
+        # if the frames are live images from LMIR, take the slice with the longest integration time
+        if ((mode == "az_source") or (mode == "science")):
+    	    if (np.ndim(f[0].data) > 2):
+                image = f[0].data[-1,:,:] # images from LMIRcam (> summer 2018) are cubes of nondestructive reads
+    	    else:
+                image = np.squeeze(f[0].data)
+        # if the frames are fake FITS files, I want the first slice
+        elif (mode == "fake_fits"):
+            if (np.ndim(f[0].data) > 2):
+                image = f[0].data[0,:,:]
+            else:
+                image = np.squeeze(f[0].data)
 
     	# if this is a fake fits file, do a quick-and-dirty background subtraction
-    	if (mode == "fake_fits"):
+        if (mode == "fake_fits"):
             image = process_readout.processImg(image,"median") # simple background subtraction
 
     	# save detector image to check (overwrites previous)
@@ -561,18 +568,19 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", fft_pickle_wri
     	print("PSF "+file_name_full+" analyzed in time (secs):")
     	print(time_elapsed)
 
+        # write to csv to check on a local machine (this info will also be pickled)
+        fftInfo_amp_df.to_csv("pickled_info/csvs/fft_amp_"+str(int(counter_num))+".csv")
+        fftInfo_arg_df.to_csv("pickled_info/csvs/fft_arg_"+str(int(counter_num))+".csv")
+        ## ## note I havent used log_name anywhere yet
+
+        # pack info from the series of FFTs into dictionaries, and pickle them
+        #d = {"fftInfo_amp": fftInfo_amp, "fftInfo_arg": fftInfo_arg}
+        fft_pickle_write_name = "pickled_info/fft_info_"+str("{:0>2d}".format(counter_num))+".pkl"
+        with open(fft_pickle_write_name, "w") as f:
+            pickle.dump((fftInfo_amp, fftInfo_arg), f)
+
         print("Done analyzing one PSF.")
         counter_num += 1 # advance counter
-
-    # write to csv to check on a local machine (this info will also be pickled)
-    fftInfo_amp_df.to_csv("pickled_info/csvs/fft_amp_"+str(int(counter_num))+".csv")
-    fftInfo_arg_df.to_csv("pickled_info/csvs/fft_arg_"+str(int(counter_num))+".csv")
-    ## ## note I havent used log_name anywhere yet
-
-    # pack info from the series of FFTs into dictionaries, and pickle them
-    #d = {"fftInfo_amp": fftInfo_amp, "fftInfo_arg": fftInfo_arg}
-    with open(fft_pickle_write_name, "w") as f:
-        pickle.dump((fftInfo_amp, fftInfo_arg), f)
 
     print("--------------------------")
     print("Done analyzing "+str(num_psfs_to_analyze)+" PSFs.")
@@ -709,6 +717,8 @@ def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "s
     corrxn_tt = needed_tt_setpt_corrxn(alpha=alpha_mean,PS=plateScale_LMIR,Nx=Nx,Ny=Ny) # (x,y)
     corrxn_tilt_x = int(corrxn_tt[1])
     corrxn_tip_y = int(corrxn_tt[0])
+    print("Needed TT setpt correction (y, x) in mas")
+    print(corrxn_tt)
 
     # find needed correction to FPC PL setpoint (degrees in K-band)
     # (even if there is a slope in the PTF, the median would be zero if PL error is zero)
@@ -722,7 +732,8 @@ def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "s
     fpc_tilt_setpoint = pi.getINDI("PLC.UBCSettings.TiltSetpoint")
     print(fpc_tilt_setpoint)
     print("Current FPC pl setpoint:")
-    fpc_tilt_setpoint = pi.getINDI("PLC.UBCSettings.PLSetpoint")
+    fpc_pl_setpoint = pi.getINDI("PLC.UBCSettings.PLSetpoint")
+    print(fpc_pl_setpoint)
     print("-----")
     print("FPC tip (y) setpoint correction (mas):")
     print(str(corrxn_tip_y))

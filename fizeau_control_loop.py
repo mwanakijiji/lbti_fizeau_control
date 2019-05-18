@@ -74,8 +74,7 @@ raw_input("Science detector alignment done. Now align Phasecam and close the pha
 
 # print fft info, see how it compares with the set thresholds
 # modes: "fake_fits" / "az_source" / "science"
-fft_pickle_1 = "fft_pickle_info_1.pkl"
-num_psfs, fftimg_shape = print_write_fft_info(integ_time, sci_wavel = wavel_lambda, mode = mode_choice, fft_pickle_write_name = fft_pickle_1)
+num_psfs, fftimg_shape = print_write_fft_info(integ_time, sci_wavel = wavel_lambda, mode = mode_choice)
 
 # calculate and apply Phasecam setpoints; write them to a pickle file to check the correction
 setpoints_pickle_pre = "setpoints_pickle_pre.pkl"
@@ -84,8 +83,7 @@ get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel = wavel_lambda
 
 # print/calculate FFT info after the change so as to check setpoints for sign (code cant tell which PSF is SX and DX)
 # modes: "fake_fits" / "az_source" / "science"
-fft_pickle_2 = "fft_pickle_info_2.pkl"
-num_psfs, fftimg_shape = print_write_fft_info(integ_time, sci_wavel = wavel_lambda, mode = mode_choice, fft_pickle_write_name = fft_pickle_2, checker=True) # note checker=True, because we're checking the correction
+num_psfs, fftimg_shape = print_write_fft_info(integ_time, sci_wavel = wavel_lambda, mode = mode_choice, checker=True) # note checker=True, because we're checking the correction
 
 # recalculate setpoints, but dont apply a new correction just yet
 setpoints_pickle_post = "setpoints_pickle_post.pkl"
