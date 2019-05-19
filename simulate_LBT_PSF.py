@@ -99,11 +99,11 @@ def psf_sim(parameters):
     
     start_time = time.time()
 
-    monochromatic = False
+    monochromatic = True
     if monochromatic:
-        wavel = 3.87e-6 # m (monochromatic)
+        wavel = 5.0e-6 # m (monochromatic)
     else:
-        wavel = np.linspace(3.4,4.0,num=10)*1e-6 # (polychromatic)
+        wavel = np.linspace(4.5,5.0,num=10)*1e-6 # (polychromatic)
     
     plateScale_LMIR = 0.0107 # in asec/pix
     N_pix = 2048 # number of pixels across the input and output arrays
@@ -254,16 +254,16 @@ def main():
 
     opd_start = 0.0e-6
     opd_stop = 0.0e-6
-    #opd_stop = 50.0e-6 # inclusive
+    #opd_stop = 0.5e-6 # inclusive
     opd_increment = 0.5e-6 # change in OPD at each step; in m
 
     tilt_start = 0.0
-    tilt_stop = 0.1 # asec 
-    tilt_increment = 0.01
+    tilt_stop = 0.0 # asec
+    tilt_increment = 0.05
 
-    tip_start = 0.
-    tip_stop = 0. # asec 
-    tip_increment = 0.01 
+    tip_start = 0.002
+    tip_stop = 0.014 # asec
+    tip_increment = 0.006
 
     transl_start = 0.0 # position at which to start
     transl_stop = 0.0
