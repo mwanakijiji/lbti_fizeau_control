@@ -261,9 +261,9 @@ def main():
     tilt_stop = 0.0 # asec
     tilt_increment = 0.05
 
-    tip_start = 0.002
-    tip_stop = 0.014 # asec
-    tip_increment = 0.006
+    tip_start = 0.00
+    tip_stop = 0.00 # asec
+    tip_increment = 0.01
 
     transl_start = 0.0 # position at which to start
     transl_stop = 0.0
