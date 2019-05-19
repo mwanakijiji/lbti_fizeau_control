@@ -710,14 +710,21 @@ def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "s
 
     # find needed correction to FPC TT setpoints (mas)
     alpha_high_freq = [x_grad_perf_high_R, y_grad_perf_high_R] # gradient high freq lobe of PTF in x and y: [a,b]
+    print('alpha_high_freq:')
+    print(alpha_high_freq)
     alpha_low_freq = [x_grad_perf_lowfreq, y_grad_perf_lowfreq] # same, in low freq lobe
+    print('alpha_low_freq:')
+    print(alpha_low_freq)
     alpha_mean = np.mean([alpha_high_freq,alpha_low_freq],axis=0) # corrections should be based on gradients common to lobes (see Spalding+ SPIE 2018, Table 3)
+    print('alpha mean:')
+    print(alpha_mean) # alpha_mean = [alpha_x from both low- and high-freq nodes, alpha_y from both low- and high-freq nodes]
     Nx = fftimg_shape[1]
     Ny = fftimg_shape[0]
+    import pdb; pdb.set_trace()
     corrxn_tt = needed_tt_setpt_corrxn(alpha=alpha_mean,PS=plateScale_LMIR,Nx=Nx,Ny=Ny) # (x,y)
-    corrxn_tilt_x = int(corrxn_tt[1])
-    corrxn_tip_y = int(corrxn_tt[0])
-    print("Needed TT setpt correction (y, x) in mas")
+    corrxn_tilt_x = int(corrxn_tt[0])
+    corrxn_tip_y = int(corrxn_tt[1])
+    print("Needed TT setpt correction (x, y) in mas")
     print(corrxn_tt)
 
     # find needed correction to FPC PL setpoint (degrees in K-band)
