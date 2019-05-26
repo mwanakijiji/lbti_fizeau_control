@@ -99,7 +99,7 @@ def psf_sim(parameters):
     
     start_time = time.time()
 
-    monochromatic = False
+    monochromatic = True
     if monochromatic:
         wavel = 3.87e-6 # m (monochromatic)
     else:
@@ -236,10 +236,34 @@ def psf_sim(parameters):
     #hdu.writeto('test.fits', overwrite=True)
 
     # save everything for that grid point in a pickle file
+    '''
     extra_pickle_extension = '/home/gastonlagaffe/../../vol_c'
     pickle.dump( psf_stats, open( extra_pickle_extension + '/pickle_files/chrom_' + chromaticString + '_avgwavel_' + wavelString +
                                   '_opd_' + opdString + '_tip_' + tipString + '_tilt_' + tiltString +
                                   '_transl_' + translString + '_PS_' + PSstring + extraString + '.pkl', "wb" ) )
+    '''
+
+    # save a simple FITS file of the PSF, along with aberration info in the header
+    fits_extension = "/Volumes/seagate_external_drive/lbti_data_reduction/190526_fake_fizeau/"
+    
+    img_size = np.shape(psf_stats['PSF_image'])[0]
+    half_cutout = 50
+    simple_fits = psf_stats['PSF_image'][int(0.5*img_size)-half_cutout:int(0.5*img_size)+half_cutout,
+                                         int(0.5*img_size)-half_cutout:int(0.5*img_size)+half_cutout]
+    simple_fits = np.float32(simple_fits)
+
+    #hdu = fits.PrimaryHDU(simple_fits)
+
+    hdr = fits.Header()
+    hdr["WAVEL_UM"] = np.float(avg_wavel*1e6) # wavelength (um)
+    hdr["MONOCHR"] = monochromatic # monochromatic? (true/false)
+    hdr["OPD_UM"] = np.float(opd*1e6) # OPD (um)
+    hdr["TIPY_MAS"] = np.float(diff_tip*1e3) # tip (mas)
+    hdr["TILTXMAS"] = np.float(diff_tilt*1e3) # tilt (mas)
+    #primary_hdu = fits.PrimaryHDU(header=hdr)
+    
+    #hdul = fits.HDUList([hdu])
+    fits.writeto(fits_extension + "junk.fits", data=simple_fits, header=hdr, overwrite=True)
 
     elapsed_time = time.time() - start_time
     print('Elapsed time for this PSF: '+str(elapsed_time))
@@ -254,20 +278,20 @@ def main():
 
     opd_start = 0.0e-6
     #opd_stop = 0.0e-6
-    opd_stop = 50.0e-6 # inclusive
-    opd_increment = 0.5e-6 # change in OPD at each step; in m
+    opd_stop = 1.0e-6 # inclusive
+    opd_increment = 3.0e-6 # change in OPD at each step; in m
 
     tilt_start = 0.0
-    tilt_stop = 0.0 # asec 
-    tilt_increment = 0.01
+    tilt_stop = 1.0 # asec 
+    tilt_increment = 3.0
 
-    tip_start = 0.
-    tip_stop = 0. # asec 
-    tip_increment = 0.01 
+    tip_start = 0.0
+    tip_stop = 1.0 # asec 
+    tip_increment = 3.0 
 
     transl_start = 0.0 # position at which to start
-    transl_stop = 0.0
-    transl_increment = 0.5
+    transl_stop = 1.0
+    transl_increment = 3.0
 
     extra_pickle_title_string = 'junk_psf_stats'
 
