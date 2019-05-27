@@ -334,6 +334,9 @@ def main():
         print(np.shape(params_array))
 
     elif (mode == "random_walk"):
+        '''
+        Generate parameters as if they were making a random walk
+        '''
 
         opd_scale = 50e-6 # m
         tip_y_scale = 0.2 # asec
@@ -358,17 +361,24 @@ def main():
         print("Random walk, tilt array head:")
         print(tiltArray[0:10])
 
+        plt.plot(np.multiply(1e6,opdArray))
+        plt.title("OPD (um)")
+        plt.savefig("opd_ref.pdf")
+        plt.clf()
+
+        plt.plot(tipArray)
+        plt.title("Tip_y (asec)")
+        plt.savefig("tip_ref.pdf")
+        plt.clf()
+
+        plt.plot(tiltArray)
+        plt.title("Tilt_x (asec)")
+        plt.savefig("tilt_ref.pdf")
+        plt.clf()
+
         # put everything into a list of lists of combinations
-        #combineArray = [opdArray,tipArray,tiltArray,translArray,index_array]
-        print(np.shape(opdArray))
-        print(np.shape(tipArray))
-        print(np.shape(tiltArray))
-        print(np.shape(translArray))
-        print(np.shape(index_array))
         combineArray = np.stack((opdArray,tipArray,tiltArray,translArray,index_array), axis=0).T
-        print(combineArray)
         params_array = combineArray
-        print(np.shape(params_array))
         
 
     # read in masks (0=masked; 1=good) and change convention (True=masked; False=good)

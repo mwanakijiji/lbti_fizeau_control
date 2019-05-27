@@ -27,6 +27,6 @@ def walker(scale,N):
         up = iupp and positions[-1] < 1
         positions.append(positions[-1] - step_scale*down + step_scale*up) 
         
-    positions_scaled = np.multiply(scale,positions)
+    positions_scaled = np.array(np.multiply(scale,positions))
         
     return positions_scaled
