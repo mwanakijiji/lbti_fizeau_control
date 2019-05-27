@@ -20,6 +20,7 @@ import astropy
 from astropy.io import fits
 import numpy.ma as ma
 import matplotlib.pyplot as plt
+from walker_def import walker
 
 
 def lbt_aperture2(deltaspacing,N_pix,D):
@@ -115,6 +116,7 @@ def psf_sim(parameters):
     diff_tip = parameters[1]
     diff_tilt = parameters[2]
     transl = parameters[3]
+    index_num = parameters[4]
     
     # dictionary of psf stats
     psf_stats = {'OPD': [], 'tip': [], 'tilt': [], 'translation': [],
@@ -244,7 +246,8 @@ def psf_sim(parameters):
     '''
 
     # save a simple FITS file of the PSF, along with aberration info in the header
-    fits_extension = "/Volumes/seagate_external_drive/lbti_data_reduction/190526_fake_fizeau/"
+    #fits_extension = "~/../../Volumes/seagate_external_drive/lbti_data_reduction/190526_fake_fizeau/"
+    fits_extension = "./junk/"
     
     img_size = np.shape(psf_stats['PSF_image'])[0]
     half_cutout = 50
@@ -260,10 +263,13 @@ def psf_sim(parameters):
     hdr["OPD_UM"] = np.float(opd*1e6) # OPD (um)
     hdr["TIPY_MAS"] = np.float(diff_tip*1e3) # tip (mas)
     hdr["TILTXMAS"] = np.float(diff_tilt*1e3) # tilt (mas)
-    #primary_hdu = fits.PrimaryHDU(header=hdr)
-    
-    #hdul = fits.HDUList([hdu])
-    fits.writeto(fits_extension + "junk.fits", data=simple_fits, header=hdr, overwrite=True)
+
+
+    # the following FITS command was written with random walk PSFs in mind
+    fits.writeto(fits_extension + "psf_trial1_" + str("{:0>8d}".format(int(index_num))) + ".fits", data=simple_fits, header=hdr, overwrite=True)
+
+    #plt.plot()
+    #plt.savefig("junk.png")
 
     elapsed_time = time.time() - start_time
     print('Elapsed time for this PSF: '+str(elapsed_time))
@@ -276,18 +282,21 @@ def main():
     ######################
     ## USER INPUTS
 
+    #mode = "permutations"
+    mode = "random_walk"
+    
     opd_start = 0.0e-6
     #opd_stop = 0.0e-6
     opd_stop = 1.0e-6 # inclusive
-    opd_increment = 3.0e-6 # change in OPD at each step; in m
+    opd_increment = 0.5e-6 # change in OPD at each step; in m
 
     tilt_start = 0.0
     tilt_stop = 1.0 # asec 
-    tilt_increment = 3.0
+    tilt_increment = 0.1
 
     tip_start = 0.0
     tip_stop = 1.0 # asec 
-    tip_increment = 3.0 
+    tip_increment = 0.1 
 
     transl_start = 0.0 # position at which to start
     transl_stop = 1.0
@@ -299,20 +308,68 @@ def main():
     ######################
 
     start_time_very_beginning = time.time()
-    
-    # generate the grid arrays we want
-    num_opd = np.divide(opd_stop-opd_start, opd_increment) + 1 # number of samples
-    opdArray = np.linspace(opd_start, opd_stop, num=int(num_opd), endpoint=True)
-    num_tip = np.divide(tip_stop-tip_start, tip_increment) + 1
-    tipArray = np.linspace(tip_start, tip_stop, num=int(num_tip), endpoint=True)
-    num_tilt = np.divide(tilt_stop-tilt_start, tilt_increment) + 1
-    tiltArray = np.linspace(tilt_start, tilt_stop, num=int(num_tilt), endpoint=True)
-    num_transl = np.divide(transl_stop-transl_start, transl_increment) + 1
-    translArray = np.linspace(transl_start, transl_stop, num=int(num_transl), endpoint=True)
-    # put everything into a list of lists of combinations
-    combineArray = [opdArray,tipArray,tiltArray,translArray]
-    permutationsArray = list(itertools.product(*combineArray))
-    #ipdb.set_trace()
+
+    if (mode == "permutations"):
+        '''
+        Generate all possible permutations of the input min, max, and step
+        sizes of parameters
+        '''
+        
+        # generate the grid arrays we want
+        num_opd = np.divide(opd_stop-opd_start, opd_increment) + 1 # number of samples
+        opdArray = np.linspace(opd_start, opd_stop, num=int(num_opd), endpoint=True)
+        num_tip = np.divide(tip_stop-tip_start, tip_increment) + 1
+        tipArray = np.linspace(tip_start, tip_stop, num=int(num_tip), endpoint=True)
+        num_tilt = np.divide(tilt_stop-tilt_start, tilt_increment) + 1
+        tiltArray = np.linspace(tilt_start, tilt_stop, num=int(num_tilt), endpoint=True)
+        num_transl = np.divide(transl_stop-transl_start, transl_increment) + 1
+        translArray = np.linspace(transl_start, transl_stop, num=int(num_transl), endpoint=True)
+
+        # put everything into a list of lists of combinations
+        combineArray = [opdArray,tipArray,tiltArray,translArray]
+        permutationsArray = list(itertools.product(*combineArray))
+
+        params_array = permutationsArray
+        print('-------')
+        print(np.shape(params_array))
+
+    elif (mode == "random_walk"):
+
+        opd_scale = 50e-6 # m
+        tip_y_scale = 0.2 # asec
+        tilt_x_scale = 0.2 # asec
+
+        # change these as necessary
+        N = 10000
+        opdArray = walker(opd_scale, N)
+        #opdArray = np.zeros(N)
+        tipArray = walker(tip_y_scale, N)
+        #tipArray = np.zeros(N)
+        tiltArray = walker(tilt_x_scale, N)
+        #tiltArray = np.zeros(N)
+        translArray = np.zeros(N+1)
+
+        index_array = np.arange(0,N+1)
+
+        print("Random walk, OPD array head:")
+        print(opdArray[0:10])
+        print("Random walk, tip array head:")
+        print(tipArray[0:10])
+        print("Random walk, tilt array head:")
+        print(tiltArray[0:10])
+
+        # put everything into a list of lists of combinations
+        #combineArray = [opdArray,tipArray,tiltArray,translArray,index_array]
+        print(np.shape(opdArray))
+        print(np.shape(tipArray))
+        print(np.shape(tiltArray))
+        print(np.shape(translArray))
+        print(np.shape(index_array))
+        combineArray = np.stack((opdArray,tipArray,tiltArray,translArray,index_array), axis=0).T
+        print(combineArray)
+        params_array = combineArray
+        print(np.shape(params_array))
+        
 
     # read in masks (0=masked; 1=good) and change convention (True=masked; False=good)
     global mask_all
@@ -348,7 +405,7 @@ def main():
     print('----------')
         
     pool = Pool(ncpu) # create pool object
-    list_dicts = pool.map(psf_sim,permutationsArray)
+    list_dicts = pool.map(psf_sim, params_array)
 
     elapsed_time_since_beginning = time.time() - start_time_very_beginning
     print('Total elapsed time: '+str(elapsed_time_since_beginning))
