@@ -43,30 +43,6 @@ min3 = 3.238
 max4 = 3.699
 
 
-def needed_tt_setpt_corrxn(alpha,PS,Nx,Ny):
-    ''' 
-    Calculates the needed correction to the tip-tilt setpoints of the FPC,
-    given a gradient vector of the PTF
-    (see LBTI Controlled Fizeau research log, 2019 Feb 15)
-
-    INPUTS:
-    alpha: a vector [a,b] containing the gradient (in radians per Fourier pixel) in x and y
-    PS: LMIR plate scale (asec per LMIR pixel)
-    Nx: number of samples in x on LMIR (i.e., length in x of the array to be FFTed)
-    Ny: same as Nx, but for y
-
-    OUTPUT:
-    corrxn_tilt_tip: a vector [delx,dely] of required tilt (x) and tip (y) changes to current setpoints
-    '''
-
-    delta = 1 # sampling spacing is 1 LMIR pixel
-    beta_x = -alpha[0]*PS*Nx*delta/np.pi # (asec; the minus sign is because alpha and beta have opposite sign)
-    beta_y = -alpha[1]*PS*Ny*delta/np.pi # (asec; the minus sign is because alpha and beta have opposite sign)
-
-    # return the opposite (in units mas); this is the [tilt,tip] setpoint correction
-    return -np.multiply([beta_x,beta_y],1000)
-
-
 def findFFTloc(baseline,imageShapeAlong1Axis,wavel_lambda,plateScale,lOverD=1.):
     ''' 
     Returns the FFT pixel locations equivalent to a certain pixel distance on the science image
@@ -153,7 +129,7 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
     line_edge2edge_pixOnFFT = findFFTloc(B_e2e,np.shape(sciImg)[0],wavel_lambda,plateScale)
 
     # define circles
-    circRad = 60 # pixels in FFT space
+    circRad = 30 # pixels in FFT space
     circle_highFreqPerfect_L = CirclePixelRegion(center=PixCoord(x=line_center2center_pixOnFFT[0], y=0.5*np.shape(sciImg)[0]), radius=circRad)
     circle_highFreqPerfect_R = CirclePixelRegion(center=PixCoord(x=line_center2center_pixOnFFT[1], y=0.5*np.shape(sciImg)[0]), radius=circRad)
     circle_lowFreqPerfect = CirclePixelRegion(center=PixCoord(x=0.5*np.shape(sciImg)[1], y=0.5*np.shape(sciImg)[0]), radius=circRad)
@@ -314,7 +290,7 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
 
     # read in any new images written out to a directory
     files_start = glob.glob(dir_to_monitor + "*.fits") # starting list of files
-    num_psfs_to_analyze = 5 # number of PSFs to sample
+    num_psfs_to_analyze = 10000 # number of PSFs to sample
 
     while counter_num < num_psfs_to_analyze:
 
@@ -411,19 +387,21 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
             image = process_readout.processImg(image,"median") # simple background subtraction
 
     	# save detector image to check (overwrites previous)
-    	#hdu = pyfits.PrimaryHDU(image)
-    	#hdulist = pyfits.HDUList([hdu])
-    	#hdu.writeto("junk_other_tests/junk_test_image_seen.fits", clobber=True)
+    	hdu = pyfits.PrimaryHDU(image)
+    	hdulist = pyfits.HDUList([hdu])
+    	hdu.writeto("junk_test_image_seen.fits", clobber=True)
 
     	# locate PSF
     	psf_loc = find_grism_psf(image, sig=5, length_y=5)
     	if (mode == "fake_fits"):
-            psf_loc = psf_loc_fake # if we are reading in fake FITS files
+            #psf_loc = psf_loc_fake # if we are reading in fake FITS files
             ## ## if time, test the following line
-            #psf_loc = find_airy_psf(image)
+            psf_loc = find_airy_psf(image)
+            print("Found PSF location:")
+            print(psf_loc)
 
         # size of cookie cut-out (measured center-to-edge)
-        cookie_size = 100 # maximum control radius as of 2018 July corresponds to 130.0 pixels
+        cookie_size = 30 # maximum control radius as of 2018 July corresponds to 130.0 pixels
 
         # take FFT (some of this is redundant if INDI is putting out FFTs)
         if (mode == "fake_fits"):
@@ -478,26 +456,36 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
         print(np.shape(amp.data))
         print(np.shape(arg.data))
     	# save fyi FITS files to see the masks, etc.
-    	''' 
     	hdu = pyfits.PrimaryHDU(fftInfo_amp["sciImg1"])
     	hdulist = pyfits.HDUList([hdu])
-    	hdu.writeto("junk_other_tests/junk_test_mask_amp_maskedRegion1.fits", clobber=True)
+    	hdu.writeto("log_images/fft_amp_masked_region_1_" + file_name_base + ".fits", clobber=True)
     	hdu = pyfits.PrimaryHDU(fftInfo_amp["sciImg2"])
     	hdulist = pyfits.HDUList([hdu])
-    	hdu.writeto("junk_other_tests/junk_test_mask_amp_maskedRegion2.fits", clobber=True)
+        hdu.writeto("log_images/fft_amp_masked_region_2_" + file_name_base + ".fits", clobber=True)
     	hdu = pyfits.PrimaryHDU(fftInfo_amp["sciImg3"])
     	hdulist = pyfits.HDUList([hdu])
-    	hdu.writeto("junk_other_tests/junk_test_mask_amp_maskedRegion3.fits", clobber=True)
+        hdu.writeto("log_images/fft_amp_masked_region_3_" + file_name_base + ".fits", clobber=True)
     	hdu = pyfits.PrimaryHDU(fftInfo_amp["sciImg4"])
     	hdulist = pyfits.HDUList([hdu])
-    	hdu.writeto("junk_other_tests/junk_test_mask_amp_maskedRegion4.fits", clobber=True)
-    	hdu = pyfits.PrimaryHDU(amp.data)
-    	hdulist = pyfits.HDUList([hdu])
-    	hdu.writeto("junk_other_tests/junk_test_amp_psf.fits", clobber=True)
-    	hdu = pyfits.PrimaryHDU(arg.data)
-    	hdulist = pyfits.HDUList([hdu])
-    	hdu.writeto("junk_other_tests/junk_test_arg_psf.fits", clobber=True)
-    	'''
+        hdu.writeto("log_images/fft_amp_masked_region_4_" + file_name_base + ".fits", clobber=True)
+        hdu = pyfits.PrimaryHDU(fftInfo_arg["sciImg1"])
+        hdulist = pyfits.HDUList([hdu])
+        hdu.writeto("log_images/fft_arg_masked_region_1_" + file_name_base + ".fits", clobber=True)
+        hdu = pyfits.PrimaryHDU(fftInfo_arg["sciImg2"])
+        hdulist = pyfits.HDUList([hdu])
+        hdu.writeto("log_images/fft_arg_masked_region_2_" + file_name_base + ".fits", clobber=True)
+        hdu = pyfits.PrimaryHDU(fftInfo_arg["sciImg3"])
+        hdulist = pyfits.HDUList([hdu])
+        hdu.writeto("log_images/fft_arg_masked_region_3_" + file_name_base + ".fits", clobber=True)
+        hdu = pyfits.PrimaryHDU(fftInfo_arg["sciImg4"])
+        hdulist = pyfits.HDUList([hdu])
+        hdu.writeto("log_images/fft_arg_masked_region_4_" + file_name_base + ".fits", clobber=True)
+    	#hdu = pyfits.PrimaryHDU(amp.data)
+    	#hdulist = pyfits.HDUList([hdu])
+    	#hdu.writeto("junk_other_tests/junk_test_amp_psf.fits", clobber=True)
+    	#hdu = pyfits.PrimaryHDU(arg.data)
+    	#hdulist = pyfits.HDUList([hdu])
+    	#hdu.writeto("junk_other_tests/junk_test_arg_psf.fits", clobber=True)
 
     	## take info from the FFTs to send corrective movements
 
@@ -572,6 +560,31 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
         fftInfo_amp_df.to_csv("pickled_info/csvs/fft_amp_"+str(int(counter_num))+".csv")
         fftInfo_arg_df.to_csv("pickled_info/csvs/fft_arg_"+str(int(counter_num))+".csv")
         ## ## note I havent used log_name anywhere yet
+
+        # write to csv in off-sky testing of retrieved FFT quantities using fake data
+        csv_name = "trial4_retrieved.csv"
+        # find needed correction to FPC PL setpoint (degrees in K-band)
+        #sci_to_K = np.divide(sci_wavel,2.2e-6) # factor to convert degrees in sci to degrees in K
+        #corrxn_pl = -fftInfo_arg["med_highFreqPerfect_R"].values[0]*(180./np.pi)*sci_to_K
+        #alpha_high_freq = [x_grad_perf_high_R, y_grad_perf_high_R] # gradient high freq lobe of PTF in x and y: [a,b]
+        # state size of FFTed image
+        Ny = np.shape(cookie_cut)[0]+2*padding_choice
+        Nx = np.shape(cookie_cut)[1]+2*padding_choice
+        # state gradient of PTF slope in x and y
+        x_grad_perf_high_R = np.median(fftInfo_arg["normVec_highFreqPerfect_R_x"])
+        y_grad_perf_high_R = np.median(fftInfo_arg["normVec_highFreqPerfect_R_y"])
+        x_grad_perf_lowfreq = np.median(fftInfo_arg["normVec_lowFreqPerfect_x"])
+        y_grad_perf_lowfreq = np.median(fftInfo_arg["normVec_lowFreqPerfect_y"])
+        alpha_high_freq = [x_grad_perf_high_R, y_grad_perf_high_R] # gradient high freq lobe of PTF in x and y: [a,b]
+        alpha_low_freq = [x_grad_perf_lowfreq, y_grad_perf_lowfreq] # same, in low freq lobe
+        alpha_mean = np.mean([alpha_high_freq,alpha_low_freq],axis=0) # corrections should be based on gradients common to lobes (see Spalding+ SPIE 2018, Table 3)
+        corrxn_tt = needed_tt_setpt_corrxn(alpha=alpha_mean,PS=plateScale_LMIR,Nx=Nx,Ny=Ny) # (x,y)
+        with open(csv_name, "a") as datalist:
+            opd_retrieve = fftInfo_arg["med_highFreqPerfect_R"]*((180./np.pi)/360.)*sci_wavel*1e6
+            tip_retrieve = -corrxn_tt[1] # y
+            tilt_retrieve = -corrxn_tt[0] # x
+            # cols of macie time; fake file name; OPD; tip; tilt
+            datalist.write("%f, %s, %f, %f, %f\n" % (time.time(), file_name_full, opd_retrieve, tip_retrieve, tilt_retrieve))
 
         # pack info from the series of FFTs into dictionaries, and pickle them
         #d = {"fftInfo_amp": fftInfo_amp, "fftInfo_arg": fftInfo_arg}

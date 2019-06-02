@@ -11,7 +11,7 @@ from scipy import ndimage, sqrt, stats, misc, signal
 #########################
 
 # science wavelength
-wavel_lambda = 5.e-6 # filter central wavel (m)
+wavel_lambda = 3.87e-6 # filter central wavel (m)
 
 # physical psf location, if code is being used to read in written FITS files
 psf_loc_fake = [1024,1024] # (y,x) in FITS coordinates
@@ -41,6 +41,29 @@ pi_fiz = PyINDI(host="localhost", verbose=True) # for accessing the fizeau drive
 integ_time = 100 # integration time, msec (probably not needed; this is from when I was explicitly requesting $
 del_t = 0.1 # pause cadence (sec) with which to monitor that directory
 plateScale_LMIR = 0.0107 # in asec/pix
+
+def needed_tt_setpt_corrxn(alpha,PS,Nx,Ny):
+    ''' 
+    Calculates the needed correction to the tip-tilt setpoints of the FPC,
+    given a gradient vector of the PTF
+    (see LBTI Controlled Fizeau research log, 2019 Feb 15)
+
+    INPUTS:
+    alpha: a vector [a,b] containing the gradient (in radians per Fourier pixel) in x and y
+    PS: LMIR plate scale (asec per LMIR pixel)
+    Nx: number of samples in x on LMIR (i.e., length in x of the array to be FFTed)
+    Ny: same as Nx, but for y
+
+    OUTPUT:
+    corrxn_tilt_tip: a vector [delx,dely] of required tilt (x) and tip (y) changes to current setpoints
+    '''
+
+    delta = 1 # sampling spacing is 1 LMIR pixel
+    beta_x = -alpha[0]*PS*Nx*delta/np.pi # (asec; the minus sign is because alpha and beta have opposite sign)
+    beta_y = -alpha[1]*PS*Ny*delta/np.pi # (asec; the minus sign is because alpha and beta have opposite sign)
+
+    # return the opposite (in units mas); this is the [tilt,tip] setpoint correction
+    return -np.multiply([beta_x,beta_y],1000)
 
 
 # define 2D gaussian for fitting PSFs

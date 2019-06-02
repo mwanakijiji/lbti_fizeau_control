@@ -30,7 +30,7 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
 
     # read in any new images written out to a directory
     files_start = glob.glob(dir_to_monitor + "*.fits") # starting list of files
-    num_psfs_to_analyze = 10 # number of PSFs to sample
+    num_psfs_to_analyze = 30 # number of PSFs to sample
 
     while counter_num < num_psfs_to_analyze:
 
@@ -107,6 +107,8 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
         # determine grism Fizeau PSF center
         center_grism = find_grism_psf(image, sig, length_y) # locate the grism PSF center (THIS IS IN OVERLAP_PSFS.PY; SHOULD IT BE IN INIT?)
         # if we are reading in fake FITS files, we may have to just set the location
+        print('center of grism:')
+        print(center_grism)
         if (mode == "fake_fits"):
             center_grism = psf_loc_fake
             # cut out the grism image (best to have rectangle, rather than square cutout)
