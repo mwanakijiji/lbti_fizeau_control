@@ -290,7 +290,7 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
 
     # read in any new images written out to a directory
     files_start = glob.glob(dir_to_monitor + "*.fits") # starting list of files
-    num_psfs_to_analyze = 10000 # number of PSFs to sample
+    num_psfs_to_analyze = 10000 # number of PSFs to sample (a very large number if just writing retrieved values from single frames to file)
 
     while counter_num < num_psfs_to_analyze:
 
@@ -411,12 +411,11 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
     	padding_choice = int(5*cookie_size)
         print("Total length of one side of image being FFTed (pix):")
         print(np.shape(cookie_cut)[0]+2*padding_choice)
-    	print('1')
         amp, arg = fft_img(cookie_cut).fft(padding=padding_choice, mask_thresh=1e5)
 
         # this is a kludge for slipping in the INDI FFT amplitude in place of the Python one
         # (the phase has a checkerboard pattern until Paul fixes it, so Im just going to keep 
-        # the Python amplitude)
+        # the Python phase)
         if ((mode == "az_source") or (mode == "science")):
             amp = fftw_amp[0]
             amp_ersatz, junk = fft_img(fftw_amp[0].data).fft(padding=padding_choice, mask_thresh=1e5)
@@ -435,7 +434,6 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
         hdu = pyfits.PrimaryHDU(arg.data)
     	hdulist = pyfits.HDUList([hdu])
     	hdu.writeto("log_images/fft_arg_" + file_name_base + ".fits", clobber=True)
-        print('5')
     	# --commented out because it was triggering on NxM frames where N!=M--
     	# sanity check (and to avoid getting for loop stuck)
     	#if (np.shape(amp)[0] != np.shape(amp)[1]): # if the FFT doesn't make sense (i.e., if PSF was not found)
@@ -445,10 +443,28 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
     	# analyze FFTs
     	fftInfo_amp = fftMask(amp,sci_wavel,plateScale,
                                   fyi_string=" FFT amp")
-    	print('b')
         fftInfo_arg = fftMask(arg,sci_wavel,plateScale,
                                   fyi_string=" FFT phase")
-        print('6')
+
+        ## write out MTF info for analysis later
+        # take strip 5 pixels tall in the middle
+        y_side_length = np.shape(amp.data)[0]
+        strip = amp.data[int(0.5*y_side_length)-2:int(0.5*y_side_length)+3,:]
+        med_strip = np.median(strip, axis = 0)
+        max_strip = np.max(strip, axis = 0)
+        # integrate the whole MTF in y (so that we can do a fuller integration later,
+        # but still have data columns of the right length to write)
+        y_integ = np.sum(amp.data, axis = 0)
+        # put data into dictionary
+        d = {"x_pix": np.arange(np.shape(amp.data)[1]),
+             "med_strip": med_strip,
+             "max_strip":max_strip,
+             "y_integ":y_integ}
+        # convert to df
+        mtf_data = pd.DataFrame(data = d)
+        # write to file
+        mtf_data.to_csv("log_images/mtf_data/mtf_data_" + file_name_base + ".csv")
+
         print(type(np.ma.asarray(amp)))
         print(type(arg))
         print(type(amp.data))
@@ -561,8 +577,9 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
         fftInfo_arg_df.to_csv("pickled_info/csvs/fft_arg_"+str(int(counter_num))+".csv")
         ## ## note I havent used log_name anywhere yet
 
+        ##################################################################################
         # write to csv in off-sky testing of retrieved FFT quantities using fake data
-        csv_name = "trial4_retrieved.csv"
+        csv_name = "trial1_190612_retrieved.csv"
         # find needed correction to FPC PL setpoint (degrees in K-band)
         #sci_to_K = np.divide(sci_wavel,2.2e-6) # factor to convert degrees in sci to degrees in K
         #corrxn_pl = -fftInfo_arg["med_highFreqPerfect_R"].values[0]*(180./np.pi)*sci_to_K
@@ -571,20 +588,26 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
         Ny = np.shape(cookie_cut)[0]+2*padding_choice
         Nx = np.shape(cookie_cut)[1]+2*padding_choice
         # state gradient of PTF slope in x and y
+        print("why median")
+        print(fftInfo_arg["normVec_highFreqPerfect_R_x"])
         x_grad_perf_high_R = np.median(fftInfo_arg["normVec_highFreqPerfect_R_x"])
         y_grad_perf_high_R = np.median(fftInfo_arg["normVec_highFreqPerfect_R_y"])
         x_grad_perf_lowfreq = np.median(fftInfo_arg["normVec_lowFreqPerfect_x"])
         y_grad_perf_lowfreq = np.median(fftInfo_arg["normVec_lowFreqPerfect_y"])
         alpha_high_freq = [x_grad_perf_high_R, y_grad_perf_high_R] # gradient high freq lobe of PTF in x and y: [a,b]
         alpha_low_freq = [x_grad_perf_lowfreq, y_grad_perf_lowfreq] # same, in low freq lobe
-        alpha_mean = np.mean([alpha_high_freq,alpha_low_freq],axis=0) # corrections should be based on gradients common to lobes (see Spalding+ SPIE 2018, Table 3)
+        alpha_mean = np.mean([alpha_high_freq,alpha_low_freq],axis=0) # tip-tilt corrections should be based on gradients common to lobes (see Spalding+ SPIE 2018, Table 3)
         corrxn_tt = needed_tt_setpt_corrxn(alpha=alpha_mean,PS=plateScale_LMIR,Nx=Nx,Ny=Ny) # (x,y)
         with open(csv_name, "a") as datalist:
             opd_retrieve = fftInfo_arg["med_highFreqPerfect_R"]*((180./np.pi)/360.)*sci_wavel*1e6
-            tip_retrieve = -corrxn_tt[1] # y
-            tilt_retrieve = -corrxn_tt[0] # x
+            tip_retrieve = -corrxn_tt[1] # y (negative, because I want to know the retrieved value, not the correction)
+            tilt_retrieve = -corrxn_tt[0] # x (ditto)
             # cols of macie time; fake file name; OPD; tip; tilt
             datalist.write("%f, %s, %f, %f, %f\n" % (time.time(), file_name_full, opd_retrieve, tip_retrieve, tilt_retrieve))
+
+        # now, write out a 
+        # end code for writing retrieved values to csv
+        ##################################################################################
 
         # pack info from the series of FFTs into dictionaries, and pickle them
         #d = {"fftInfo_amp": fftInfo_amp, "fftInfo_arg": fftInfo_arg}
