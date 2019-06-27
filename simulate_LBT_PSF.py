@@ -100,11 +100,11 @@ def psf_sim(parameters):
     
     start_time = time.time()
 
-    monochromatic = True
+    monochromatic = False
     if monochromatic:
         wavel = 3.87e-6 # m (monochromatic)
     else:
-        wavel = np.linspace(3.4,4.0,num=10)*1e-6 # (polychromatic)
+        wavel = np.linspace(4.02,4.08,num=10)*1e-6 # (polychromatic)
     
     plateScale_LMIR = 0.0107 # in asec/pix
     N_pix = 2048 # number of pixels across the input and output arrays
@@ -250,7 +250,7 @@ def psf_sim(parameters):
     fits_extension = "./junk/"
     
     img_size = np.shape(psf_stats['PSF_image'])[0]
-    half_cutout = 50
+    half_cutout = 70 # this sets the size of the saved image
     simple_fits = psf_stats['PSF_image'][int(0.5*img_size)-half_cutout:int(0.5*img_size)+half_cutout,
                                          int(0.5*img_size)-half_cutout:int(0.5*img_size)+half_cutout]
     simple_fits = np.float32(simple_fits)
@@ -282,21 +282,21 @@ def main():
     ######################
     ## USER INPUTS
 
-    #mode = "permutations"
-    mode = "random_walk"
+    mode = "permutations"
+    #mode = "random_walk"
     
     opd_start = 0.0e-6
     #opd_stop = 0.0e-6
     opd_stop = 1.0e-6 # inclusive
-    opd_increment = 0.5e-6 # change in OPD at each step; in m
+    opd_increment = 3.0e-6 # change in OPD at each step; in m
 
     tilt_start = 0.0
     tilt_stop = 1.0 # asec 
-    tilt_increment = 0.1
+    tilt_increment = 2.0
 
     tip_start = 0.0
     tip_stop = 1.0 # asec 
-    tip_increment = 0.1 
+    tip_increment = 2.0 
 
     transl_start = 0.0 # position at which to start
     transl_stop = 1.0
@@ -329,9 +329,11 @@ def main():
         combineArray = [opdArray,tipArray,tiltArray,translArray]
         permutationsArray = list(itertools.product(*combineArray))
 
-        params_array = permutationsArray
-        print('-------')
-        print(np.shape(params_array))
+        # this is just a kludge needed to make 'permutations' mode work, after implementation
+        # of 'random_walk'
+        index_array = [[1]]
+
+        params_array = np.concatenate((permutationsArray,index_array), axis=1)
 
     elif (mode == "random_walk"):
         '''
