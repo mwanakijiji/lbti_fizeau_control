@@ -100,13 +100,28 @@ def psf_sim(parameters):
     
     start_time = time.time()
 
-    monochromatic = False
+    #################################
+    ####### BEGIN USER INPUTS #######
+    
+    monochromatic = True
+    lmir = False # lmircam or nomic?
+    
     if monochromatic:
-        wavel = 3.87e-6 # m (monochromatic)
+        wavel = 12.0e-6 # m (monochromatic)
     else:
         wavel = np.linspace(4.02,4.08,num=10)*1e-6 # (polychromatic)
+        
+    ####### END USER INPUTS #######
+    #################################
+        
+    if lmir:
+        omega = 9412.639 # LMIR plate scale is 0.0107 asec/pix (see research journal from 2018 Apr 19 or 2019 July 11)
+        plateScale = 0.0107 # in asec/pix
+    else:
+        omega = 5595.291 # NOMIC plate scale is 0.018 asec/pix
+        plateScale = 0.018 # in asec/pix
     
-    plateScale_LMIR = 0.0107 # in asec/pix
+    
     N_pix = 2048 # number of pixels across the input and output arrays
     D = 8.25 # effective M1 diameter, in m
     avg_wavel = np.mean(wavel)
@@ -133,14 +148,14 @@ def psf_sim(parameters):
         
     # create mono- or polychromatic PSF
     if monochromatic: # wavel just has 1 value
-        deltaSpacing = 9412.639*wavel # sampling rate in pupil plane (m/pix)
+        deltaSpacing = omega*wavel # sampling rate in pupil plane (m/pix)
         centerx, centery, sxAperture, dxAperture, LBTAperture, aperturePlateScale = lbt_aperture2(deltaSpacing, N_pix, D) # need to re-generate LBT aperture for each wavelength for DFT
         FTAp = make_psf(sxAperture, dxAperture, phase, wavel, centerx, centery, tip_asec, tilt_asec)
         I = np.real(FTAp * np.conj(FTAp))
     else: # polychromatic PSF
         for t in range(0,len(wavel)): # integrate over wavelength
             print('Polychromatic PSF, calculating phase = '+str(phase[t]))
-            deltaSpacing = 9412.6*wavel # sampling rate in pupil plane (m/pix)
+            deltaSpacing = omega*wavel # sampling rate in pupil plane (m/pix)
             centerx, centery, sxAperture, dxAperture, LBTAperture, aperturePlateScale = lbt_aperture2(deltaSpacing[t], N_pix, D) # need to re-generate LBT aperture for each wavelength for DFT
             FTAp = make_psf(sxAperture, dxAperture, phase[t], wavel[t], centerx, centery, tip_asec, tilt_asec)
             if (t==0):
@@ -229,7 +244,7 @@ def psf_sim(parameters):
     tipString = str(int(1000*diff_tip)).zfill(4)
     tiltString = str(int(1000*diff_tilt)).zfill(4)
     translString = str(int(100*transl)).zfill(3)
-    PSstring = str(int(1000*plateScale_LMIR))
+    PSstring = str(int(1000*plateScale))
 
     #mpl.imshow(ArgPE_deg) # just FYI
     #mpl.savefig('test.png')
@@ -250,10 +265,21 @@ def psf_sim(parameters):
     fits_extension = "./junk/"
     
     img_size = np.shape(psf_stats['PSF_image'])[0]
-    half_cutout = 70 # this sets the size of the saved image
+    half_cutout = 1024 # this sets the size of the saved image
     simple_fits = psf_stats['PSF_image'][int(0.5*img_size)-half_cutout:int(0.5*img_size)+half_cutout,
                                          int(0.5*img_size)-half_cutout:int(0.5*img_size)+half_cutout]
     simple_fits = np.float32(simple_fits)
+
+    # also include FFT amplitude and phase
+    amp_fft = psf_stats['FTamp_image'][int(0.5*img_size)-half_cutout:int(0.5*img_size)+half_cutout,
+                                         int(0.5*img_size)-half_cutout:int(0.5*img_size)+half_cutout]
+    phase_fft = psf_stats['FTphase_image'][int(0.5*img_size)-half_cutout:int(0.5*img_size)+half_cutout,
+                                         int(0.5*img_size)-half_cutout:int(0.5*img_size)+half_cutout]
+
+    cube_to_write = np.ones((3,np.shape(simple_fits)[0],np.shape(simple_fits)[1]))
+    cube_to_write[0,:,:] = simple_fits
+    cube_to_write[1,:,:] = amp_fft
+    cube_to_write[2,:,:] = phase_fft
 
     #hdu = fits.PrimaryHDU(simple_fits)
 
@@ -266,8 +292,11 @@ def psf_sim(parameters):
 
 
     # the following FITS command was written with random walk PSFs in mind
-    fits.writeto(fits_extension + "psf_trial1_" + str("{:0>8d}".format(int(index_num))) + ".fits", data=simple_fits, header=hdr, overwrite=True)
+    #fits.writeto(fits_extension + "psf_trial1_" + str("{:0>8d}".format(int(index_num))) + ".fits", data=simple_fits, header=hdr, overwrite=True)
+    # ... the alternative is to just give it an ersatz name
+    fits.writeto("test.fits", data=cube_to_write, header=hdr, overwrite=True)
 
+    
     #plt.plot()
     #plt.savefig("junk.png")
 
