@@ -103,13 +103,13 @@ def psf_sim(parameters):
     #################################
     ####### BEGIN USER INPUTS #######
     
-    monochromatic = True
-    lmir = False # lmircam or nomic?
+    monochromatic = False
+    lmir = True # lmircam or nomic?
     
     if monochromatic:
-        wavel = 12.0e-6 # m (monochromatic)
+        wavel = 3.8e-6 # m (monochromatic)
     else:
-        wavel = np.linspace(4.02,4.08,num=10)*1e-6 # (polychromatic)
+        wavel = np.linspace(3.4,4,num=10)*1e-6 # (polychromatic)
         
     ####### END USER INPUTS #######
     #################################
@@ -134,11 +134,8 @@ def psf_sim(parameters):
     index_num = parameters[4]
     
     # dictionary of psf stats
-    psf_stats = {'OPD': [], 'tip': [], 'tilt': [], 'translation': [],
-             'centerlobe_ampl': [], 'sidelobe_ampl': [],
-             'centerlobe_phase_deg': [], 'sidelobe_phase_deg': [],
-             'PSF_image': [], 'FTamp_image': [], 'FTphase_image': [],
-             'freq_x_axis_shifted': [], 'freq_y_axis_shifted': []} 
+    psf_stats = {'PSF_image': [], 'FTamp_image': [], 'FTphase_image': []}
+             
     
     phase = opd/wavel # this is a float (monochrom) or array (polychrom)
     
@@ -203,15 +200,15 @@ def psf_sim(parameters):
 
     # find amplitude of
     # central lobe of FT amplitude
-    center_ampl = np.max(ma.masked_array(AmpPE, mask=mask_center))
+    #center_ampl = np.max(ma.masked_array(AmpPE, mask=mask_center))
     # side lobe of FT amplitude
-    side_ampl = np.max(ma.masked_array(AmpPE, mask=mask_right))
+    #side_ampl = np.max(ma.masked_array(AmpPE, mask=mask_right))
     
     # find phase value at center and side lobe
     
     # ... central lobe of FT amplitude
-    CenterPhase_deg = np.ma.median(ma.masked_array(ArgPE_deg, mask=mask_center))
-    sidelobe_phase_deg = np.ma.median(ma.masked_array(ArgPE_deg, mask=mask_right))
+    #CenterPhase_deg = np.ma.median(ma.masked_array(ArgPE_deg, mask=mask_center))
+    #sidelobe_phase_deg = np.ma.median(ma.masked_array(ArgPE_deg, mask=mask_right))
     
     # get the axes right
     freq_x_axis = np.fft.fftfreq(np.shape(I)[1]) # frequency axes (in pix^-1)
@@ -220,19 +217,23 @@ def psf_sim(parameters):
     freq_y_axis_shifted = np.fft.fftshift(freq_y_axis)
     
     # store stats and images
+    '''
     psf_stats['OPD'] = opd
     psf_stats['translation'] = transl
     psf_stats['tip'] = tip_asec
     psf_stats['tilt'] = tilt_asec
     psf_stats['sidelobe_phase_deg'] = sidelobe_phase_deg     
     psf_stats['centerlobe_phase_deg'] = CenterPhase_deg
+    '''
     psf_stats['PSF_image'] = padI_transl_but_no_fft_shift
     psf_stats['FTamp_image'] = AmpPE
     psf_stats['FTphase_image'] = ArgPE_deg
+    '''
     psf_stats['centerlobe_ampl'] = center_ampl
     psf_stats['sidelobe_ampl'] = side_ampl
     psf_stats['freq_x_axis_shifted'] = freq_x_axis_shifted
-    psf_stats['freq_y_axis_shifted'] = freq_y_axis_shifted                 
+    psf_stats['freq_y_axis_shifted'] = freq_y_axis_shifted
+    '''             
 
     # strings for filenames
     if monochromatic:
@@ -293,8 +294,14 @@ def psf_sim(parameters):
 
     # the following FITS command was written with random walk PSFs in mind
     #fits.writeto(fits_extension + "psf_trial1_" + str("{:0>8d}".format(int(index_num))) + ".fits", data=simple_fits, header=hdr, overwrite=True)
-    # ... the alternative is to just give it an ersatz name
-    fits.writeto("test.fits", data=cube_to_write, header=hdr, overwrite=True)
+
+
+    fits.writeto(fits_extension + "sim_psf_" + str("{:0>8d}".format(int(index_num))) + "chrom_" + chromaticString + "_avgwavel_" + wavelString +
+                                  "_opd_" + opdString + "_tip_" + tipString + "_tilt_" + tiltString +
+                                  "_transl_" + translString + "_PS_" + PSstring + extraString + ".fits", data=simple_fits, header=hdr, overwrite=True)
+
+    # ... the alternative is to just for a one-off frame
+    #fits.writeto("test.fits", data=cube_to_write, header=hdr, overwrite=True)
 
     
     #plt.plot()
@@ -314,17 +321,17 @@ def main():
     mode = "permutations"
     #mode = "random_walk"
     
-    opd_start = 0.0e-6
+    opd_start = -20.0e-6
     #opd_stop = 0.0e-6
-    opd_stop = 1.0e-6 # inclusive
-    opd_increment = 3.0e-6 # change in OPD at each step; in m
+    opd_stop = 20.0e-6 # inclusive
+    opd_increment = 0.5e-6 # change in OPD at each step; in m
 
     tilt_start = 0.0
-    tilt_stop = 1.0 # asec 
+    tilt_stop = 0.06 # asec 
     tilt_increment = 2.0
 
     tip_start = 0.0
-    tip_stop = 1.0 # asec 
+    tip_stop = 0.06 # asec 
     tip_increment = 2.0 
 
     transl_start = 0.0 # position at which to start
@@ -360,7 +367,7 @@ def main():
 
         # this is just a kludge needed to make 'permutations' mode work, after implementation
         # of 'random_walk'
-        index_array = [[1]]
+        index_array = np.ones((np.shape(permutationsArray)[0],1))   #[[1]]
 
         params_array = np.concatenate((permutationsArray,index_array), axis=1)
 
@@ -413,6 +420,7 @@ def main():
         
 
     # read in masks (0=masked; 1=good) and change convention (True=masked; False=good)
+    '''
     global mask_all
     global mask_center
     global mask_right
@@ -422,6 +430,7 @@ def main():
     mask_center = np.abs(np.subtract(mask_center0[0].data,1))
     mask_right0 = fits.open('masks/mask_right_power.fits')
     mask_right = np.abs(np.subtract(mask_right0[0].data,1)).astype(bool)
+    '''
     
     ncpu = mp.cpu_count()
 
