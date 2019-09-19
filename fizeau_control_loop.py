@@ -3,7 +3,7 @@
 import pdb
 from lmircam_tools import *
 from lmircam_tools.overlap_psfs import overlap_psfs
-from lmircam_tools.dial_opd import find_optimal_opd_fizeau_grism, live_opd_correction_fizeau_grism, implement_optimal_opd
+from lmircam_tools.dial_opd import find_optimal_opd_fizeau_grism, find_optimal_opd_fizeau_airy, live_opd_correction_fizeau_grism, implement_optimal_opd
 from lmircam_tools.change_tt import print_write_fft_info, get_apply_pc_setpts, compare_setpts
 
 #################################################################################
@@ -62,6 +62,8 @@ live_opd_correction_fizeau_grism(integ_time, mode = mode_choice)
 
 # modes: "fake_fits" / "az_source" / "science"
 find_optimal_opd_fizeau_grism(integ_time, mode = mode_choice)
+# BELOW FCN IS UNDER DEVELOPMENT
+find_optimal_opd_fizeau_airy(integ_time, mode = mode_choice)
 implement_optimal_opd(mode = mode_choice)
 print("----------------------------------------------------------------------------------")
 raw_input("Science detector alignment done. Now align Phasecam and close the phase loop")

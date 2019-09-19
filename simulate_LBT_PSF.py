@@ -298,7 +298,7 @@ def psf_sim(parameters):
 
     fits.writeto(fits_extension + "sim_psf_" + str("{:0>8d}".format(int(index_num))) + "chrom_" + chromaticString + "_avgwavel_" + wavelString +
                                   "_opd_" + opdString + "_tip_" + tipString + "_tilt_" + tiltString +
-                                  "_transl_" + translString + "_PS_" + PSstring + extraString + ".fits", data=simple_fits, header=hdr, overwrite=True)
+                                  "_transl_" + translString + "_PS_" + PSstring + extraString + ".fits", data=cube_to_write, header=hdr, overwrite=True)
 
     # ... the alternative is to just for a one-off frame
     #fits.writeto("test.fits", data=cube_to_write, header=hdr, overwrite=True)
@@ -321,10 +321,10 @@ def main():
     mode = "permutations"
     #mode = "random_walk"
     
-    opd_start = -20.0e-6
+    opd_start = -15.5e-6
     #opd_stop = 0.0e-6
     opd_stop = 20.0e-6 # inclusive
-    opd_increment = 0.5e-6 # change in OPD at each step; in m
+    opd_increment = 50e-6 # change in OPD at each step; in m
 
     tilt_start = 0.0
     tilt_stop = 0.06 # asec 
