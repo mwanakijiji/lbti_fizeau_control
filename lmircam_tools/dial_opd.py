@@ -247,7 +247,7 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
     step_stop = 4
     for opd_step in range(step_start,step_stop):
 
-	step_size_opd = 10. # step size per opd_step count (um, total OPD)
+        step_size_opd = 10. # step size per opd_step count (um, total OPD)
 
         if (mode != "fake_fits"):
             print("Taking a background-subtracted frame")
@@ -261,7 +261,7 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
             # FFT phase image (this has to wait for a new frame(
             fftw_phase = pi_fiz.getFITS("fizeau.phase_image.file", timeout=60)
 
-	elif (mode == "fake_fits"):
+        elif (mode == "fake_fits"):
             ## ## CHANGE THIS TO MONITOR A DIRECTORY
             f = pyfits.open("test_fits_files/test_frame_grismFiz_small.fits")
 
@@ -290,15 +290,15 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
 
         # take FFT; no padding for now
         ## ## DO I WANT A SMALL CUTOUT OR THE ORIGINAL IMAGE?
-	AmpPE, ArgPE = fft_img(img_before_padding_before_FT).fft(padding=0)
+        AmpPE, ArgPE = fft_img(img_before_padding_before_FT).fft(padding=0)
 
         # this is a kludge for slipping in the INDI FFT amplitude (the phase has a checkerboard pattern until Paul fixes it) in place of the Python one
         if ((mode == "az_source") or (mode == "science")):
             AmpPE = ma.masked_where(fftw_amp == np.nan, fftw_amp, copy=False)
 
-	# save fyi FITS files
+        # save fyi FITS files
         '''
-	hdu = pyfits.PrimaryHDU(image)
+        hdu = pyfits.PrimaryHDU(image)
         hdulist = pyfits.HDUList([hdu])
         hdu.writeto('junk_test_original_grism.fits', clobber=True)
     	hdu = pyfits.PrimaryHDU(AmpPE.data)
@@ -310,54 +310,54 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
             hdu = pyfits.PrimaryHDU(fftw_phase)
     	hdulist = pyfits.HDUList([hdu])
     	hdu.writeto('junk_test_arg_grism.fits', clobber=True)
-	'''
+        '''
 
         #############################################################
         ## ## BEGIN OPTIMIZATION OF PATHLENGTH BASED ON GRISM FFTS
 
-	# LATER DO THE FOLLOWING; FOR NOW, JUST DIAL IN BOTH DIRECTIONS AND FIT A POLYNOMIAL
+        # LATER DO THE FOLLOWING; FOR NOW, JUST DIAL IN BOTH DIRECTIONS AND FIT A POLYNOMIAL
         # if direction of fringes is apparent --> dial OPD until past the point
         # where they are vertical, then fit a polynomial
         # if no direction of fringes is apparent --> dial one way 10 microns, then
-	# jump back and go the other way 10 microns
+        # jump back and go the other way 10 microns
 
-	# The idea here is to
-	# 1. Integrate over one side (left or right) of the 2D FFT of the grism image
-	# 2. Take the cross-correlation of the upper and lower part of the above
-	# 3. Subtract one side of the correlation from the other, to find asymmetries
-	# 4. Insert the median value of the residual to an array
-	# 5. Move to the next OPD position and re-take measurements
-	# 6. After going through a given range of movement, fit a polynomial to the 
-	#     residuals as a function of OPD
+        # The idea here is to
+        # 1. Integrate over one side (left or right) of the 2D FFT of the grism image
+        # 2. Take the cross-correlation of the upper and lower part of the above
+        # 3. Subtract one side of the correlation from the other, to find asymmetries
+        # 4. Insert the median value of the residual to an array
+        # 5. Move to the next OPD position and re-take measurements
+        # 6. After going through a given range of movement, fit a polynomial to the 
+        #     residuals as a function of OPD
 
-	# take right-hand side of FFT, integrate in x
+        # take right-hand side of FFT, integrate in x
         to_corr = np.sum(AmpPE[:,int(0.5*img_before_padding_before_FT.shape[1]):], axis=1) 
         to_corr_masked = np.copy(to_corr)
-	# mask the strong low-frequency power
-	to_corr_masked[int(0.5*len(to_corr_masked))-2:int(0.5*len(to_corr_masked))+2] = 0 
-	# take cross-correlation
+        # mask the strong low-frequency power
+        to_corr_masked[int(0.5*len(to_corr_masked))-2:int(0.5*len(to_corr_masked))+2] = 0 
+        # take cross-correlation
         test_symm = signal.correlate(to_corr_masked, to_corr_masked[::-1], mode='same') 
-	# separate into halves
+        # separate into halves
         leftHalf = test_symm[:int(0.5*len(test_symm))]
         rightHalf = test_symm[int(0.5*len(test_symm)):]
         # find residuals between the halves of the cross-correlation
-	resid = leftHalf-rightHalf[::-1]
+        resid = leftHalf-rightHalf[::-1]
 
-	# add median of residuals, and pathlength (HPC) position, to arrays
-	print("----------------------------------------------------------------")
-	print("Current OPD step:")
-	print(str(opd_step) + ", to end with " + str(np.add(step_start,np.subtract(step_stop,step_start))))
+        # add median of residuals, and pathlength (HPC) position, to arrays
+        print("----------------------------------------------------------------")
+        print("Current OPD step:")
+        print(str(opd_step) + ", to end with " + str(np.add(step_start,np.subtract(step_stop,step_start))))
 
-	# conversions
-	# SPC_Trans: 1 um trans (2 um OPD) -> 50 counts
-	# HPC piezo: 1 um trans (2 um OPD) -> 10 counts
-	# FPC piezo: 1 um trans (2 um OPD) -> 10 counts
-	spc_trans_position = pi.getINDI("Ubcs.SPC_Trans_status.PosNum") # translation stage (absolute position, 0.02 um)
-	hpc_piezo_piston = pi.getINDI("Acromag.HPC_status.Piston") # piezo piston (absolute position, um)
-	fpc_piezo_piston = pi.getINDI("Acromag.FPC_status.Piston") # piezo piston (absolute position, um)
-	spc_trans_position_opd_um = 2.*np.divide(spc_trans_position,50.) # (OPD, um)
-	hpc_piezo_piston_opd_um = 2.*np.divide(hpc_piezo_piston,10.) # (OPD, um)
-	fpc_piezo_piston_opd_um = 2.*np.divide(fpc_piezo_piston,10.) # (OPD, um)
+        # conversions
+        # SPC_Trans: 1 um trans (2 um OPD) -> 50 counts
+        # HPC piezo: 1 um trans (2 um OPD) -> 10 counts
+        # FPC piezo: 1 um trans (2 um OPD) -> 10 counts
+        spc_trans_position = pi.getINDI("Ubcs.SPC_Trans_status.PosNum") # translation stage (absolute position, 0.02 um)
+        hpc_piezo_piston = pi.getINDI("Acromag.HPC_status.Piston") # piezo piston (absolute position, um)
+        fpc_piezo_piston = pi.getINDI("Acromag.FPC_status.Piston") # piezo piston (absolute position, um)
+        spc_trans_position_opd_um = 2.*np.divide(spc_trans_position,50.) # (OPD, um)
+        hpc_piezo_piston_opd_um = 2.*np.divide(hpc_piezo_piston,10.) # (OPD, um)
+        fpc_piezo_piston_opd_um = 2.*np.divide(fpc_piezo_piston,10.) # (OPD, um)
 
 	#df.append(pd.DataFrame())
 	df_append = pd.DataFrame(np.transpose([[opd_step],\
@@ -421,6 +421,15 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
     with open("pickled_info/scan_objs.pkl", "w") as f:
         pickle.dump([coeffs, df], f)
 
+    return
+
+
+def find_optimal_opd_fizeau_airy(integ_time, mode = "science"):
+    # Do a scan in OPD when in Fizeau-Airy mode, and find the center of the coherence envelope
+    # by using the amplitude of the MTF high-frequency node
+
+    ## UNDER DEVELOPMENT
+    
     return
 
 

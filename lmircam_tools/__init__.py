@@ -2,8 +2,12 @@ import numpy as np
 import pyfits
 import time
 from numpy import ma
-from pyindi import *
 from scipy import ndimage, sqrt, stats, misc, signal
+
+# necessary for importing pyindi
+import sys
+sys.path.append('./eckharts_python_path')
+from pyindi import *
 
 
 #########################
