@@ -189,6 +189,7 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
     # ... and remove angle values between +0 and +5 to avoid confusion with low-freq power (see Fig. 9 in Spalding+ 2019. SPIE)
     #angle_val = np.nanmedian(angle_val_array[np.nonzero(angle_val_array)])
     angle_val = np.nanmedian(angle_val_array[np.where(np.logical_and(np.abs(angle_val_array) < 50, np.abs(angle_val_array) > 5))])
+    import ipdb; ipdb.set_trace()
     print("Median angle value is " + str(angle_val))
 
     # as found by using OPD scans in grism mode in 2018A and 2018B, it appears that, for the Lgrism6AR,
