@@ -155,6 +155,8 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
         center_masked_data = AmpPE.data
         center_masked_data[int(0.5*np.shape(center_masked_data)[0])-20:int(0.5*np.shape(center_masked_data)[0])+20,
                            int(0.5*np.shape(center_masked_data)[1])-20:int(0.5*np.shape(center_masked_data)[1])+20] = np.nan
+        center_masked_data[int(0.5*np.shape(center_masked_data)[0])-26:int(0.5*np.shape(center_masked_data)[0])+26,
+                           int(0.5*np.shape(center_masked_data)[1])-10:int(0.5*np.shape(center_masked_data)[1])+10] = np.nan
         # and blot out zero-frequency stuff
         center_masked_data[int(0.5*np.shape(center_masked_data)[0]):int(0.5*np.shape(center_masked_data)[0])+1,:] = np.nan
         center_masked_data[:,int(0.5*np.shape(center_masked_data)[1]):int(0.5*np.shape(center_masked_data)[1])+1] = np.nan
