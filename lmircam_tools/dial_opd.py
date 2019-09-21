@@ -114,6 +114,9 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
             # cut out the grism image (best to have rectangle, rather than square cutout)
             #img_before_padding_before_FT = np.copy(image)
             img_before_padding_before_FT = image[center_grism[0]-int(200):center_grism[0]+int(200),center_grism[1]-int(100):center_grism[1]+int(100)]
+            print(image)
+            print(np.shape(image))
+            print(img_before_padding_before_FT)
         elif ((mode == "az_source") or (mode == "science")):
             img_before_padding_before_FT = np.copy(f[0].data)
             file_name_base = str(int(time.time())) + "_" + str(counter_num) # basename has already been defined for fake_fits
@@ -152,6 +155,9 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
         center_masked_data = AmpPE.data
         center_masked_data[int(0.5*np.shape(center_masked_data)[0])-20:int(0.5*np.shape(center_masked_data)[0])+20,
                            int(0.5*np.shape(center_masked_data)[1])-20:int(0.5*np.shape(center_masked_data)[1])+20] = np.nan
+        # and blot out zero-frequency stuff
+        center_masked_data[int(0.5*np.shape(center_masked_data)[0]):int(0.5*np.shape(center_masked_data)[0])+1,:] = np.nan
+        center_masked_data[:,int(0.5*np.shape(center_masked_data)[1]):int(0.5*np.shape(center_masked_data)[1])+1] = np.nan
         dot_loc = find_airy_psf(center_masked_data)
         #dot_loc = find_grism_psf(np.multiply(amp.data,amp.mask), 5, 5)
 
@@ -334,8 +340,9 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
         # take right-hand side of FFT, integrate in x
         to_corr = np.sum(AmpPE[:,int(0.5*img_before_padding_before_FT.shape[1]):], axis=1) 
         to_corr_masked = np.copy(to_corr)
-        # mask the strong low-frequency power
-        to_corr_masked[int(0.5*len(to_corr_masked))-2:int(0.5*len(to_corr_masked))+2] = 0 
+        # mask the strong low-frequency power in a box in the center
+        to_corr_masked[int(0.5*len(to_corr_masked))-2:int(0.5*len(to_corr_masked))+2] = 0
+        
         # take cross-correlation
         test_symm = signal.correlate(to_corr_masked, to_corr_masked[::-1], mode='same') 
         # separate into halves

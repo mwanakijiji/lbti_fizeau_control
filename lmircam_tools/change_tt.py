@@ -290,7 +290,7 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
 
     # read in any new images written out to a directory
     files_start = glob.glob(dir_to_monitor + "*.fits") # starting list of files
-    num_psfs_to_analyze = 10000 # number of PSFs to sample (a very large number if just writing retrieved values from single frames to file)
+    num_psfs_to_analyze = 10 # number of PSFs to sample (a very large number if just writing retrieved values from single frames to file)
 
     while counter_num < num_psfs_to_analyze:
 
@@ -394,14 +394,14 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
     	# locate PSF
     	psf_loc = find_grism_psf(image, sig=5, length_y=5)
     	if (mode == "fake_fits"):
-            #psf_loc = psf_loc_fake # if we are reading in fake FITS files
+            psf_loc = psf_loc_fake # if we are reading in fake FITS files
             ## ## if time, test the following line
-            psf_loc = find_airy_psf(image)
+            #psf_loc = find_airy_psf(image)
             print("Found PSF location:")
             print(psf_loc)
 
         # size of cookie cut-out (measured center-to-edge)
-        cookie_size = 30 # maximum control radius as of 2018 July corresponds to 130.0 pixels
+        cookie_size = 50 # maximum control radius as of 2018 July corresponds to 130.0 pixels
 
         # take FFT (some of this is redundant if INDI is putting out FFTs)
         if (mode == "fake_fits"):
@@ -689,10 +689,10 @@ def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "s
     print(np.median(fftInfo_arg["std_lowFreqPerfect"]))
     #if (mode != "total_passive"):
     if True: # total_passive is not a mode now
-        hpc_tip_position_now = pi.getINDI("Acromag.HPC_status.Tip") # HPC tip pos
-        hpc_tilt_position_now = pi.getINDI("Acromag.HPC_status.Tilt") # HPC tilt pos
-        fpc_tip_setpoint_now = pi.getINDI("PLC.UBCSettings.TipSetpoint") # FPC tip setpoint
-        fpc_tilt_setpoint_now = pi.getINDI("PLC.UBCSettings.TiltSetpoint") # FPC tilt setpoint
+        hpc_tip_position_now = pi.getINDI("dac_stage.hpc_status.tip") # HPC tip pos
+        hpc_tilt_position_now = pi.getINDI("dac_stage.hpc_status.tilt") # HPC tilt pos
+        fpc_tip_setpoint_now = pi.getINDI("dac_stage.fpc_status.tip") # FPC tip setpoint
+        fpc_tilt_setpoint_now = pi.getINDI("dac_stage.fpc_status.tilt") # FPC tilt setpoint
         print("----------------------------------")
         print("hpc_tip_position_now:")
         print(hpc_tip_position_now)
