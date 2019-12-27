@@ -132,10 +132,10 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
 	    # fine-tune with FPC or HPC
 	    if (side == "left"):
             	print("Moving SX PSF again, now with FPC movement")
-            	pi.setINDI("Acromag.FPC.Tip="+'{0:.1f}'.format(vector_move_asec[0])+";Tilt="+'{0:.1f}'.format(vector_move_asec[1])+";Piston=0;Mode=1")
+            	pi.setINDI("dac_stage.FPC.Tip="+'{0:.1f}'.format(vector_move_asec[0])+";Tilt="+'{0:.1f}'.format(vector_move_asec[1])+";Piston=0;Mode=1")
 	    elif (side == "right"):
                 print("Moving DX PSF again, now with HPC movement")
-		pi.setINDI("Acromag.HPC.Tip="+'{0:.1f}'.format(vector_move_asec[0])+";Tilt="+'{0:.1f}'.format(vector_move_asec[1])+";Piston=0;Mode=1")
+		pi.setINDI("dac_stage.HPC.Tip="+'{0:.1f}'.format(vector_move_asec[0])+";Tilt="+'{0:.1f}'.format(vector_move_asec[1])+";Piston=0;Mode=1")
 
 
 def overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = "science", psf_type = "airy"):

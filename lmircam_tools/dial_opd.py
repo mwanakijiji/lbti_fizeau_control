@@ -363,8 +363,8 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
         # HPC piezo: 1 um trans (2 um OPD) -> 10 counts
         # FPC piezo: 1 um trans (2 um OPD) -> 10 counts
         spc_trans_position = pi.getINDI("Ubcs.SPC_Trans_status.PosNum") # translation stage (absolute position, 0.02 um)
-        hpc_piezo_piston = pi.getINDI("Acromag.HPC_status.Piston") # piezo piston (absolute position, um)
-        fpc_piezo_piston = pi.getINDI("Acromag.FPC_status.Piston") # piezo piston (absolute position, um)
+        hpc_piezo_piston = pi.getINDI("dac_stage.hpc_status.piston") # piezo piston (absolute position, um)
+        fpc_piezo_piston = pi.getINDI("dac_stage.fpc_status.piston") # piezo piston (absolute position, um)
         spc_trans_position_opd_um = 2.*np.divide(spc_trans_position,50.) # (OPD, um)
         hpc_piezo_piston_opd_um = 2.*np.divide(hpc_piezo_piston,10.) # (OPD, um)
         fpc_piezo_piston_opd_um = 2.*np.divide(fpc_piezo_piston,10.) # (OPD, um)
@@ -389,12 +389,12 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
 	df = df.append(df_append, ignore_index=True)
 	print(df)
 	# now move the HPC to the next step (small steps with piezos)
-        # small steps, piezos: Acromag.HPC.Tip=0;Tilt=0;Piston=[step_size_opd];Mode=1
+        # small steps, piezos: dac_stage.HPC.Tip=0;Tilt=0;Piston=[step_size_opd];Mode=1
         #hpc_small_step = 0.5*step_size_opd # half the OPD (relative step)
 	#hpc_piezo_next_pos = np.add(spc_trans_position, opd_step*hpc_small_step) # piezo command is in absolute position, units of um
 	#print("----------------------------------------------------------------")
 	#print("Moving HPC for small OPD movement to position "+hpc_piezo_next_pos)
-	#pi.setINDI("Acromag.HPC.Tip=0;Tilt=0;Piston="+'{0:.1f}'.format(hpc_piezo_next_pos)+";Mode=1")
+	#pi.setINDI("dac_stage.HPC.Tip=0;Tilt=0;Piston="+'{0:.1f}'.format(hpc_piezo_next_pos)+";Mode=1")
 
 	# big steps with the SPC translation stage: Ubcs.SPC_Trans.command=>5
 	# note factor of 10; command is in relative movement of 0.1 um
@@ -482,7 +482,7 @@ def implement_optimal_opd(mode = "science"):
 
     # command the HPC piezo to move to that minimum
     #if (mode != "total_passive"):
-    #    pi.setINDI("Acromag.HPC.Tip=0;Tilt=0;Piston="+'{0:.1f}'.format(max_x)+";Mode=1")
+    #    pi.setINDI("dac_stage.HPC.Tip=0;Tilt=0;Piston="+'{0:.1f}'.format(max_x)+";Mode=1")
 
     # as last step, remove grism
     raw_input("User: remove grism, insert observing filters, and press [Enter]")
