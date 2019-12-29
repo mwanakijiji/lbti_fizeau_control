@@ -394,7 +394,7 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
 	#hpc_piezo_next_pos = np.add(spc_trans_position, opd_step*hpc_small_step) # piezo command is in absolute position, units of um
 	#print("----------------------------------------------------------------")
 	#print("Moving HPC for small OPD movement to position "+hpc_piezo_next_pos)
-	#pi.setINDI("dac_stage.HPC.Tip=0;Tilt=0;Piston="+'{0:.1f}'.format(hpc_piezo_next_pos)+";Mode=1")
+	#pi.setINDI("dac_stage.hpc.tip=0;tilt=0;piston="+'{0:.1f}'.format(hpc_piezo_next_pos)+";mode=1")
 
 	# big steps with the SPC translation stage: Ubcs.SPC_Trans.command=>5
 	# note factor of 10; command is in relative movement of 0.1 um
@@ -482,7 +482,7 @@ def implement_optimal_opd(mode = "science"):
 
     # command the HPC piezo to move to that minimum
     #if (mode != "total_passive"):
-    #    pi.setINDI("dac_stage.HPC.Tip=0;Tilt=0;Piston="+'{0:.1f}'.format(max_x)+";Mode=1")
+    #    pi.setINDI("dac_stage.hpc.tip=0;tilt=0;piston="+'{0:.1f}'.format(max_x)+";mode=1")
 
     # as last step, remove grism
     raw_input("User: remove grism, insert observing filters, and press [Enter]")
