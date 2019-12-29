@@ -786,10 +786,26 @@ def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "s
     print(str(corrxn_pl))
     print("-----")
 
+    # get other values that need to be included in the setINDI command
+    PLC_UBCSettings_Beam1_x = pi.getINDI("PLC.UBCSettings.Beam1_x")
+    PLC_UBCSettings_Beam1_y = pi.getINDI("PLC.UBCSettings.Beam1_y")
+    PLC_UBCSettings_Beam2_x = pi.getINDI("PLC.UBCSettings.Beam2_x")
+    PLC_UBCSettings_Beam2_y = pi.getINDI("PLC.UBCSettings.Beam2_y")
+    PLC_UBCSettings_Beam_r = pi.getINDI("PLC.UBCSettings.Beam_r")
+    PLC_UBCSettings_MinFTSNR = pi.getINDI("PLC.UBCSettings.MinFTSNR")
+    PLC_UBCSettings_PWVGain = pi.getINDI("PLC.UBCSettings.PWVGain")
+    PLC_UBCSettings_PLPGain = pi.getINDI("PLC.UBCSettings.PLPGain")
+    PLC_UBCSettings_PLDGain = pi.getINDI("PLC.UBCSettings.PLDGain")
+    PLC_UBCSettings_PLIGain = pi.getINDI("PLC.UBCSettings.PLIGain")
+    PLC_UBCSettings_CGSetpoint = pi.getINDI("PLC.UBCSettings.CGSetpoint")
+    PLC_UBCSettings_CGScale = pi.getINDI("PLC.UBCSettings.CGScale")
+    PLC_UBCSettings_TTPGain = pi.getINDI("PLC.UBCSettings.TTPGain")
+    PLC_UBCSettings_TTDGain = pi.getINDI("PLC.UBCSettings.TTDGain")
+    PLC_UBCSettings_TTIGain = pi.getINDI("PLC.UBCSettings.TTIGain")
+
     if (apply == True):
-        pi.setINDI("PLC.UBCSettings.TipSetpoint="+str(np.add(fpc_tip_setpoint,corrxn_tip_y))) # tip: y
-        pi.setINDI("PLC.UBCSettings.TiltSetpoint="+str(np.add(fpc_tilt_setpoint,corrxn_tilt_x))) # tilt: x
-        pi.setINDI("PLC.UBCSettings.PLSetpoint="+str(np.add(fpc_pl_setpoint,corrxn_pl))) # pathlength
+        # all these have to be applied at once; note that tip is y, tilt is x
+        pi.setINDI("PLC.UBCSettings.Beam1_x="+str(PLC_UBCSettings_Beam1_x)+";Beam1_y="+str(PLC_UBCSettings_Beam1_y)+";Beam2_x="+str(PLC_UBCSettings_Beam2_x)+";Beam2_y="+str(PLC_UBCSettings_Beam2_y)+";Beam_r="+str(PLC_UBCSettings_Beam_r)+";MinFTSNR="+str(PLC_UBCSettings_MinFTSNR)+";PLSetpoint="+str(np.add(fpc_pl_setpoint,corrxn_pl)))+";PWVGain="+str(PLC_UBCSettings_PWVGain)+";PLIGain="+str(PLC_UBCSettings_PLIGain)+";CGSetpoint="+str(PLC_UBCSettings_CGSetpoint)+";CGScale="+str(PLC_UBCSettings_CGScale)+";TipSetpoint="+str(np.add(fpc_tip_setpoint,corrxn_tip_y))+";TiltSetpoint="+str(np.add(fpc_tilt_setpoint,corrxn_tilt_x))+";TTIGain="+str(PLC_UBCSettings_TTIGain)+";PLPGain="+str(PLC_UBCSettings_PLPGain)+";PLDGain="+str(PLC_UBCSettings_PLDGain)+";TTPGain="+str(PLC_UBCSettings_TTPGain)+";TTDGain="+str(PLC_UBCSettings_TTDGain))
         #print("Manually change FPC tip-tilt setpoints. What was the scale?")
 
     #######################################################################
@@ -799,14 +815,14 @@ def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "s
     new_tip_setpoint = 0
     new_tilt_setpoint = 0
     if ((mode == "science") or (mode == "fake_fits") or (mode == "az_source")):
-        pi.setINDI("PLC.UBCSettings.TipSetpoint="+str(int(new_tip_setpoint)))
-        pi.setINDI("PLC.UBCSettings.TiltSetpoint="+str(int(new_tilt_setpoint)))
+        pi.setINDI("PLC.UBCSettings.Beam1_x="+str(PLC_UBCSettings_Beam1_x)+";Beam1_y="+str(PLC_UBCSettings_Beam1_y)+";Beam2_x="+str(PLC_UBCSettings_Beam2_x)+";Beam2_y="+str(PLC_UBCSettings_Beam2_y)+";Beam_r="+str(PLC_UBCSettings_Beam_r)+";MinFTSNR="+str(PLC_UBCSettings_MinFTSNR)+";PLSetpoint="+str(fpc_pl_setpoint)+";PWVGain="+str(PLC_UBCSettings_PWVGain)+";PLIGain="+str(PLC_UBCSettings_PLIGain)+";CGSetpoint="+str(PLC_UBCSettings_CGSetpoint)+";CGScale="+str(PLC_UBCSettings_CGScale)+";TipSetpoint="+str(int(new_tip_setpoint))+";TiltSetpoint="+str(int(new_tilt_setpoint))+";TTIGain="+str(PLC_UBCSettings_TTIGain)+";PLPGain="+str(PLC_UBCSettings_PLPGain)+";PLDGain="+str(PLC_UBCSettings_PLDGain)+";TTPGain="+str(PLC_UBCSettings_TTPGain)+";TTDGain="+str(PLC_UBCSettings_TTDGain))
 
     # MEDIUM PRIORITY: To correct high-freq fringe visibility
     new_pl_setpoint = 0
     spc_trans_stepSize = 5. # (um, total OPD)
     if ((mode == "science") or (mode == "fake_fits") or (mode == "az_source")):
         pi.setINDI("PLC.UBCSettings.PLSetpoint="+str(int(new_pl_setpoint)))
+        pi.setINDI("PLC.UBCSettings.Beam1_x="+str(PLC_UBCSettings_Beam1_x)+";Beam1_y="+str(PLC_UBCSettings_Beam1_y)+";Beam2_x="+str(PLC_UBCSettings_Beam2_x)+";Beam2_y="+str(PLC_UBCSettings_Beam2_y)+";Beam_r="+str(PLC_UBCSettings_Beam_r)+";MinFTSNR="+str(PLC_UBCSettings_MinFTSNR)+";PLSetpoint="+str(int(new_pl_setpoint))+";PWVGain="+str(PLC_UBCSettings_PWVGain)+";PLIGain="+str(PLC_UBCSettings_PLIGain)+";CGSetpoint="+str(PLC_UBCSettings_CGSetpoint)+";CGScale="+str(PLC_UBCSettings_CGScale)+";TipSetpoint="+str(fpc_tip_setpoint)+";TiltSetpoint="+str(fpc_tilt_setpoint)+";TTIGain="+str(PLC_UBCSettings_TTIGain)+";PLPGain="+str(PLC_UBCSettings_PLPGain)+";PLDGain="+str(PLC_UBCSettings_PLDGain)+";TTPGain="+str(PLC_UBCSettings_TTPGain)+";TTDGain="+str(PLC_UBCSettings_TTDGain))
         pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(spc_trans_command))
         pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(10*0.5*stepSize)) # factor of 10 bcz command is in 0.1 um
 
@@ -884,17 +900,46 @@ def compare_setpts(pickle_pre, pickle_post, mode = "science", bkgd_mode = "quick
     print("Pre: " + str(corrxn_pl_pre))
     print("Post: " + str(corrxn_pl_post))
 
+    # get other values that need to be included in the setINDI command
+    PLC_UBCSettings_Beam1_x = pi.getINDI("PLC.UBCSettings.Beam1_x")
+    PLC_UBCSettings_Beam1_y = pi.getINDI("PLC.UBCSettings.Beam1_y")
+    PLC_UBCSettings_Beam2_x = pi.getINDI("PLC.UBCSettings.Beam2_x")
+    PLC_UBCSettings_Beam2_y = pi.getINDI("PLC.UBCSettings.Beam2_y")
+    PLC_UBCSettings_Beam_r = pi.getINDI("PLC.UBCSettings.Beam_r")
+    PLC_UBCSettings_MinFTSNR = pi.getINDI("PLC.UBCSettings.MinFTSNR")
+    PLC_UBCSettings_PWVGain = pi.getINDI("PLC.UBCSettings.PWVGain")
+    PLC_UBCSettings_PLPGain = pi.getINDI("PLC.UBCSettings.PLPGain")
+    PLC_UBCSettings_PLDGain = pi.getINDI("PLC.UBCSettings.PLDGain")
+    PLC_UBCSettings_PLIGain = pi.getINDI("PLC.UBCSettings.PLIGain")
+    PLC_UBCSettings_CGSetpoint = pi.getINDI("PLC.UBCSettings.CGSetpoint")
+    PLC_UBCSettings_CGScale = pi.getINDI("PLC.UBCSettings.CGScale")
+    PLC_UBCSettings_TTPGain = pi.getINDI("PLC.UBCSettings.TTPGain")
+    PLC_UBCSettings_TTDGain = pi.getINDI("PLC.UBCSettings.TTDGain")
+    PLC_UBCSettings_TTIGain = pi.getINDI("PLC.UBCSettings.TTIGain")
+
+    # all these have to be applied at once; note that tip is y, tilt is x
+    pi.setINDI("PLC.UBCSettings.Beam1_x="+str(PLC_UBCSettings_Beam1_x)+";Beam1_y="+str(PLC_UBCSettings_Beam1_y)+";Beam2_x="+str(PLC_UBCSettings_Beam2_x)+";Beam2_y="+str(PLC_UBCSettings_Beam2_y)+";Beam_r="+str(PLC_UBCSettings_Beam_r)+";MinFTSNR="+str(PLC_UBCSettings_MinFTSNR)+";PLSetpoint="+str(np.add(fpc_pl_setpoint,corrxn_pl)))+";PWVGain="+str(PLC_UBCSettings_PWVGain)+";PLIGain="+str(PLC_UBCSettings_PLIGain)+";CGSetpoint="+str(PLC_UBCSettings_CGSetpoint)+";CGScale="+str(PLC_UBCSettings_CGScale)+";TipSetpoint="+str(np.add(fpc_tip_setpoint,corrxn_tip_y))+";TiltSetpoint="+str(np.add(fpc_tilt_setpoint,corrxn_tilt_x))+";TTIGain="+str(PLC_UBCSettings_TTIGain)+";PLPGain="+str(PLC_UBCSettings_PLPGain)+";PLDGain="+str(PLC_UBCSettings_PLDGain)+";TTPGain="+str(PLC_UBCSettings_TTPGain)+";TTDGain="+str(PLC_UBCSettings_TTDGain))
+
     # if not, make a 2x reverse correction
     # check if correction has gone further away from zero
     if ((  np.abs(corrxn_tt_post[0]) > np.abs(corrxn_tt_pre[0])  ) and (  np.sign(corrxn_tt_post[0]) == np.sign(corrxn_tt_pre[0])  )):
         print("Re-correcting the tip (y) setpoint correction")
         fpc_tip_setpoint = pi.getINDI("PLC.UBCSettings.TipSetpoint")
-        pi.setINDI("PLC.UBCSettings.TipSetpoint="+str(np.add(fpc_tip_setpoint,-2*corrxn_tt_pre[0]))) # tip: y
+        fpc_tilt_setpoint = pi.getINDI("PLC.UBCSettings.TiltSetpoint")
+        fpc_pl_setpoint = pi.getINDI("PLC.UBCSettings.PLSetpoint")
+        new_tip_offset = -2*corrxn_tt_pre[0]
+        pi.setINDI("PLC.UBCSettings.Beam1_x="+str(PLC_UBCSettings_Beam1_x)+";Beam1_y="+str(PLC_UBCSettings_Beam1_y)+";Beam2_x="+str(PLC_UBCSettings_Beam2_x)+";Beam2_y="+str(PLC_UBCSettings_Beam2_y)+";Beam_r="+str(PLC_UBCSettings_Beam_r)+";MinFTSNR="+str(PLC_UBCSettings_MinFTSNR)+";PLSetpoint="+str(fpc_pl_setpoint)+";PWVGain="+str(PLC_UBCSettings_PWVGain)+";PLIGain="+str(PLC_UBCSettings_PLIGain)+";CGSetpoint="+str(PLC_UBCSettings_CGSetpoint)+";CGScale="+str(PLC_UBCSettings_CGScale)+";TipSetpoint="+str(np.add(fpc_tip_setpoint,new_tip_offset))+";TiltSetpoint="+str(fpc_tilt_setpoint)+";TTIGain="+str(PLC_UBCSettings_TTIGain)+";PLPGain="+str(PLC_UBCSettings_PLPGain)+";PLDGain="+str(PLC_UBCSettings_PLDGain)+";TTPGain="+str(PLC_UBCSettings_TTPGain)+";TTDGain="+str(PLC_UBCSettings_TTDGain))
     if ((  np.abs(corrxn_tt_post[1]) > np.abs(corrxn_tt_pre[1])  ) and (  np.sign(corrxn_tt_post[1]) == np.sign(corrxn_tt_pre[1])  )):
         print("Re-correcting the tilt (x) setpoint correction")
+        fpc_tip_setpoint = pi.getINDI("PLC.UBCSettings.TipSetpoint")
         fpc_tilt_setpoint = pi.getINDI("PLC.UBCSettings.TiltSetpoint")
-        pi.setINDI("PLC.UBCSettings.TiltSetpoint="+str(np.add(fpc_tilt_setpoint,-2*corrxn_tt_pre[1]))) # tilt: x
+        fpc_pl_setpoint = pi.getINDI("PLC.UBCSettings.PLSetpoint")
+        new_tilt_offset = -2*corrxn_tt_pre[1]
+        pi.setINDI("PLC.UBCSettings.Beam1_x="+str(PLC_UBCSettings_Beam1_x)+";Beam1_y="+str(PLC_UBCSettings_Beam1_y)+";Beam2_x="+str(PLC_UBCSettings_Beam2_x)+";Beam2_y="+str(PLC_UBCSettings_Beam2_y)+";Beam_r="+str(PLC_UBCSettings_Beam_r)+";MinFTSNR="+str(PLC_UBCSettings_MinFTSNR)+";PLSetpoint="+str(fpc_pl_setpoint)+";PWVGain="+str(PLC_UBCSettings_PWVGain)+";PLIGain="+str(PLC_UBCSettings_PLIGain)+";CGSetpoint="+str(PLC_UBCSettings_CGSetpoint)+";CGScale="+str(PLC_UBCSettings_CGScale)+";TipSetpoint="+str(fpc_tip_setpoint)+";TiltSetpoint="+str(np.add(fpc_tilt_setpoint,new_tilt_offset))+";TTIGain="+str(PLC_UBCSettings_TTIGain)+";PLPGain="+str(PLC_UBCSettings_PLPGain)+";PLDGain="+str(PLC_UBCSettings_PLDGain)+";TTPGain="+str(PLC_UBCSettings_TTPGain)+";TTDGain="+str(PLC_UBCSettings_TTDGain))
     if ((  np.abs(corrxn_pl_post) > np.abs(corrxn_pl_pre)  ) and (  np.sign(corrxn_pl_post) == np.sign(corrxn_pl_pre)  )):
         print("Re-correcting the PL setpoint correction")
-        fpc_pl_setpoint = pi.getINDI("PLC.UBCSettings.PLSetpoint")
-        pi.setINDI("PLC.UBCSettings.PLSetpoint="+str(np.add(fpc_pl_setpoint,-2*corrxn_pl_pre))) # pathlength
+        fpc_tip_setpoint = pi.getINDI("PLC.UBCSettings.TipSetpoint")
+        fpc_tilt_setpoint = pi.getINDI("PLC.UBCSettings.TiltSetpoint")
+        fpc_pl_setpoint = pi.getINDI("PLC.UBCSettings.PLSetpoint")        
+        new_pl_offset = -2*corrxn_pl_pre
+        pi.setINDI("PLC.UBCSettings.Beam1_x="+str(PLC_UBCSettings_Beam1_x)+";Beam1_y="+str(PLC_UBCSettings_Beam1_y)+";Beam2_x="+str(PLC_UBCSettings_Beam2_x)+";Beam2_y="+str(PLC_UBCSettings_Beam2_y)+";Beam_r="+str(PLC_UBCSettings_Beam_r)+";MinFTSNR="+str(PLC_UBCSettings_MinFTSNR)+";PLSetpoint="+str(np.add(fpc_pl_setpoint,new_pl_offset))+";PWVGain="+str(PLC_UBCSettings_PWVGain)+";PLIGain="+str(PLC_UBCSettings_PLIGain)+";CGSetpoint="+str(PLC_UBCSettings_CGSetpoint)+";CGScale="+str(PLC_UBCSettings_CGScale)+";TipSetpoint="+str(fpc_tip_setpoint)+";TiltSetpoint="+str(fpc_tilt_setpoint)+";TTIGain="+str(PLC_UBCSettings_TTIGain)+";PLPGain="+str(PLC_UBCSettings_PLPGain)+";PLDGain="+str(PLC_UBCSettings_PLDGain)+";TTPGain="+str(PLC_UBCSettings_TTPGain)+";TTDGain="+str(PLC_UBCSettings_TTDGain))
