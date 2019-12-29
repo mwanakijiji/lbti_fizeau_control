@@ -338,7 +338,7 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
 	#hpc_piezo_next_pos = np.add(spc_trans_position, opd_step*hpc_small_step) # piezo command is in absolute position, units of um
 	#print("----------------------------------------------------------------")
 	#print("Moving HPC for small OPD movement to position "+hpc_piezo_next_pos)
-	#pi.setINDI("dac_stage.hpc.tip=0;tilt=0;piston="+'{0:.1f}'.format(hpc_piezo_next_pos)+";mode=0")
+	#pi.setINDI("dac_stage.hpc.tip=0;tilt=0;piston="+'{0:.1f}'.format(hpc_piezo_next_pos)+";mode=1")
 
 	# big steps with the SPC translation stage: Ubcs.SPC_Trans.command=>5
 	# note factor of 10; command is in relative movement of 0.1 um

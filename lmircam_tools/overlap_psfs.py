@@ -135,7 +135,7 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
             	pi.setINDI("dac_stage.fpc.tip="+'{0:.1f}'.format(vector_move_asec[0])+";tilt="+'{0:.1f}'.format(vector_move_asec[1])+";piston=0;mode=1")
 	    elif (side == "right"):
                 print("Moving DX PSF again, now with HPC movement")
-		pi.setINDI("dac_stage.hpc.tip="+'{0:.1f}'.format(vector_move_asec[0])+";tilt="+'{0:.1f}'.format(vector_move_asec[1])+";piston=0;mode=0")
+		pi.setINDI("dac_stage.hpc.tip="+'{0:.1f}'.format(vector_move_asec[0])+";tilt="+'{0:.1f}'.format(vector_move_asec[1])+";piston=0;mode=1")
 
 
 def overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = "science", psf_type = "airy"):

@@ -735,7 +735,7 @@ def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "s
 
     # FYI: EDIT TO MAKE MOMENTARY CHANGES IN FPC TT
     if ((mode == "science") or (mode == "fake_fits") or (mode == "az_source")):
-        pi.setINDI("dac_stage.fpc.tip="+'{0:.1f}'.format(vector_move_asec[0])+";tilt="+'{0:.1f}'.format(vector_move_asec[1])+";piston=0;mode=0")
+        pi.setINDI("dac_stage.fpc.tip="+'{0:.1f}'.format(vector_move_asec[0])+";tilt="+'{0:.1f}'.format(vector_move_asec[1])+";piston=0;mode=1")
     '''
 
     # pickle the calculated corrections, so that they can be checked in the next function
