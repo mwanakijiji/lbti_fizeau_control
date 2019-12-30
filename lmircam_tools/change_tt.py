@@ -7,7 +7,7 @@ import pyfits
 #from astropy.coordinates import Angle, SkyCoord
 #from astropy.nddata.utils import extract_array
 #from regions import PixCoord, CircleSkyRegion, CirclePixelRegion, PolygonPixelRegion
-from pyregion import read_region_as_imagecoord, get_mask
+#from pyregion import read_region_as_imagecoord, get_mask
 import csv
 import time
 import pickle
