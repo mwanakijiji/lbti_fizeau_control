@@ -6,7 +6,7 @@ from scipy import misc, signal, ndimage
 import pyfits
 #from astropy.coordinates import Angle, SkyCoord
 #from astropy.nddata.utils import extract_array
-from regions import PixCoord, CircleSkyRegion, CirclePixelRegion, PolygonPixelRegion
+#from regions import PixCoord, CircleSkyRegion, CirclePixelRegion, PolygonPixelRegion
 from pyregion import read_region_as_imagecoord, get_mask
 import csv
 import time
@@ -44,7 +44,7 @@ max4 = 3.699
 
 
 def findFFTloc(baseline,imageShapeAlong1Axis,wavel_lambda,plateScale,lOverD=1.):
-    ''' 
+    '''
     Returns the FFT pixel locations equivalent to a certain pixel distance on the science image
     '''
 
@@ -65,7 +65,7 @@ def findFFTloc(baseline,imageShapeAlong1Axis,wavel_lambda,plateScale,lOverD=1.):
 
 
 def normalVector(sciImg):
-    ''' 
+    '''
     Fit a plane by finding the (normalized) normal vector to the best-fit plane
 
     INPUTS:
@@ -109,8 +109,8 @@ def normalVector(sciImg):
 
 
 def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
-    ''' 
-    Take a FFT image, generate masks to select interesting areas of the FFT, and 
+    '''
+    Take a FFT image, generate masks to select interesting areas of the FFT, and
     return data about those areas (amplitudes, normal vectors, etc.)
 
     INPUTS:
@@ -130,12 +130,15 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
 
     # define circles
     circRad = 30 # pixels in FFT space
+
+    '''
+    ## Commented out because the machinery is not compatible with Python 2.6.6 on lbti-macie --E.S., 2019 Dec. 29
     circle_highFreqPerfect_L = CirclePixelRegion(center=PixCoord(x=line_center2center_pixOnFFT[0], y=0.5*np.shape(sciImg)[0]), radius=circRad)
     circle_highFreqPerfect_R = CirclePixelRegion(center=PixCoord(x=line_center2center_pixOnFFT[1], y=0.5*np.shape(sciImg)[0]), radius=circRad)
     circle_lowFreqPerfect = CirclePixelRegion(center=PixCoord(x=0.5*np.shape(sciImg)[1], y=0.5*np.shape(sciImg)[0]), radius=circRad)
 
     # define central rectangular region that includes all three nodes
-    rect_pix = PolygonPixelRegion(vertices=PixCoord(x=[line_edge2edge_pixOnFFT[0],line_edge2edge_pixOnFFT[1],line_edge2edge_pixOnFFT[1],line_edge2edge_pixOnFFT[0]], 
+    rect_pix = PolygonPixelRegion(vertices=PixCoord(x=[line_edge2edge_pixOnFFT[0],line_edge2edge_pixOnFFT[1],line_edge2edge_pixOnFFT[1],line_edge2edge_pixOnFFT[0]],
                                                        y=[line_M1diam_pixOnFFT[1],line_M1diam_pixOnFFT[1],line_M1diam_pixOnFFT[0],line_M1diam_pixOnFFT[0]]))
 
     # make the masks
@@ -145,7 +148,7 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
     mask_rect = rect_pix.to_mask()
 
     ## apply the masks
-
+    '''
     # initialize arrays of same size as science image
     sciImg1 = np.copy(sciImg)
     sciImg2 = np.copy(sciImg)
@@ -154,31 +157,41 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
 
     # region 1: high-freq lobe, left
     sciImg1.fill(np.nan) # initialize arrays of nans
-    mask_circHighFreq_L.data[mask_circHighFreq_L.data == 0] = np.nan    # make zeros within mask cutout (but not in the mask itself) nans
-    sciImg1[mask_circHighFreq_L.bbox.slices] = mask_circHighFreq_L.data  # place the mask cutout (consisting only of 1s) onto the array of nans
+    x1_center = line_center2center_pixOnFFT[0]
+    y1_center = 0.5*np.shape(sciImg)[0]
+    sciImg1[y1_center-circRad:y1_center+circRad, x1_center-circRad:x1_center+circRad] = 1.
+    ##mask_circHighFreq_L.data[mask_circHighFreq_L.data == 0] = np.nan    # make zeros within mask cutout (but not in the mask itself) nans
+    ##sciImg1[mask_circHighFreq_L.bbox.slices] = mask_circHighFreq_L.data  # place the mask cutout (consisting only of 1s) onto the array of nans
     sciImg1 = np.multiply(sciImg1,sciImg) # 'transmit' the original science image through the mask
-    sciImg1 = sciImg1.filled(fill_value=np.nan) # turn all masked '--' elements to nans
+    ##sciImg1 = sciImg1.filled(fill_value=np.nan) # turn all masked '--' elements to nans
 
     # region 2: high-freq lobe, right
     sciImg2.fill(np.nan) # initialize arrays of nans
-    mask_circHighFreq_R.data[mask_circHighFreq_R.data == 0] = np.nan    # make zeros within mask cutout (but not in the mask itself) nans
-    sciImg2[mask_circHighFreq_R.bbox.slices] = mask_circHighFreq_R.data  # place the mask cutout (consisting only of 1s) onto the array of nans
+    x2_center = line_center2center_pixOnFFT[1]
+    y2_center = 0.5*np.shape(sciImg)[0]
+    sciImg2[y2_center-circRad:y2_center+circRad, x2_center-circRad:x2_center+circRad] = 1.
+    ##mask_circHighFreq_R.data[mask_circHighFreq_R.data == 0] = np.nan    # make zeros within mask cutout (but not in the mask itself) nans
+    ##sciImg2[mask_circHighFreq_R.bbox.slices] = mask_circHighFreq_R.data  # place the mask cutout (consisting only of 1s) onto the array of nans
     sciImg2 = np.multiply(sciImg2,sciImg) # 'transmit' the original science image through the mask
-    sciImg2 = sciImg2.filled(fill_value=np.nan) # turn all masked '--' elements to nans
+    ##sciImg2 = sciImg2.filled(fill_value=np.nan) # turn all masked '--' elements to nans
 
     # region 3: low-freq lobe
     sciImg3.fill(np.nan) # initialize arrays of nans
-    mask_circLowFreq.data[mask_circLowFreq.data == 0] = np.nan    # make zeros within mask cutout (but not in the mask itself) nans
-    sciImg3[mask_circLowFreq.bbox.slices] = mask_circLowFreq.data  # place the mask cutout (consisting only of 1s) onto the array of nans
+    x3_center = 0.5*np.shape(sciImg)[1]
+    y3_center = 0.5*np.shape(sciImg)[0]
+    sciImg3[y3_center-circRad:y3_center+circRad, x3_center-circRad:x3_center+circRad] = 1.
+    ##mask_circLowFreq.data[mask_circLowFreq.data == 0] = np.nan    # make zeros within mask cutout (but not in the mask itself) nans
+    ##sciImg3[mask_circLowFreq.bbox.slices] = mask_circLowFreq.data  # place the mask cutout (consisting only of 1s) onto the array of nans
     sciImg3 = np.multiply(sciImg3,sciImg) # 'transmit' the original science image through the mask
-    sciImg3 = sciImg3.filled(fill_value=np.nan) # turn all masked '--' elements to nans
+    ##sciImg3 = sciImg3.filled(fill_value=np.nan) # turn all masked '--' elements to nans
 
     # region 4: rectangular region containing parts of all lobes
     sciImg4.fill(np.nan) # initialize arrays of nans
-    mask_rect.data[mask_rect.data == 0] = np.nan    # make zeros within mask cutout (but not in the mask itself) nans
-    sciImg4[mask_rect.bbox.slices] = mask_rect.data  # place the mask cutout (consisting only of 1s) onto the array of nans
+    sciImg4[line_M1diam_pixOnFFT[0]:line_M1diam_pixOnFFT[1], line_edge2edge_pixOnFFT[0]:line_edge2edge_pixOnFFT[1]] = 1.
+    ##mask_rect.data[mask_rect.data == 0] = np.nan    # make zeros within mask cutout (but not in the mask itself) nans
+    ##sciImg4[mask_rect.bbox.slices] = mask_rect.data  # place the mask cutout (consisting only of 1s) onto the array of nans
     sciImg4 = np.multiply(sciImg4,sciImg) # 'transmit' the original science image through the mask
-    sciImg4 = sciImg4.filled(fill_value=np.nan) # turn all masked '--' elements to nans
+    ##sciImg4 = sciImg4.filled(fill_value=np.nan) # turn all masked '--' elements to nans
 
     # return medians of regions under masks
     med_highFreqPerfect_L = np.nanmedian(sciImg1)
@@ -219,7 +232,7 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
     # the 'sciImg' is
     dictFFTstuff = {}
 
-    # median of high-freq lobe on left side, within circular region centered around 
+    # median of high-freq lobe on left side, within circular region centered around
     # where a perfect high-freq lobe would be
     dictFFTstuff["med_highFreqPerfect_L"] = med_highFreqPerfect_L
 
@@ -244,7 +257,7 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
     # stdev of rectangle that is drawn to contain both high- and low-freq lobes
     dictFFTstuff["std_rect"] = std_rect
 
-    # normal vectors to the high- and low- frequency 
+    # normal vectors to the high- and low- frequency
     # note vectors are [a,b,c] corresponding to the eqn Z = a*X + b*Y + c
     dictFFTstuff["dummy"] = [0.1] # dont touch! this lets me convert to a dataframe later
     dictFFTstuff["normVec_highFreqPerfect_L_x"] = normVec_highFreqPerfect_L_x
@@ -270,7 +283,7 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
 
 
 def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pickle = " ", checker=False):
-    ''' 
+    '''
     Take FFT of PSF, and calculate new Phasecam PL and TT setpoints
 
     INPUTS:
@@ -315,7 +328,7 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
 
             	time_start = time.time() # start timer
 
-            	''' 
+            	'''
             	# this is for individual test images
             	if ((mode == "fake_fits") or (mode == "total_passive")):
                     files_start = glob.glob(dir_to_monitor + "*.fits")
@@ -414,7 +427,7 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
         amp, arg = fft_img(cookie_cut).fft(padding=padding_choice, mask_thresh=1e5)
 
         # this is a kludge for slipping in the INDI FFT amplitude in place of the Python one
-        # (the phase has a checkerboard pattern until Paul fixes it, so Im just going to keep 
+        # (the phase has a checkerboard pattern until Paul fixes it, so Im just going to keep
         # the Python phase)
         if ((mode == "az_source") or (mode == "science")):
             amp = fftw_amp[0]
@@ -544,7 +557,7 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
     	## ## N.B. 1. Differential tip: phase gradient is all up-down, and the low-freq node in FT amplitude takes on a crushed ellipticity.
     	## ## N.B. 2. Differential tilt: phase gradient is left-right, but it is not continuous; it is divided among the three nodes.
 
-    	## HOW DO THE ABOVE PRINTED QUANTITIES COMPARE WITH THE THRESHOLDS? 
+    	## HOW DO THE ABOVE PRINTED QUANTITIES COMPARE WITH THE THRESHOLDS?
 
     	# other quality control metrics from Phasecam (email from D. Defrere, 2018 Dec 17)
     	# PCMSNR: S/N of K-band fringes
@@ -561,7 +574,7 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
     	del fftInfo_arg["sciImg1"], fftInfo_arg["sciImg2"], fftInfo_arg["sciImg3"], fftInfo_arg["sciImg4"]
     	#fftInfo_amp_df = fftInfo_amp.drop(['sciImg1', 'sciImg2', 'sciImg3', 'sciImg4'])
     	#fftInfo_arg_df = fftInfo_arg.drop(['sciImg1', 'sciImg2', 'sciImg3', 'sciImg4'])
-    	## ## for some reason, the dataframes make 3 identical rows; maybe because there are some (x,y) vectors 
+    	## ## for some reason, the dataframes make 3 identical rows; maybe because there are some (x,y) vectors
     	fftInfo_amp_df_this_frame = pd.DataFrame(fftInfo_amp)
     	fftInfo_arg_df_this_frame = pd.DataFrame(fftInfo_arg)
     	fftInfo_amp_df = fftInfo_amp_df.append(fftInfo_amp_df_this_frame, ignore_index=True)
@@ -605,7 +618,7 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
             # cols of macie time; fake file name; OPD; tip; tilt
             datalist.write("%f, %s, %f, %f, %f\n" % (time.time(), file_name_full, opd_retrieve, tip_retrieve, tilt_retrieve))
 
-        # now, write out a 
+        # now, write out a
         # end code for writing retrieved values to csv
         ##################################################################################
 
@@ -628,7 +641,7 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
 
 
 def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "science", bkgd_mode = "quick_dirt", pickle_name = "setpts.pkl", apply = True):
-    ''' 
+    '''
     integ_time: vestigial, from when camera was being commanded by the Fizeau code
     num_psfs: number of PSFs to analyze
     fftimg_shape: shape of the array which actually gets FFTed
@@ -640,7 +653,7 @@ def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "s
     start_time = time.time()
 
     # restore the pickle file with the fit coefficients and scan data
-    ''' 
+    '''
     # for a single pickle file
     with open(fft_pickle_read_name) as f:
         fftInfo_amp, fftInfo_arg = pickle.load(f)
@@ -652,7 +665,7 @@ def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "s
     d_all_amp = {}
     d_all_arg = {}
     for pickle_num in range(0,num_psfs): # loop over the number of PSFs which have been analyzed
-        fft_pickle_read_name = "pickled_info/fft_info_"+str("{:0>2d}".format(pickle_num))+".pkl" 
+        fft_pickle_read_name = "pickled_info/fft_info_"+str("{:0>2d}".format(pickle_num))+".pkl"
 
         # open individual pickle files (one per PSF) and put them into a larger dict
         # N.b. there are two dictionaries (for amp and arg) that come out of each pickle file
@@ -810,7 +823,7 @@ def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "s
     '''
     #######################################################################
     # lines to run on the command line to test application of corrections
-    ''' 
+    '''
     # LOW PRIORITY: To correct Airy PSF overlap, or TT in Fizeau PSF
     new_tip_setpoint = 0
     new_tilt_setpoint = 0
@@ -870,7 +883,7 @@ def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "s
 
 
 def compare_setpts(pickle_pre, pickle_post, mode = "science", bkgd_mode = "quick_dirt"):
-    ''' 
+    '''
     Check that the PSF has been improved with the new setpoints. (Due to sign degeneracies,
     they might have made things worse after the first try.)
 
@@ -942,7 +955,7 @@ def compare_setpts(pickle_pre, pickle_post, mode = "science", bkgd_mode = "quick
         print("Re-correcting the PL setpoint correction")
         fpc_tip_setpoint = pi.getINDI("PLC.UBCSettings.TipSetpoint")
         fpc_tilt_setpoint = pi.getINDI("PLC.UBCSettings.TiltSetpoint")
-        fpc_pl_setpoint = pi.getINDI("PLC.UBCSettings.PLSetpoint")        
+        fpc_pl_setpoint = pi.getINDI("PLC.UBCSettings.PLSetpoint")
         new_pl_offset = -2*corrxn_pl_pre
         pi.setINDI("PLC.UBCSettings.Beam1_x="+str(PLC_UBCSettings_Beam1_x)+";Beam1_y="+str(PLC_UBCSettings_Beam1_y)+";Beam2_x="+str(PLC_UBCSettings_Beam2_x)+";Beam2_y="+str(PLC_UBCSettings_Beam2_y)+";Beam_r="+str(PLC_UBCSettings_Beam_r)+";MinFTSNR="+str(PLC_UBCSettings_MinFTSNR)+";PLSetpoint="+str(np.add(fpc_pl_setpoint,new_pl_offset))+";PWVGain="+str(PLC_UBCSettings_PWVGain)+";PLIGain="+str(PLC_UBCSettings_PLIGain)+";CGSetpoint="+str(PLC_UBCSettings_CGSetpoint)+";CGScale="+str(PLC_UBCSettings_CGScale)+";TipSetpoint="+str(fpc_tip_setpoint)+";TiltSetpoint="+str(fpc_tilt_setpoint)+";TTIGain="+str(PLC_UBCSettings_TTIGain)+";PLPGain="+str(PLC_UBCSettings_PLPGain)+";PLDGain="+str(PLC_UBCSettings_PLDGain)+";TTPGain="+str(PLC_UBCSettings_TTPGain)+";TTDGain="+str(PLC_UBCSettings_TTDGain))
     '''
