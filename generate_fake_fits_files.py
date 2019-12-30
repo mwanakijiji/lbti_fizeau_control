@@ -12,9 +12,9 @@ import os
 
 datestring = "180507"
 #retrieve_dir = "/opt/local/LBTI_INDI/data/LMIRCAM/190419/" # directory where we retrieve already-written frames
-retrieve_dir = "/home/observer/data/180507/"
+#retrieve_dir = "/home/observer/data/180507/"
 #retrieve_dir = "fake_retrieve/synthetic/junk/"
-#retrieve_dir = "fake_retrieve/"
+retrieve_dir = "fake_retrieve/"
 deposit_dir = "fake_monitor/" # directory for this night, which we are monitoring for new frames
 #deposit_dir = "/opt/local/LBTI_INDI/data/LMIRCAM/junk/"
 
@@ -75,14 +75,14 @@ def move_fits_simple(framenum):
     ''' 
     Move a single fits frame to another directory, over and over, under new names
     '''
-
+    framenum = int(framenum)
     file_name_stem = "chrom_mono_avgwavel_5000_opd_00200_tip_0000_tilt_0000_transl_000_PS_10"
     #file_name_stem = "chrom_mono_avgwavel_5000_opd_00000_tip_0000_tilt_0010_transl_000_PS_10"
     #file_name_stem = "chrom_mono_avgwavel_5000_opd_00000_tip_0000_tilt_0090_transl_000_PS_10"
     #file_name_stem = "half_um_test"
     #file_name_stem = "psf_trial2_00000456"
     hdulist = pyfits.open(retrieve_dir+file_name_stem+".fits")
-    hdulist.writeto(deposit_dir+file_name_stem+"_"+str("{:0>6d}".format(framenum))+".fits", clobber=True)
+    hdulist.writeto(deposit_dir+file_name_stem+"_"+str("{0:0>6d}".format(framenum))+".fits", clobber=True)
 
 
 ### SEQUENCES OF FRAMES
@@ -105,7 +105,7 @@ def move_fits_simple(framenum):
 start_framenum = 5706
 stop_framenum = 5816
 framenum = np.copy(start_framenum)
-
+'''
 while (framenum < stop_framenum):
     time_start = time.time()
     time.sleep(1.0)
@@ -114,11 +114,10 @@ while (framenum < stop_framenum):
     framenum += 1
     print('written, time elapsed')
     print(str(time.time() - time_start))
+'''
 
-
-''' 
 ### THE SAME FRAME, OVER AND OVER
-start_framenum = 0
+start_framenum = int(0)
 framenum = np.copy(start_framenum)
 while True:
     time_start = time.time()
@@ -128,7 +127,7 @@ while True:
     framenum += 1
     print('written, time elapsed')
     print(str(time.time() - time_start))
-'''
+
 '''
 ### A GLOB OF FRAMES
 frame_string = "trial1" # string for choosing the images

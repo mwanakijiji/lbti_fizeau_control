@@ -129,7 +129,7 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
     line_edge2edge_pixOnFFT = findFFTloc(B_e2e,np.shape(sciImg)[0],wavel_lambda,plateScale)
 
     # define circles
-    circRad = 30 # pixels in FFT space
+    circRad = 25 # pixels in FFT space
 
     '''
     ## Commented out because the machinery is not compatible with Python 2.6.6 on lbti-macie --E.S., 2019 Dec. 29
@@ -159,30 +159,30 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
     sciImg1.fill(np.nan) # initialize arrays of nans
     x1_center = line_center2center_pixOnFFT[0]
     y1_center = 0.5*np.shape(sciImg)[0]
-    sciImg1[y1_center-circRad:y1_center+circRad, x1_center-circRad:x1_center+circRad] = 1.
+    sciImg1[int(y1_center-circRad):int(y1_center+circRad), int(x1_center-circRad):int(x1_center+circRad)] = 1.
     ##mask_circHighFreq_L.data[mask_circHighFreq_L.data == 0] = np.nan    # make zeros within mask cutout (but not in the mask itself) nans
     ##sciImg1[mask_circHighFreq_L.bbox.slices] = mask_circHighFreq_L.data  # place the mask cutout (consisting only of 1s) onto the array of nans
-    sciImg1 = np.multiply(sciImg1,sciImg) # 'transmit' the original science image through the mask
+    sciImg1 = np.multiply(sciImg1,sciImg).data # 'transmit' the original science image through the mask
     ##sciImg1 = sciImg1.filled(fill_value=np.nan) # turn all masked '--' elements to nans
 
     # region 2: high-freq lobe, right
     sciImg2.fill(np.nan) # initialize arrays of nans
     x2_center = line_center2center_pixOnFFT[1]
     y2_center = 0.5*np.shape(sciImg)[0]
-    sciImg2[y2_center-circRad:y2_center+circRad, x2_center-circRad:x2_center+circRad] = 1.
+    sciImg2[int(y2_center-circRad):int(y2_center+circRad), int(x2_center-circRad):int(x2_center+circRad)] = 1.
     ##mask_circHighFreq_R.data[mask_circHighFreq_R.data == 0] = np.nan    # make zeros within mask cutout (but not in the mask itself) nans
     ##sciImg2[mask_circHighFreq_R.bbox.slices] = mask_circHighFreq_R.data  # place the mask cutout (consisting only of 1s) onto the array of nans
-    sciImg2 = np.multiply(sciImg2,sciImg) # 'transmit' the original science image through the mask
+    sciImg2 = np.multiply(sciImg2,sciImg).data # 'transmit' the original science image through the mask
     ##sciImg2 = sciImg2.filled(fill_value=np.nan) # turn all masked '--' elements to nans
 
     # region 3: low-freq lobe
     sciImg3.fill(np.nan) # initialize arrays of nans
     x3_center = 0.5*np.shape(sciImg)[1]
     y3_center = 0.5*np.shape(sciImg)[0]
-    sciImg3[y3_center-circRad:y3_center+circRad, x3_center-circRad:x3_center+circRad] = 1.
+    sciImg3[int(y3_center-circRad):int(y3_center+circRad), int(x3_center-circRad):int(x3_center+circRad)] = 1.
     ##mask_circLowFreq.data[mask_circLowFreq.data == 0] = np.nan    # make zeros within mask cutout (but not in the mask itself) nans
     ##sciImg3[mask_circLowFreq.bbox.slices] = mask_circLowFreq.data  # place the mask cutout (consisting only of 1s) onto the array of nans
-    sciImg3 = np.multiply(sciImg3,sciImg) # 'transmit' the original science image through the mask
+    sciImg3 = np.multiply(sciImg3,sciImg).data # 'transmit' the original science image through the mask
     ##sciImg3 = sciImg3.filled(fill_value=np.nan) # turn all masked '--' elements to nans
 
     # region 4: rectangular region containing parts of all lobes
@@ -190,7 +190,7 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
     sciImg4[line_M1diam_pixOnFFT[0]:line_M1diam_pixOnFFT[1], line_edge2edge_pixOnFFT[0]:line_edge2edge_pixOnFFT[1]] = 1.
     ##mask_rect.data[mask_rect.data == 0] = np.nan    # make zeros within mask cutout (but not in the mask itself) nans
     ##sciImg4[mask_rect.bbox.slices] = mask_rect.data  # place the mask cutout (consisting only of 1s) onto the array of nans
-    sciImg4 = np.multiply(sciImg4,sciImg) # 'transmit' the original science image through the mask
+    sciImg4 = np.multiply(sciImg4,sciImg).data # 'transmit' the original science image through the mask
     ##sciImg4 = sciImg4.filled(fill_value=np.nan) # turn all masked '--' elements to nans
 
     # return medians of regions under masks
@@ -198,7 +198,7 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
     med_highFreqPerfect_R = np.nanmedian(sciImg2)
     med_lowFreqPerfect = np.nanmedian(sciImg3)
     med_rect = np.nanmedian(sciImg4)
-
+    print(med_rect)
     # return normal vectors corresponding to [x,y,z] to surfaces (x- and y- components are of interest)
     normVec_highFreqPerfect_L = normalVector(sciImg1)
     normVec_highFreqPerfect_R = normalVector(sciImg2)
@@ -216,6 +216,8 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
     normVec_rect_x = normVec_rect[0]
     normVec_rect_y = normVec_rect[1]
     normVec_rect_z = normVec_rect[2]
+    print('normvec')
+    print(normVec_highFreqPerfect_L)
 
     # return stdev in each region
     std_highFreqPerfect_L = np.nanstd(sciImg1)
@@ -278,6 +280,7 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
     dictFFTstuff["sciImg2"] = sciImg2
     dictFFTstuff["sciImg3"] = sciImg3
     dictFFTstuff["sciImg4"] = sciImg4
+    print(dictFFTstuff)
 
     return dictFFTstuff
 
@@ -300,7 +303,9 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
     fftInfo_arg_df = pd.DataFrame()
 
     counter_num = 0 # for counting number of analyzed PSFs
-
+    print("Monitoring directory")
+    print(dir_to_monitor)
+    print("--")
     # read in any new images written out to a directory
     files_start = glob.glob(dir_to_monitor + "*.fits") # starting list of files
     num_psfs_to_analyze = 10 # number of PSFs to sample (a very large number if just writing retrieved values from single frames to file)
@@ -316,7 +321,7 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
             	time_start = time.time()
             	time.sleep(del_t)
 
-            	fft_pickle_write_name = "pickled_info/fft_info_"+str("{:0>2d}".format(counter_num))+".pkl" # filename for pickled FFT info
+            	fft_pickle_write_name = "pickled_info/fft_info_"+str("{0:0>2d}".format(counter_num))+".pkl" # filename for pickled FFT info
             	#if (checker == True): # if we are checking a previous correction, lets distinguish the pickle file name
             	#    fft_pickle_write_name = "fft_info_check_"+str("{:0>2d}".format(counter_num))+".pkl"
 
@@ -624,7 +629,7 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
 
         # pack info from the series of FFTs into dictionaries, and pickle them
         #d = {"fftInfo_amp": fftInfo_amp, "fftInfo_arg": fftInfo_arg}
-        fft_pickle_write_name = "pickled_info/fft_info_"+str("{:0>2d}".format(counter_num))+".pkl"
+        fft_pickle_write_name = "pickled_info/fft_info_"+str("{0:0>2d}".format(counter_num))+".pkl"
         with open(fft_pickle_write_name, "w") as f:
             pickle.dump((fftInfo_amp, fftInfo_arg), f)
 
@@ -665,12 +670,12 @@ def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "s
     d_all_amp = {}
     d_all_arg = {}
     for pickle_num in range(0,num_psfs): # loop over the number of PSFs which have been analyzed
-        fft_pickle_read_name = "pickled_info/fft_info_"+str("{:0>2d}".format(pickle_num))+".pkl"
+        fft_pickle_read_name = "pickled_info/fft_info_"+str("{0:0>2d}".format(pickle_num))+".pkl"
 
         # open individual pickle files (one per PSF) and put them into a larger dict
         # N.b. there are two dictionaries (for amp and arg) that come out of each pickle file
         with open(fft_pickle_read_name) as f:
-            d_all_amp["pickle_" + str("{:0>2d}".format(pickle_num))], d_all_arg["pickle_" + str("{:0>2d}".format(pickle_num))] = pickle.load(f)
+            d_all_amp["pickle_" + str("{0:0>2d}".format(pickle_num))], d_all_arg["pickle_" + str("{0:0>2d}".format(pickle_num))] = pickle.load(f)
 
     # convert to one dataframe of dicts
     d_all_amp_df = pd.DataFrame(d_all_amp)
