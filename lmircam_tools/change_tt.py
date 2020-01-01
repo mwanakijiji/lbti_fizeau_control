@@ -414,9 +414,10 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
     	if (mode == "fake_fits"):
             psf_loc = psf_loc_fake # if we are reading in fake FITS files
             ## ## if time, test the following line
-            #psf_loc = find_airy_psf(image)
-            print("Found PSF location:")
-            print(psf_loc)
+            if psf_loc_fake == [-999,-999]:
+                psf_loc = find_airy_psf(image)
+                print("Found PSF location:")
+                print(psf_loc)
 
         # size of cookie cut-out (measured center-to-edge)
         cookie_size = 50 # maximum control radius as of 2018 July corresponds to 130.0 pixels
@@ -606,8 +607,6 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
         Ny = np.shape(cookie_cut)[0]+2*padding_choice
         Nx = np.shape(cookie_cut)[1]+2*padding_choice
         # state gradient of PTF slope in x and y
-        print("why median")
-        print(fftInfo_arg["normVec_highFreqPerfect_R_x"])
         x_grad_perf_high_R = np.median(fftInfo_arg["normVec_highFreqPerfect_R_x"])
         y_grad_perf_high_R = np.median(fftInfo_arg["normVec_highFreqPerfect_R_y"])
         x_grad_perf_lowfreq = np.median(fftInfo_arg["normVec_lowFreqPerfect_x"])
@@ -692,10 +691,6 @@ def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "s
     fftInfo_arg = pd.DataFrame(pd.DataFrame.median(d_df_argT, axis=0)).T
     #fftInfo_amp = pd.DataFrame(pd.DataFrame.median(d_all_amp_df, axis=1, skipna=True)).T
     #fftInfo_arg = pd.DataFrame(pd.DataFrame.median(d_all_arg_df, axis=1, skipna=True)).T
-    print(fftInfo_amp)
-    print(fftInfo_arg)
-    #fftInfo_amp = d["fftInfo_amp"]
-    #fftInfo_arg = d["fftInfo_arg"]
 
     #####################################
     # LOW PRIORITY: Overlap of the Airy PSFs (MAYBE THIS SHOULD BE RESOLVED WITH OVERLAP_PSFS?)
@@ -783,8 +778,9 @@ def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "s
 
     # find needed correction to FPC PL setpoint (degrees in K-band)
     # (even if there is a slope in the PTF, the median would be zero if PL error is zero)
-    sci_to_K = np.divide(sci_wavel,2.2e-6) # factor to convert degrees in sci to degrees in K
+    sci_to_K = np.divide(sci_wavel,2.15e-6) # factor to convert degrees in sci to degrees in K
     corrxn_pl = -fftInfo_arg["med_highFreqPerfect_R"].values[0]*(180./np.pi)*sci_to_K
+    corrxn_pl_sci_wavel_um_fyi = -fftInfo_arg["med_highFreqPerfect_R"].values[0]*((180./np.pi)/360.)*sci_wavel*1e6 # pathlength change needed on sci camera in um; just FYI
 
     print("Current FPC tip setpoint:")
     fpc_tip_setpoint = pi.getINDI("PLC.UBCSettings.TipSetpoint")
@@ -856,7 +852,6 @@ def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "s
         pi.setINDI("dac_stage.fpc.tip="+'{0:.1f}'.format(vector_move_asec[0])+";tilt="+'{0:.1f}'.format(vector_move_asec[1])+";piston=0;mode=1")
     '''
 
-    '''UNCOMMENT HERE
     # pickle the calculated corrections, so that they can be checked in the next function
     with open(pickle_name, "w") as f:
         pickle.dump((corrxn_tt,corrxn_pl), f)
@@ -870,9 +865,11 @@ def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "s
     print("NEEDED TILT (x) CORRECTION TO FPC SETPOINT (mas):")
     print(str(int(corrxn_tt[0])))
     print("---")
-    print("NEEDED PL CORRECTION TO FPC SETPOINT (degrees):")
-    # positive number means jailbars should be moved to the right on LMIR by this amount
+    print("NEEDED PL CORRECTION TO FPC SETPOINT (degrees, for Ks-band):")
+    print("(N.b. positive number means jailbars should be moved to the right on LMIR by this amount)")
     print(str(corrxn_pl))
+    print("... corresponding to an OPD correction in the science wavelength of (um)")
+    print(str(corrxn_pl_sci_wavel_um_fyi))
 
     stop_time = time.time()
     print("-")
@@ -883,7 +880,7 @@ def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "s
     # turn off fizeau flag to avoid problems with other observations
     print("De-activating ROI aquisition flag")
     pi_fiz.setINDI("fizeau.enable_run.value=Off")
-    '''
+    
     return
 
 

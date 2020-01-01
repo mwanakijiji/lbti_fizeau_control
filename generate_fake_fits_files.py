@@ -13,8 +13,8 @@ import os
 datestring = "180507"
 #retrieve_dir = "/opt/local/LBTI_INDI/data/LMIRCAM/190419/" # directory where we retrieve already-written frames
 #retrieve_dir = "/home/observer/data/180507/"
-#retrieve_dir = "fake_retrieve/synthetic/junk/"
-retrieve_dir = "fake_retrieve/"
+retrieve_dir = "fake_retrieve/synthetic/junk/"
+#retrieve_dir = "fake_retrieve/"
 deposit_dir = "fake_monitor/" # directory for this night, which we are monitoring for new frames
 #deposit_dir = "/opt/local/LBTI_INDI/data/LMIRCAM/junk/"
 
@@ -76,11 +76,11 @@ def move_fits_simple(framenum):
     Move a single fits frame to another directory, over and over, under new names
     '''
     framenum = int(framenum)
-    file_name_stem = "chrom_mono_avgwavel_5000_opd_00200_tip_0000_tilt_0000_transl_000_PS_10"
+    #file_name_stem = "chrom_mono_avgwavel_5000_opd_00200_tip_0000_tilt_0000_transl_000_PS_10"
     #file_name_stem = "chrom_mono_avgwavel_5000_opd_00000_tip_0000_tilt_0010_transl_000_PS_10"
     #file_name_stem = "chrom_mono_avgwavel_5000_opd_00000_tip_0000_tilt_0090_transl_000_PS_10"
     #file_name_stem = "half_um_test"
-    #file_name_stem = "psf_trial2_00000456"
+    file_name_stem = "psf_trial4_00000921"
     hdulist = pyfits.open(retrieve_dir+file_name_stem+".fits")
     hdulist.writeto(deposit_dir+file_name_stem+"_"+str("{0:0>6d}".format(framenum))+".fits", clobber=True)
 

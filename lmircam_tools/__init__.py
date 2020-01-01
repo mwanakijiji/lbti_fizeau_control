@@ -18,7 +18,8 @@ from pyindi import *
 wavel_lambda = 3.87e-6 # filter central wavel (m)
 
 # physical psf location, if code is being used to read in written FITS files
-psf_loc_fake = [1024,1024] # (y,x) in FITS coordinates
+psf_loc_fake = [-999,-999] # THIS TRIGGERS GAUSSIAN FIT TO DETERMINE PSF CENTER
+#psf_loc_fake = [50,50] # (y,x) in FITS coordinates
 #psf_loc_fake = [292,853] # a grism sequence
 # desired OR current psf location, if code is using ROI/INDI machinery
 fiz_lmir_sweet_spot = [200,100] # (y,x) in ROI coordinates
