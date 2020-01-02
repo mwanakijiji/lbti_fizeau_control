@@ -12,8 +12,8 @@ from astropy.io import fits
 import pandas as pd
 
 
-# trial1 synthetic dataset
-file_list = glob.glob("./trial4_tilt/*trial4*.fits")
+# set synthetic dataset
+file_list = glob.glob("./trial6_opd_tip_tilt_yx/*trial6*.fits")
 
 # initialize, considering elements strings
 df = pd.DataFrame('', index=range(0,len(file_list)), 
