@@ -308,7 +308,7 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
     print("--")
     # read in any new images written out to a directory
     files_start = glob.glob(dir_to_monitor + "*.fits") # starting list of files
-    num_psfs_to_analyze = 10 # number of PSFs to sample (a very large number if just writing retrieved values from single frames to file)
+    num_psfs_to_analyze = 1e6 # number of PSFs to sample (a very large number if just writing retrieved values from single frames to file)
 
     while counter_num < num_psfs_to_analyze:
 
@@ -402,7 +402,7 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
 
     	# if this is a fake fits file, do a quick-and-dirty background subtraction
         if (mode == "fake_fits"):
-            image = process_readout.processImg(image,"median") # simple background subtraction
+            image = process_readout.processImg(image,"median",background=True) # simple background subtraction
 
     	# save detector image to check (overwrites previous)
     	hdu = pyfits.PrimaryHDU(image)
@@ -598,7 +598,7 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
 
         ##################################################################################
         # write to csv in off-sky testing of retrieved FFT quantities using fake data
-        csv_name = "trial1_190612_retrieved.csv"
+        csv_name = "trial1_200102_retrieved.csv"
         # find needed correction to FPC PL setpoint (degrees in K-band)
         #sci_to_K = np.divide(sci_wavel,2.2e-6) # factor to convert degrees in sci to degrees in K
         #corrxn_pl = -fftInfo_arg["med_highFreqPerfect_R"].values[0]*(180./np.pi)*sci_to_K
@@ -619,8 +619,10 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
             opd_retrieve = fftInfo_arg["med_highFreqPerfect_R"]*((180./np.pi)/360.)*sci_wavel*1e6
             tip_retrieve = -corrxn_tt[1] # y (negative, because I want to know the retrieved value, not the correction)
             tilt_retrieve = -corrxn_tt[0] # x (ditto)
-            # cols of macie time; fake file name; OPD; tip; tilt
-            datalist.write("%f, %s, %f, %f, %f\n" % (time.time(), file_name_full, opd_retrieve, tip_retrieve, tilt_retrieve))
+            y_retrieve = psf_loc[0] # note that this is only interesting if PSF center is found dynamically (set to [-999,-999] in init file)
+            x_retrieve = psf_loc[1]
+            # cols of time; fake file name; OPD; tip; tilt; y_center, x_center
+            datalist.write("%f, %s, %f, %f, %f, %f, %f\n" % (time.time(), file_name_full, opd_retrieve, tip_retrieve, tilt_retrieve, y_retrieve, x_retrieve))
 
         # now, write out a
         # end code for writing retrieved values to csv
@@ -816,11 +818,13 @@ def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "s
     PLC_UBCSettings_TTPGain = pi.getINDI("PLC.UBCSettings.TTPGain")
     PLC_UBCSettings_TTDGain = pi.getINDI("PLC.UBCSettings.TTDGain")
     PLC_UBCSettings_TTIGain = pi.getINDI("PLC.UBCSettings.TTIGain")
+    # the below command is the correct way to send PC setpoint changes
+    # pi.setINDI("PLC.UBCSettings.Beam1_x="+str(PLC_UBCSettings_Beam1_x)+";Beam1_y="+str(PLC_UBCSettings_Beam1_y)+";Beam2_x="+str(PLC_UBCSettings_Beam2_x)+";Beam2_y="+str(PLC_UBCSettings_Beam2_y)+";Beam_r="+str(PLC_UBCSettings_Beam_r)+";MinFTSNR="+str(PLC_UBCSettings_MinFTSNR)+";PLSetpoint="+str(np.add(fpc_pl_setpoint,corrxn_pl))+";PWVGain="+str(PLC_UBCSettings_PWVGain)+";PLIGain="+str(PLC_UBCSettings_PLIGain)+";CGSetpoint="+str(PLC_UBCSettings_CGSetpoint)+";CGScale="+str(PLC_UBCSettings_CGScale)+";TipSetpoint="+str(np.add(fpc_tip_setpoint,corrxn_tip_y))+";TiltSetpoint="+str(np.add(fpc_tilt_setpoint,corrxn_tilt_x))+";TTIGain="+str(PLC_UBCSettings_TTIGain)+";PLPGain="+str(PLC_UBCSettings_PLPGain)+";PLDGain="+str(PLC_UBCSettings_PLDGain)+";TTPGain="+str(PLC_UBCSettings_TTPGain)+";TTDGain="+str(PLC_UBCSettings_TTDGain))
     ''' UNCOMMENT HERE
     if (apply == True):
         # all these have to be applied at once; note that tip is y, tilt is x
         # print("Manually change FPC tip-tilt setpoints. What was the scale?")
-        pi.setINDI("PLC.UBCSettings.Beam1_x="+str(PLC_UBCSettings_Beam1_x)+";Beam1_y="+str(PLC_UBCSettings_Beam1_y)+";Beam2_x="+str(PLC_UBCSettings_Beam2_x)+";Beam2_y="+str(PLC_UBCSettings_Beam2_y)+";Beam_r="+str(PLC_UBCSettings_Beam_r)+";MinFTSNR="+str(PLC_UBCSettings_MinFTSNR)+";PLSetpoint="+str(np.add(fpc_pl_setpoint,corrxn_pl)))+";PWVGain="+str(PLC_UBCSettings_PWVGain)+";PLIGain="+str(PLC_UBCSettings_PLIGain)+";CGSetpoint="+str(PLC_UBCSettings_CGSetpoint)+";CGScale="+str(PLC_UBCSettings_CGScale)+";TipSetpoint="+str(np.add(fpc_tip_setpoint,corrxn_tip_y))+";TiltSetpoint="+str(np.add(fpc_tilt_setpoint,corrxn_tilt_x))+";TTIGain="+str(PLC_UBCSettings_TTIGain)+";PLPGain="+str(PLC_UBCSettings_PLPGain)+";PLDGain="+str(PLC_UBCSettings_PLDGain)+";TTPGain="+str(PLC_UBCSettings_TTPGain)+";TTDGain="+str(PLC_UBCSettings_TTDGain))
+        pi.setINDI("PLC.UBCSettings.Beam1_x="+str(PLC_UBCSettings_Beam1_x)+";Beam1_y="+str(PLC_UBCSettings_Beam1_y)+";Beam2_x="+str(PLC_UBCSettings_Beam2_x)+";Beam2_y="+str(PLC_UBCSettings_Beam2_y)+";Beam_r="+str(PLC_UBCSettings_Beam_r)+";MinFTSNR="+str(PLC_UBCSettings_MinFTSNR)+";PLSetpoint="+str(np.add(fpc_pl_setpoint,corrxn_pl))+";PWVGain="+str(PLC_UBCSettings_PWVGain)+";PLIGain="+str(PLC_UBCSettings_PLIGain)+";CGSetpoint="+str(PLC_UBCSettings_CGSetpoint)+";CGScale="+str(PLC_UBCSettings_CGScale)+";TipSetpoint="+str(np.add(fpc_tip_setpoint,corrxn_tip_y))+";TiltSetpoint="+str(np.add(fpc_tilt_setpoint,corrxn_tilt_x))+";TTIGain="+str(PLC_UBCSettings_TTIGain)+";PLPGain="+str(PLC_UBCSettings_PLPGain)+";PLDGain="+str(PLC_UBCSettings_PLDGain)+";TTPGain="+str(PLC_UBCSettings_TTPGain)+";TTDGain="+str(PLC_UBCSettings_TTDGain))
     '''
     #######################################################################
     # lines to run on the command line to test application of corrections

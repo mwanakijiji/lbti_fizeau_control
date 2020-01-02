@@ -13,7 +13,7 @@ import os
 datestring = "180507"
 #retrieve_dir = "/opt/local/LBTI_INDI/data/LMIRCAM/190419/" # directory where we retrieve already-written frames
 #retrieve_dir = "/home/observer/data/180507/"
-retrieve_dir = "fake_retrieve/synthetic/junk/"
+retrieve_dir = "fake_retrieve/synthetic/simulated_fizeau/"
 #retrieve_dir = "fake_retrieve/"
 deposit_dir = "fake_monitor/" # directory for this night, which we are monitoring for new frames
 #deposit_dir = "/opt/local/LBTI_INDI/data/LMIRCAM/junk/"
@@ -56,7 +56,9 @@ def move_glob_fits(frame_string, csv_name):
         hdulist = pyfits.open(fits_list_sorted[i])
         prihdr = hdulist[0].header
         hdulist.writeto(deposit_dir + os.path.basename(fits_list_sorted[i]), clobber=True)
+        print("Deposited frame " + os.path.basename(fits_list_sorted[i]))
 
+        '''
         # meta-data
         opd = prihdr["OPD_UM"]
         tip = prihdr["TIPY_MAS"]
@@ -67,6 +69,7 @@ def move_glob_fits(frame_string, csv_name):
             # cols of macie time; fake file name; OPD; tip; tilt
             datalist.write("%f, %s, %f, %f, %f\n" % (time.time(), os.path.basename(fits_list_sorted[i]), opd, tip, tilt))
             print("Deposited frame " + os.path.basename(fits_list_sorted[i]))
+        '''
         time.sleep(0.14)
 
 
@@ -117,6 +120,7 @@ while (framenum < stop_framenum):
 '''
 
 ### THE SAME FRAME, OVER AND OVER
+'''
 start_framenum = int(0)
 framenum = np.copy(start_framenum)
 while True:
@@ -127,7 +131,6 @@ while True:
     framenum += 1
     print('written, time elapsed')
     print(str(time.time() - time_start))
-
 '''
 ### A GLOB OF FRAMES
 frame_string = "trial1" # string for choosing the images
@@ -137,4 +140,3 @@ while True:
     move_glob_fits(frame_string, csv_string)
     print('written, time elapsed')
     print(str(time.time() - time_start))
-'''
