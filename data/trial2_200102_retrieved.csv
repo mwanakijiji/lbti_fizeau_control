@@ -1,4 +1,4 @@
-time,filename,opd_retrieved,tip_retrieved,tilt_retrieved,x_center_retrieved,y_center_retrieved
+time,filename,opd_retrieved,tip_retrieved,tilt_retrieved,y_center_retrieved,x_center_retrieved
 1577953898.187168,psf_trial2_00000001.fits,0.000014,-0.004698,0.001701,50.000000,50.000000
 1577953898.870458,psf_trial2_00000006.fits,-0.252262,-0.051637,-4.035771,50.000000,50.000000
 1577953899.542093,psf_trial2_00000010.fits,-0.252262,-0.051637,-4.035771,50.000000,50.000000
