@@ -56,6 +56,9 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
     print("Putting in "+half_moon_filter+" to see "+x_side)
     pi.setINDI("Lmir.lmir_FW2.command", half_moon_filter, timeout=45, wait=True)
 
+    raw_input("Are the FPC/HOC piezos on and zeroed?\n" + \
+              " If so, press [Enter] to continue.")
+
     raw_input("Please take continuous, background-subtracted frames, so that the Airy rings can be overlapped.\n" + \
               " This script will stop when the PSFS are overlapped to within tolerance.\n" + \
               " Press [Enter] to continue.")
@@ -64,10 +67,10 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
     while True:
 
         # snag a background-subtracted frame
-	print("Taking a background-subtracted frame")
+        print("Take a background-subtracted frame")
         f = pi_fiz.getFITS("fizeau.roi_image.file", timeout=60)
 
-        # get the right image slice
+        # get the correct image slice
         if (np.ndim(f[0].data) > 2):
             imgb4 = f[0].data[-1,:,:] # images from LMIRcam (> summer 2018) are cubes of nondestructive reads
         else:
@@ -95,9 +98,10 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
 	    print("Moving " + x_side + " telescope")
             nod(XOff=vector_move_asec[1],YOff=vector_move_asec[0],side=side,Coords="DETXY",Type="REL")
             wait4AORunning('both') # let AO close
+            time.sleep(1.0) # let the correction take hold
 
         ### re-locate PSF; correction needed?
-        print("Taking a background-subtracted frame")
+        print("Take a background-subtracted frame")
         f = pi_fiz.getFITS("fizeau.roi_image.file", timeout=60)
 
         # make sure we get right image slice
@@ -116,7 +120,7 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
         print("Current " + x_side + " PSF loc in (y,x) pix:")
         print(psf_loc)
 
-        # if in fake_fits mode, just bream after the first calculation
+        # if in fake_fits mode, just break after the first calculation
         if (mode == "fake_fits"):
             break
 
@@ -129,13 +133,34 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
             break
 
 	else:
-	    # fine-tune with FPC or HPC
-	    if (side == "left"):
-            	print("Moving SX PSF again, now with FPC movement")
-            	pi.setINDI("dac_stage.fpc.tip="+'{0:.1f}'.format(vector_move_asec[0])+";tilt="+'{0:.1f}'.format(vector_move_asec[1])+";piston=0;mode=1")
+	    # fine-tune with FPC or HPC, and break
+	    # (if there is no break, there runs a risk of leaving the PSFs in a state where the telescope movements kick back in)
+        if (side == "left"):
+            print("Moving SX PSF again, now with FPC movement")
+            pi.setINDI("dac_stage.fpc.tip="+'{0:.1f}'.format(vector_move_asec[0])+";tilt="+'{0:.1f}'.format(vector_move_asec[1])+";piston=0;mode=1")
 	    elif (side == "right"):
-                print("Moving DX PSF again, now with HPC movement")
+            print("Moving DX PSF again, now with HPC movement")
 		pi.setINDI("dac_stage.hpc.tip="+'{0:.1f}'.format(vector_move_asec[0])+";tilt="+'{0:.1f}'.format(vector_move_asec[1])+";piston=0;mode=1")
+        time.sleep(2.0) # let the mirror settle
+        
+        # re-locate PSF; how far off are we?
+        print("Take a background-subtracted frame")
+        f = pi_fiz.getFITS("fizeau.roi_image.file", timeout=60)
+        # make sure we get right image slice
+        if (np.ndim(f[0].data) > 2):
+            imgb4 = f[0].data[-1,:,:] # images from LMIRcam (> summer 2018) are cubes of nondestructive reads
+        else:
+            imgb4 = np.squeeze(f[0].data)
+        imgb4bk = np.copy(imgb4) # vestigial; image should already be background-subtracted
+        psf_loc = find_grism_psf(imgb4bk, sig = sig, length_y = length_y) # find PSF
+        print("-------------------")
+        print("Fizeau PSF location setpoint in (y,x) pix:")
+        print(psf_loc_setpt)
+        print("Final " + x_side + " PSF loc in (y,x) pix, after FPC/HPC correction:")
+        print(psf_loc)
+        print("Distance (pix) from the goal: ")
+        print(dist_pix(psf_loc,psf_loc_setpt))
+        break
 
 
 def overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = "science", psf_type = "airy"):

@@ -133,7 +133,7 @@ while True:
     print(str(time.time() - time_start))
 '''
 ### A GLOB OF FRAMES
-frame_string = "trial1" # string for choosing the images
+frame_string = "trial6" # string for choosing the images
 csv_string = frame_string + "_trial1_190612_injection.csv"
 while True:
     time_start = time.time()

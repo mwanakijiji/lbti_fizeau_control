@@ -420,7 +420,7 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
                 print(psf_loc)
 
         # size of cookie cut-out (measured center-to-edge)
-        cookie_size = 50 # maximum control radius as of 2018 July corresponds to 130.0 pixels
+        cookie_size = 40 # maximum control radius as of 2018 July corresponds to 130.0 pixels
 
         # take FFT (some of this is redundant if INDI is putting out FFTs)
         if (mode == "fake_fits"):
@@ -598,7 +598,7 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
 
         ##################################################################################
         # write to csv in off-sky testing of retrieved FFT quantities using fake data
-        csv_name = "trial1_200102_retrieved.csv"
+        csv_name = "junk.csv"
         # find needed correction to FPC PL setpoint (degrees in K-band)
         #sci_to_K = np.divide(sci_wavel,2.2e-6) # factor to convert degrees in sci to degrees in K
         #corrxn_pl = -fftInfo_arg["med_highFreqPerfect_R"].values[0]*(180./np.pi)*sci_to_K

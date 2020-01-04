@@ -23,7 +23,7 @@ psf_loc_fake = [-999,-999] # THIS TRIGGERS GAUSSIAN FIT TO DETERMINE PSF CENTER
 #psf_loc_fake = [1277,569]
 #psf_loc_fake = [292,853] # a grism sequence
 # desired OR current psf location, if code is using ROI/INDI machinery
-fiz_lmir_sweet_spot = [200,100] # (y,x) in ROI coordinates
+fiz_lmir_sweet_spot = [50,50] # (y,x) in ROI coordinates
 
 # directory to monitor for newly-written images
 dir_to_monitor = "fake_monitor/"

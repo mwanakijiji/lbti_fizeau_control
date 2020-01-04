@@ -83,7 +83,7 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
             # FFT mag image (this has to wait for a new frame)
             fftw_amp = pi_fiz.getFITS("fizeau.mag_image.file", timeout=60)
 
-            # FFT phase image (this has to wait for a new frame(
+            # FFT phase image (this has to wait for a new frame)
             fftw_phase = pi_fiz.getFITS("fizeau.phase_image.file", timeout=60)
 
         # get the right image slice
