@@ -107,8 +107,8 @@ def move_fits_simple(framenum):
 # 8285-8289, (y,x)=Ibid. (fringe jump; one dark jailbar down center)
 
 
-start_framenum = int(5706)
-stop_framenum = int(5816)
+start_framenum = int(6949)
+stop_framenum = int(7084)
 framenum = np.copy(start_framenum)
 while (framenum < stop_framenum):
     time_start = time.time()
