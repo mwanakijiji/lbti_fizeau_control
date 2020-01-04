@@ -12,8 +12,8 @@ import os
 
 datestring = "180507"
 #retrieve_dir = "/opt/local/LBTI_INDI/data/LMIRCAM/190419/" # directory where we retrieve already-written frames
-#retrieve_dir = "/home/observer/data/180507/"
-retrieve_dir = "fake_retrieve/synthetic/simulated_fizeau/"
+retrieve_dir = "/home/observer/data/180507/"
+#retrieve_dir = "fake_retrieve/synthetic/simulated_fizeau/"
 #retrieve_dir = "fake_retrieve/"
 deposit_dir = "fake_monitor/" # directory for this night, which we are monitoring for new frames
 #deposit_dir = "/opt/local/LBTI_INDI/data/LMIRCAM/junk/"
@@ -35,10 +35,12 @@ def move_mimic_fits(framenum):
     Move old frames to another directory, to mimic
     writing new files to that directory
     '''
-    print(framenum)
-    print(retrieve_dir+"lm_"+datestring)
-    hdulist = pyfits.open(retrieve_dir+"lm_"+datestring+"_"+str("{:0>6d}".format(framenum))+".fits")
-    hdulist.writeto(deposit_dir+"lm_"+datestring+"_"+str("{:0>6d}".format(framenum))+"_junk.fits", clobber=True)
+    framenum = int(framenum)
+    filename = retrieve_dir+"lm_"+datestring+"_"+str("{0:0>6d}".format(framenum))+".fits"
+    print("File being retrieved: ")
+    print(filename)
+    hdulist = pyfits.open(filename)
+    hdulist.writeto(deposit_dir+"lm_"+datestring+"_"+str("{0:0>6d}".format(framenum))+"_junk.fits", clobber=True)
 
 
 def move_glob_fits(frame_string, csv_name):
@@ -105,10 +107,9 @@ def move_fits_simple(framenum):
 # 8285-8289, (y,x)=Ibid. (fringe jump; one dark jailbar down center)
 
 
-start_framenum = 5706
-stop_framenum = 5816
+start_framenum = int(5706)
+stop_framenum = int(5816)
 framenum = np.copy(start_framenum)
-'''
 while (framenum < stop_framenum):
     time_start = time.time()
     time.sleep(1.0)
@@ -117,7 +118,6 @@ while (framenum < stop_framenum):
     framenum += 1
     print('written, time elapsed')
     print(str(time.time() - time_start))
-'''
 
 ### THE SAME FRAME, OVER AND OVER
 '''
@@ -132,6 +132,7 @@ while True:
     print('written, time elapsed')
     print(str(time.time() - time_start))
 '''
+'''
 ### A GLOB OF FRAMES
 frame_string = "trial6" # string for choosing the images
 csv_string = frame_string + "_trial1_190612_injection.csv"
@@ -140,3 +141,4 @@ while True:
     move_glob_fits(frame_string, csv_string)
     print('written, time elapsed')
     print(str(time.time() - time_start))
+'''

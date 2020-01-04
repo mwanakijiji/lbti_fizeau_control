@@ -44,7 +44,7 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
                 time.sleep(del_t)
 
                 # filename for pickled FFT info
-                fft_pickle_write_name = "pickled_info/fft_info_"+str("{:0>2d}".format(counter_num))+".pkl"
+                fft_pickle_write_name = "pickled_info/fft_info_"+str("{0:0>2d}".format(counter_num))+".pkl"
 
                 # check to see if there were new files from last check
                 files_later = glob.glob(dir_to_monitor + "/*.fits")
@@ -97,6 +97,7 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
 
         # if this is a fake fits file, do a quick-and-dirty background subtraction
         if (mode == "fake_fits"):
+            print("Analyzing fake FITS file " + str(file_name_base))
             image = process_readout.processImg(image,"median")
 
         # save detector image to check (overwrites previous)
@@ -107,16 +108,13 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
         # determine grism Fizeau PSF center
         center_grism = find_grism_psf(image, sig, length_y) # locate the grism PSF center (THIS IS IN OVERLAP_PSFS.PY; SHOULD IT BE IN INIT?)
         # if we are reading in fake FITS files, we may have to just set the location
-        print('center of grism:')
+        print('center of grism (y,x):')
         print(center_grism)
         if (mode == "fake_fits"):
             center_grism = psf_loc_fake
             # cut out the grism image (best to have rectangle, rather than square cutout)
             #img_before_padding_before_FT = np.copy(image)
             img_before_padding_before_FT = image[center_grism[0]-int(200):center_grism[0]+int(200),center_grism[1]-int(100):center_grism[1]+int(100)]
-            print(image)
-            print(np.shape(image))
-            print(img_before_padding_before_FT)
         elif ((mode == "az_source") or (mode == "science")):
             img_before_padding_before_FT = np.copy(f[0].data)
             file_name_base = str(int(time.time())) + "_" + str(counter_num) # basename has already been defined for fake_fits
@@ -134,7 +132,6 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
         hdu = pyfits.PrimaryHDU(img_before_padding_before_FT)
         hdulist = pyfits.HDUList([hdu])
         hdu.writeto("log_images/img_seen_prepradding_" + file_name_base + ".fits", clobber=True)
-        print('4')
 
         # test: see what the FFT looks like
         #if (mode == "fake_fits"):
@@ -144,11 +141,9 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
         hdu = pyfits.PrimaryHDU(AmpPE.data)
         hdulist = pyfits.HDUList([hdu])
         hdu.writeto("log_images/fft_amp_" + file_name_base + ".fits", clobber=True)
-        print('4b')
         hdu = pyfits.PrimaryHDU(ArgPE.data)
         hdulist = pyfits.HDUList([hdu])
         hdu.writeto("log_images/fft_arg_" + file_name_base + ".fits", clobber=True)
-        print('5')
         # find angle of fringes
         # is there an off-center dot in FFT amplitude?
         # blot out low-frequency center of FFT ampl
@@ -163,13 +158,11 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
         dot_loc = find_airy_psf(center_masked_data)
         #dot_loc = find_grism_psf(np.multiply(amp.data,amp.mask), 5, 5)
 
-        print('6')
         # save image to check
         hdu = pyfits.PrimaryHDU(center_masked_data)
         hdulist = pyfits.HDUList([hdu])
         hdu.writeto("log_images/img_when_centroiding_fringe_angle_" + file_name_base + ".fits", clobber=True)
 
-        print('7')
         print("Analyzing "+file_name_base)
         print("Dot location (y,x):")
         print(dot_loc)
@@ -197,7 +190,6 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
     # ... and remove angle values between +0 and +5 to avoid confusion with low-freq power (see Fig. 9 in Spalding+ 2019. SPIE)
     #angle_val = np.nanmedian(angle_val_array[np.nonzero(angle_val_array)])
     angle_val = np.nanmedian(angle_val_array[np.where(np.logical_and(np.abs(angle_val_array) < 50, np.abs(angle_val_array) > 5))])
-    import ipdb; ipdb.set_trace()
     print("Median angle value is " + str(angle_val))
 
     # as found by using OPD scans in grism mode in 2018A and 2018B, it appears that, for the Lgrism6AR,

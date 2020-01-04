@@ -132,15 +132,15 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
             print("Done moving " + x_side)
             break
 
-	else:
-	    # fine-tune with FPC or HPC, and break
-	    # (if there is no break, there runs a risk of leaving the PSFs in a state where the telescope movements kick back in)
+    else:
+        # fine-tune with FPC or HPC, and return to main
+        # (if there is no return to break out of the loop, there runs a risk of leaving the PSFs in a state where the telescope movements kick back in)
         if (side == "left"):
             print("Moving SX PSF again, now with FPC movement")
             pi.setINDI("dac_stage.fpc.tip="+'{0:.1f}'.format(vector_move_asec[0])+";tilt="+'{0:.1f}'.format(vector_move_asec[1])+";piston=0;mode=1")
-	    elif (side == "right"):
+        elif (side == "right"):
             print("Moving DX PSF again, now with HPC movement")
-		pi.setINDI("dac_stage.hpc.tip="+'{0:.1f}'.format(vector_move_asec[0])+";tilt="+'{0:.1f}'.format(vector_move_asec[1])+";piston=0;mode=1")
+        pi.setINDI("dac_stage.hpc.tip="+'{0:.1f}'.format(vector_move_asec[0])+";tilt="+'{0:.1f}'.format(vector_move_asec[1])+";piston=0;mode=1")
         time.sleep(2.0) # let the mirror settle
         
         # re-locate PSF; how far off are we?
@@ -160,7 +160,7 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
         print(psf_loc)
         print("Distance (pix) from the goal: ")
         print(dist_pix(psf_loc,psf_loc_setpt))
-        break
+        return
 
 
 def overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = "science", psf_type = "airy"):
