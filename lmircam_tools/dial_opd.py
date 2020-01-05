@@ -30,7 +30,7 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
 
     # read in any new images written out to a directory
     files_start = glob.glob(dir_to_monitor + "*.fits") # starting list of files
-    num_psfs_to_analyze = 30 # number of PSFs to sample
+    num_psfs_to_analyze = 5 # number of PSFs to sample
 
     while counter_num < num_psfs_to_analyze:
 
@@ -189,7 +189,7 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
     # may need to convert this to a numpy array if there is a complaint about tuples: angle_val_array_nozeros = np.array(angle_val_array_nozeros)
     # ... and remove angle values between +0 and +5 to avoid confusion with low-freq power (see Fig. 9 in Spalding+ 2019. SPIE)
     #angle_val = np.nanmedian(angle_val_array[np.nonzero(angle_val_array)])
-    angle_val = np.nanmedian(angle_val_array[np.where(np.logical_and(np.abs(angle_val_array) < 50, np.abs(angle_val_array) > 5))])
+    angle_val = np.nanmedian(angle_val_array[np.where(np.logical_and(np.abs(angle_val_array) < 50, np.abs(angle_val_array) > 2))])
     print("Median angle value is " + str(angle_val))
 
     # as found by using OPD scans in grism mode in 2018A and 2018B, it appears that, for the Lgrism6AR,

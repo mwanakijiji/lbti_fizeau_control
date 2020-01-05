@@ -56,8 +56,8 @@ def centroid_and_move(psf_loc_setpt, side, tolerance = 5, mode = "science", psf_
     print("Putting in "+half_moon_filter+" to see "+x_side)
     pi.setINDI("Lmir.lmir_FW2.command", half_moon_filter, timeout=45, wait=True)
 
-    raw_input("Are the FPC/HOC piezos on and zeroed?\n" + \
-              " If so, press [Enter] to continue.")
+    #raw_input("Are the FPC/HOC piezos on and zeroed?\n" + \
+    #          " If so, press [Enter] to continue.")
 
     raw_input("Please take continuous, background-subtracted frames, so that the Airy rings can be overlapped.\n" + \
               " This script will stop when the PSFS are overlapped to within tolerance.\n" + \
@@ -168,6 +168,7 @@ def overlap_psfs(integ_time, fiz_lmir_sweet_spot, mode = "science", psf_type = "
     start_time = time.time()
 
     raw_input("User: remove the Blank in FW4, then press return when done")
+    raw_input("Are the FPC/HPC piezos on and zeroed, and are you on the nulling page?\n If so, press [Enter] to continue.")
 
     centroid_and_move(fiz_lmir_sweet_spot, side = "left", mode = mode, psf_type = psf_type)
 

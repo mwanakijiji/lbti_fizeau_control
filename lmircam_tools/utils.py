@@ -26,9 +26,10 @@ def wait4AORunning(side):
 ####  DX nods.  Remove/rename once the issue is fixed and rename the 'original' nod function
 ####  below (now called 'nod_regular') to 'nod'.
 
-def nod(XOff,YOff,side,Coords="DETXY",Type="REL"):
+def nod_dxfix(XOff,YOff,side,Coords="DETXY",Type="REL"):
     '''side should be one of 'left', 'right', or 'both' '''
 ####  Here are some lines to fix DX issue.
+    '''
     if side == 'right' or side == 'both':    # This is only relevant if DX is involved.
       low_gain_file = 'gain0.1_10modi.fits'  # File name for low gain file.
       settling_time = 3                      # Time the AO should be closed in low gains before setting high gain again.
@@ -36,6 +37,7 @@ def nod(XOff,YOff,side,Coords="DETXY",Type="REL"):
       low_gain_path = os.path.join(os.path.dirname(full_gain_path), low_gain_file)  # Path of the low gain file (same directory, but above file name).
       print 'Setting 10-mode gain.'          # Some status info.
       pi.setINDI('ao_indi_dx_ice.load_gain_tag_a.tag', low_gain_path, wait=True)    # Set low gains before nodding.
+    '''
 ####  Those were some lines to fix DX issue.
     print 'nodding %f x, %f y on side %s' % (XOff, YOff, side)
     pi.setINDI("LBTO.OffsetPointing.CoordSys", Coords,
@@ -59,7 +61,7 @@ def nod(XOff,YOff,side,Coords="DETXY",Type="REL"):
 ####  Roll back once the issue is fixed by renaming the function 'nod' above to something
 ####  else and this one to 'nod'.
 
-def nod_regular(XOff,YOff,side,Coords="DETXY",Type="REL"):
+def nod(XOff,YOff,side,Coords="DETXY",Type="REL"):
     '''side should be one of 'left', 'right', or 'both' '''
     print 'nodding %f x, %f y on side %s' % (XOff, YOff, side)
     pi.setINDI("LBTO.OffsetPointing.CoordSys", Coords,
