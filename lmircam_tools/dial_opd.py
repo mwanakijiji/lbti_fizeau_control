@@ -28,6 +28,10 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
     counter_num = 0 # for counting number of analyzed PSFs
     angle_val_array = [] # initialize array which will store values from individual frames
 
+    # ask the user if this is the first image, for a grism without fringes (if so, the FFT ampl will
+    # be subtracted from that of images where there ARE fringes, to see the residuals)
+    initialization_bool = raw_input("Is this the initial grism image, without fringes? [N/y]\n (Baseline image is needed for subtraction from consecutive images.)")
+
     # read in any new images written out to a directory
     files_start = glob.glob(dir_to_monitor + "*.fits") # starting list of files
     num_psfs_to_analyze = 5 # number of PSFs to sample
@@ -122,6 +126,25 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
         # take FFT; no padding for now
         ## ## DO I WANT A SMALL CUTOUT OR THE ORIGINAL IMAGE?
         AmpPE, ArgPE = fft_img(img_before_padding_before_FT).fft(padding=0)
+
+        # if this is the baseline image, save the FFT and break
+        if (initialization_bool == "y"):
+            baseline_image_filename = "grism_fft_amp_baseline.fits"
+            hdu = pyfits.PrimaryHDU(AmpPE)
+            hdulist = pyfits.HDUList([hdu])
+            hdu.writeto(baseline_image_filename, clobber=True)
+            print("Saved the FFT ampl baseline image.")
+            return
+        else:
+            # read in the baseline image and subtract it from the other
+            baseline_img = pyfits.open(baseline_image_filename)
+            if (np.ndim(baseline_img[0].data) > 2):
+                AmpPE_baseline = baseline_img[0].data[-1,:,:] # images from LMIRcam (> summer 2018) are cubes of nondestructive reads
+            else:
+                AmpPE_baseline = np.squeeze(baseline_img[0].data)
+                AmpPE = np.subtract(AmpPE,AmpPE_baseline) # note sizes have to be the same! i.e., AmpPE has no padding
+            
+            print("Subtracting baseline FFT image from current FFT...")
 
         # this is a kludge for slipping in the INDI FFT amplitude in place of the Python one
         # (the phase has a checkerboard pattern until Paul fixes it, so Im just going to keep 
