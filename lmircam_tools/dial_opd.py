@@ -30,7 +30,7 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
 
     # ask the user if this is the first image, for a grism without fringes (if so, the FFT ampl will
     # be subtracted from that of images where there ARE fringes, to see the residuals)
-    initialization_bool = raw_input("Is this the initial grism image, without fringes? [N/y]\n (Baseline image is needed for subtraction from consecutive images.)\n")
+    initialization_bool = raw_input("Baseline image is needed for subtraction from consecutive images.\nIs this the initial grism image, without fringes? [N/y]")
 
     # read in any new images written out to a directory
     files_start = glob.glob(dir_to_monitor + "*.fits") # starting list of files
@@ -268,7 +268,7 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
     raw_input("User: remove the Blank in FW4, then press return when done")
     # ask the user if this is the first image, for a grism without fringes (if so, the FFT ampl will
     # be subtracted from that of images where there ARE fringes, to see the residuals)
-    initialization_bool = raw_input("Is this the initial grism image, without fringes? [N/y]\n (Baseline image is needed for subtraction from consecutive images.)")
+    initialization_bool = raw_input("Baseline image is needed for subtraction from consecutive images.\nIs this the initial grism image, without fringes? [N/y]")
 
     # initialize dataframe for pathlength and residual data
     df = pd.DataFrame(columns=['step',\
@@ -314,7 +314,7 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
             # just return bad-pix-corrected image
             image = process_readout.processImg(imgb4, 'median', background = False)
 
-        pdb.set_trace()
+        #pdb.set_trace()
         # determine grism Fizeau PSF center
         center_grism = find_grism_psf(image, sig, length_y) # locate the grism PSF center (THIS IS IN OVERLAP_PSFS.PY; SHOULD IT BE IN INIT?)
 
@@ -328,9 +328,11 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
         # take FFT; no padding for now
         ## ## DO I WANT A SMALL CUTOUT OR THE ORIGINAL IMAGE?
         AmpPE, ArgPE = fft_img(img_before_padding_before_FT).fft(padding=0)
-        print(np.shape(AmpPE))
-        print(type(AmpPE))
-        # if this is the baseline image, save the FFT and break
+        # this is a kludge for slipping in the INDI FFT amplitude (the phase has a checkerboard pattern until Paul fixes it) in place of the Python one
+        if ((mode == "az_source") or (mode == "science")):
+            AmpPE = ma.masked_where(fftw_amp == np.nan, fftw_amp, copy=False)
+
+        # if this is the baseline image, save the FFT data (i.e., not any mask info) and break
         baseline_image_filename = "grism_fft_amp_baseline_initial_scan.fits"
         if (initialization_bool == "y"):
             hdu = pyfits.PrimaryHDU(AmpPE.data)
@@ -340,20 +342,16 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
             return
         else:
             # read in the baseline image and subtract it from the other
-            baseline_img = pyfits.open(baseline_image_filename)
-            if (np.ndim(baseline_img) > 2):
-                AmpPE_baseline = baseline_img.data[-1,:,:] # images from LMIRcam (> summer 2018) are cubes of nondestructive reads
+            baseline_img = pyfits.open(baseline_image_filename)i
+            if (np.ndim(baseline_img[0]) > 2):
+                AmpPE_baseline = baseline_img[0][-1,:,:] # images from LMIRcam (> summer 2018) are cubes of nondestructive reads
             else:
-                AmpPE_baseline = np.squeeze(baseline_img)
-                print(type(AmpPE))
-                print(type(AmpPE_baseline.data[0]))
-                AmpPE.data = np.subtract(AmpPE.data,AmpPE_baseline.data[0]) # note sizes have to be the same! i.e., AmpPE has no padding
-                print(type(AmpPE))
+                AmpPE_baseline = np.squeeze(baseline_img[0].data)
+                # below step is awkward but necessary to change the .data attribute of a masked array
+                AmpPE_baseline_subted = np.subtract(AmpPE.data,AmpPE_baseline) # note sizes have to be the same! i.e., AmpPE has no padding
+                AmpPE_standin = np.ma.masked_where(np.ma.getmask(AmpPE), AmpPE_baseline_subted)
+                AmpPE = AmpPE_standin
             print("Subtracting baseline FFT image from current FFT...")
-
-        # this is a kludge for slipping in the INDI FFT amplitude (the phase has a checkerboard pattern until Paul fixes it) in place of the Python one
-        if ((mode == "az_source") or (mode == "science")):
-            AmpPE = ma.masked_where(fftw_amp == np.nan, fftw_amp, copy=False)
 
         # save fyi FITS files
         '''

@@ -771,7 +771,7 @@ def get_apply_pc_setpts(integ_time, num_psfs, fftimg_shape, sci_wavel, mode = "s
     print(alpha_mean) # alpha_mean = [alpha_x from both low- and high-freq nodes, alpha_y from both low- and high-freq nodes]
     Nx = fftimg_shape[1]
     Ny = fftimg_shape[0]
-    import pdb; pdb.set_trace()
+    #import pdb; pdb.set_trace()
     corrxn_tt = needed_tt_setpt_corrxn(alpha=alpha_mean,PS=plateScale_LMIR,Nx=Nx,Ny=Ny) # (x,y)
     corrxn_tilt_x = int(corrxn_tt[0])
     corrxn_tip_y = int(corrxn_tt[1])
