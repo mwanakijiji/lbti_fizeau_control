@@ -30,7 +30,7 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
 
     # ask the user if this is the first image, for a grism without fringes (if so, the FFT ampl will
     # be subtracted from that of images where there ARE fringes, to see the residuals)
-    initialization_bool = raw_input("Is this the initial grism image, without fringes? [N/y]\n (Baseline image is needed for subtraction from consecutive images.)")
+    initialization_bool = raw_input("Is this the initial grism image, without fringes? [N/y]\n (Baseline image is needed for subtraction from consecutive images.)\n")
 
     # read in any new images written out to a directory
     files_start = glob.glob(dir_to_monitor + "*.fits") # starting list of files
@@ -105,9 +105,9 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
             image = process_readout.processImg(image,"median")
 
         # save detector image to check (overwrites previous)
-        #hdu = pyfits.PrimaryHDU(image)
-        #hdulist = pyfits.HDUList([hdu])
-        #hdu.writeto("junk_other_tests/junk_test_image_seen.fits", clobber=True)
+        hdu = pyfits.PrimaryHDU(image)
+        hdulist = pyfits.HDUList([hdu])
+        hdu.writeto("junk_other_tests/junk_test_image_seen.fits", clobber=True)
 
         # determine grism Fizeau PSF center
         center_grism = find_grism_psf(image, sig, length_y) # locate the grism PSF center (THIS IS IN OVERLAP_PSFS.PY; SHOULD IT BE IN INIT?)
@@ -127,10 +127,16 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
         ## ## DO I WANT A SMALL CUTOUT OR THE ORIGINAL IMAGE?
         AmpPE, ArgPE = fft_img(img_before_padding_before_FT).fft(padding=0)
 
-        # if this is the baseline image, save the FFT and break
+        # this is a kludge for slipping in the INDI FFT amplitude in place of the Python one
+        # (the phase has a checkerboard pattern until Paul fixes it, so Im just going to keep
+        # the Python amplitude)
+        if ((mode == "az_source") or (mode == "science")):
+            AmpPE = fftw_amp[0]
+        
+        # if this is the baseline image, save the FFT data (i.e., not any mask info) and break
         baseline_image_filename = "grism_fft_amp_baseline_live_correction.fits"
         if (initialization_bool == "y"):
-            hdu = pyfits.PrimaryHDU(AmpPE)
+            hdu = pyfits.PrimaryHDU(AmpPE.data)
             hdulist = pyfits.HDUList([hdu])
             hdu.writeto(baseline_image_filename, clobber=True)
             print("Saved the FFT ampl baseline image.")
@@ -138,19 +144,19 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
         else:
             # read in the baseline image and subtract it from the other
             baseline_img = pyfits.open(baseline_image_filename)
-            if (np.ndim(baseline_img[0].data) > 2):
-                AmpPE_baseline = baseline_img[0].data[-1,:,:] # images from LMIRcam (> summer 2018) are cubes of nondestructive reads
+            print(baseline_img.info())
+            if (np.ndim(baseline_img[0]) > 2):
+                AmpPE_baseline = baseline_img[0][-1,:,:] # images from LMIRcam (> summer 2018) are cubes of nondestructive reads
             else:
                 AmpPE_baseline = np.squeeze(baseline_img[0].data)
-                AmpPE = np.subtract(AmpPE,AmpPE_baseline) # note sizes have to be the same! i.e., AmpPE has no padding
+                print(AmpPE_baseline)
+                # below step is awkward but necessary to change the .data attribute of a masked array
+                AmpPE_baseline_subted = np.subtract(AmpPE.data,AmpPE_baseline) # note sizes have to be the same! i.e., AmpPE has no padding
+                AmpPE_standin = np.ma.masked_where(np.ma.getmask(AmpPE), AmpPE_baseline_subted)
+                AmpPE = AmpPE_standin
             
             print("Subtracting baseline FFT image from current FFT...")
-
-        # this is a kludge for slipping in the INDI FFT amplitude in place of the Python one
-        # (the phase has a checkerboard pattern until Paul fixes it, so Im just going to keep 
-        # the Python amplitude)
-        if ((mode == "az_source") or (mode == "science")):
-            AmpPE = fftw_amp[0]
+        
         # save image to check
         hdu = pyfits.PrimaryHDU(img_before_padding_before_FT)
         hdulist = pyfits.HDUList([hdu])
@@ -171,15 +177,19 @@ def live_opd_correction_fizeau_grism(integ_time, mode = "science"):
         # is there an off-center dot in FFT amplitude?
         # blot out low-frequency center of FFT ampl
         center_masked_data = AmpPE.data
+        
+        # mask low-frequency stuff
         center_masked_data[int(0.5*np.shape(center_masked_data)[0])-20:int(0.5*np.shape(center_masked_data)[0])+20,
                            int(0.5*np.shape(center_masked_data)[1])-20:int(0.5*np.shape(center_masked_data)[1])+20] = np.nan
         center_masked_data[int(0.5*np.shape(center_masked_data)[0])-26:int(0.5*np.shape(center_masked_data)[0])+26,
                            int(0.5*np.shape(center_masked_data)[1])-10:int(0.5*np.shape(center_masked_data)[1])+10] = np.nan
-        # and blot out zero-frequency stuff
+        # and mask out zero-frequency stuff
         center_masked_data[int(0.5*np.shape(center_masked_data)[0]):int(0.5*np.shape(center_masked_data)[0])+1,:] = np.nan
         center_masked_data[:,int(0.5*np.shape(center_masked_data)[1]):int(0.5*np.shape(center_masked_data)[1])+1] = np.nan
+        # and mask redundant left-hand stuff
+        center_masked_data[:,:int(0.5*np.shape(center_masked_data)[1])] = np.nan
+
         dot_loc = find_airy_psf(center_masked_data)
-        #dot_loc = find_grism_psf(np.multiply(amp.data,amp.mask), 5, 5)
 
         # save image to check
         hdu = pyfits.PrimaryHDU(center_masked_data)
@@ -304,7 +314,7 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
             # just return bad-pix-corrected image
             image = process_readout.processImg(imgb4, 'median', background = False)
 
-
+        pdb.set_trace()
         # determine grism Fizeau PSF center
         center_grism = find_grism_psf(image, sig, length_y) # locate the grism PSF center (THIS IS IN OVERLAP_PSFS.PY; SHOULD IT BE IN INIT?)
 
@@ -318,11 +328,12 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
         # take FFT; no padding for now
         ## ## DO I WANT A SMALL CUTOUT OR THE ORIGINAL IMAGE?
         AmpPE, ArgPE = fft_img(img_before_padding_before_FT).fft(padding=0)
-
+        print(np.shape(AmpPE))
+        print(type(AmpPE))
         # if this is the baseline image, save the FFT and break
         baseline_image_filename = "grism_fft_amp_baseline_initial_scan.fits"
         if (initialization_bool == "y"):
-            hdu = pyfits.PrimaryHDU(AmpPE)
+            hdu = pyfits.PrimaryHDU(AmpPE.data)
             hdulist = pyfits.HDUList([hdu])
             hdu.writeto(baseline_image_filename, clobber=True)
             print("Saved the FFT ampl baseline image.")
@@ -330,11 +341,14 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
         else:
             # read in the baseline image and subtract it from the other
             baseline_img = pyfits.open(baseline_image_filename)
-            if (np.ndim(baseline_img[0].data) > 2):
-                AmpPE_baseline = baseline_img[0].data[-1,:,:] # images from LMIRcam (> summer 2018) are cubes of nondestructive reads
+            if (np.ndim(baseline_img) > 2):
+                AmpPE_baseline = baseline_img.data[-1,:,:] # images from LMIRcam (> summer 2018) are cubes of nondestructive reads
             else:
-                AmpPE_baseline = np.squeeze(baseline_img[0].data)
-                AmpPE = np.subtract(AmpPE,AmpPE_baseline) # note sizes have to be the same! i.e., AmpPE has no padding
+                AmpPE_baseline = np.squeeze(baseline_img)
+                print(type(AmpPE))
+                print(type(AmpPE_baseline.data[0]))
+                AmpPE.data = np.subtract(AmpPE.data,AmpPE_baseline.data[0]) # note sizes have to be the same! i.e., AmpPE has no padding
+                print(type(AmpPE))
             print("Subtracting baseline FFT image from current FFT...")
 
         # this is a kludge for slipping in the INDI FFT amplitude (the phase has a checkerboard pattern until Paul fixes it) in place of the Python one
@@ -424,9 +438,9 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
 					'resid'])
 	df = df.append(df_append, ignore_index=True)
 	print(df)
-	# now move the HPC to the next step (small steps with piezos)
-        # small steps, piezos: dac_stage.HPC.Tip=0;Tilt=0;Piston=[step_size_opd];Mode=1
-        #hpc_small_step = 0.5*step_size_opd # half the OPD (relative step)
+    # now move the HPC to the next step (small steps with piezos)
+    # small steps, piezos: dac_stage.HPC.Tip=0;Tilt=0;Piston=[step_size_opd];Mode=1
+    #hpc_small_step = 0.5*step_size_opd # half the OPD (relative step)
 	#hpc_piezo_next_pos = np.add(spc_trans_position, opd_step*hpc_small_step) # piezo command is in absolute position, units of um
 	#print("----------------------------------------------------------------")
 	#print("Moving HPC for small OPD movement to position "+hpc_piezo_next_pos)
@@ -434,14 +448,14 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
 
 	# big steps with the SPC translation stage: Ubcs.SPC_Trans.command=>5
 	# note factor of 10; command is in relative movement of 0.1 um
-        print("----------------------------------------------------------------")
-        if ((mode == "az_source") or (mode == "science")):
-	    print("Moving SPC_Trans for large OPD movement of "+str(int(step_size_opd))+" um (translation of "+str(0.5*step_size_opd)+\
-		" um, or "+str(50*0.5*step_size_opd)+" counts)")
-	    pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(50*0.5*step_size_opd))
-        elif (mode == "fake_fits"):
-            print("Since this is fake_fits mode, SPC_Trans will not be moved, but it WOULD have been moved for large OPD movement of "+\
-		str(int(step_size_opd))+" um (translation of "+str(0.5*step_size_opd)+" um, or "+str(50*0.5*step_size_opd))
+    print("----------------------------------------------------------------")
+    if ((mode == "az_source") or (mode == "science")):
+        print("Moving SPC_Trans for large OPD movement of "+str(int(step_size_opd))+" um (translation of "+str(0.5*step_size_opd)+\
+            " um, or "+str(50*0.5*step_size_opd)+" counts)")
+        pi.setINDI("Ubcs.SPC_Trans.command=>"+'{0:.1f}'.format(50*0.5*step_size_opd))
+    elif (mode == "fake_fits"):
+        print("Since this is fake_fits mode, SPC_Trans will not be moved, but it WOULD have been moved for large OPD movement of "+\
+            str(int(step_size_opd))+" um (translation of "+str(0.5*step_size_opd)+" um, or "+str(50*0.5*step_size_opd))
 
     # write data to file for copying and plotting on local machine
     file_name = "resids_test.csv"

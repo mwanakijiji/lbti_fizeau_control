@@ -30,7 +30,7 @@ raw_input("Place an ROI, no larger than 512x512, over the Phasecam sweet spot fo
 #                       is taking with LMIR
 #    "science":       (same as "az_source")          INDI                  Y                             Y
 print("----------------------------------------------------------------------------------")
-mode_choice = "science"
+mode_choice = "fake_fits"
 print("This optimization code is running in mode " + mode_choice)
 print("Stop continuous aquisition of the camera for alignment and set the integration time in the init file.")
 print("----------------------------------------------------------------------------------")

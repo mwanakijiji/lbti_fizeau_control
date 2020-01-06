@@ -26,8 +26,8 @@ psf_loc_fake = [292,853] # a grism sequence
 fiz_lmir_sweet_spot = [50,50] # (y,x) in ROI coordinates
 
 # directory to monitor for newly-written images
-#dir_to_monitor = "fake_monitor/"
-dir_to_monitor = "/home/observer/data/200104/"
+dir_to_monitor = "fake_monitor/"
+#dir_to_monitor = "/home/observer/data/180507/"
 #dir_to_monitor = "/opt/local/LBTI_INDI/data/LMIRCAM/190420/"
 #dir_to_monitor = "/opt/local/LBTI_INDI/data/LMIRCAM/junk/"
 
