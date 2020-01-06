@@ -342,7 +342,7 @@ def find_optimal_opd_fizeau_grism(integ_time, mode = "science"):
             return
         else:
             # read in the baseline image and subtract it from the other
-            baseline_img = pyfits.open(baseline_image_filename)i
+            baseline_img = pyfits.open(baseline_image_filename)
             if (np.ndim(baseline_img[0]) > 2):
                 AmpPE_baseline = baseline_img[0][-1,:,:] # images from LMIRcam (> summer 2018) are cubes of nondestructive reads
             else:

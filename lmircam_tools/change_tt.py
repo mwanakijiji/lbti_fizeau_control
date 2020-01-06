@@ -308,7 +308,7 @@ def print_write_fft_info(integ_time, sci_wavel, mode = "science", setpoints_pick
     print("--")
     # read in any new images written out to a directory
     files_start = glob.glob(dir_to_monitor + "*.fits") # starting list of files
-    num_psfs_to_analyze = 1e6 # number of PSFs to sample (a very large number if just writing retrieved values from single frames to file)
+    num_psfs_to_analyze = 8 # number of PSFs to sample (a very large number if just writing retrieved values from single frames to file)
 
     while counter_num < num_psfs_to_analyze:
 
