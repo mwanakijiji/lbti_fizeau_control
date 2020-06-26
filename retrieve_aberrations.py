@@ -4,6 +4,7 @@
 from modules import *
 import multiprocessing as mp
 import numpy as np
+import pandas as pd
 import pyfits
 import glob
 import os
@@ -17,6 +18,8 @@ def worker(file_name, q):
     string_basename = os.path.basename(file_name)
 
     f = pyfits.open(file_name)
+    header = f[0].header # contains injected values
+
     img_before_padding_before_FT = np.copy(f[0].data)
     print(type(img_before_padding_before_FT))
 
@@ -34,13 +37,70 @@ def worker(file_name, q):
     fftInfo_amp = fftMask(amp,sci_wavel,plateScale,fyi_string=" FFT amp")
     fftInfo_arg = fftMask(arg,sci_wavel,plateScale,fyi_string=" FFT phase")
 
-    hdu = pyfits.PrimaryHDU(fftInfo_amp["sciImg1"])
-    hdulist = pyfits.HDUList([hdu])
-    hdu.writeto("fft_amp_masked_region_1_" + string_basename + ".fits", clobber=True)
+    # thresholds
+    fft_ampl_high_freq_lowlimit = 2.4e5 # min threshold for good fringe visibility
+    fft_ampl_low_freq_lowlimit = 1.4e6 # min threshold for acceptable AO correction
+    fft_phase_vec_high_freq_highlimit = 5 # max threshold for Airy overlap
+    std_lowFreqPerfect_lowlimit = 10 # max threshold for Airy overlap
+    phase_normVec_highFreqPerfect_R_x = 100 # max threshold for phase of high-freq fringes
 
+    # find needed correction to FPC PL setpoint (degrees in K-band)
+    #sci_to_K = np.divide(sci_wavel,2.2e-6) # factor to convert degrees in sci to degrees in K
+    #corrxn_pl = -fftInfo_arg["med_highFreqPerfect_R"].values[0]*(180./np.pi)*sci_to_K
+    #alpha_high_freq = [x_grad_perf_high_R, y_grad_perf_high_R] # gradient high freq lobe of PTF in x and y: [a,b]
 
-    string_size_y = str(size_y)
-    string_size_x = str(size_x)
+    # state size of FFTed image
+    Ny = np.shape(amp.data)[0]
+    Nx = np.shape(amp.data)[1]
+    # state gradient of PTF slope in x and y
+    x_grad_perf_high_R = np.median(fftInfo_arg["normVec_highFreqPerfect_R_x"])
+    y_grad_perf_high_R = np.median(fftInfo_arg["normVec_highFreqPerfect_R_y"])
+    x_grad_perf_lowfreq = np.median(fftInfo_arg["normVec_lowFreqPerfect_x"])
+    y_grad_perf_lowfreq = np.median(fftInfo_arg["normVec_lowFreqPerfect_y"])
+    alpha_high_freq = [x_grad_perf_high_R, y_grad_perf_high_R] # gradient high freq lobe of PTF in x and y: [a,b]
+    alpha_low_freq = [x_grad_perf_lowfreq, y_grad_perf_lowfreq] # same, in low freq lobe
+    alpha_mean = np.mean([alpha_high_freq,alpha_low_freq],axis=0) # tip-tilt corrections should be based on gradients common to lobes (see Spalding+ SPIE 2018, Table 3)
+    corrxn_tt = needed_tt_setpt_corrxn(alpha=alpha_mean,PS=plateScale_LMIR,Nx=Nx,Ny=Ny) # (x,y)
+
+    opd_retrieve = fftInfo_arg["med_highFreqPerfect_R"]*((180./np.pi)/360.)*sci_wavel*1e6
+    tip_retrieve = -corrxn_tt[1] # y (negative, because I want to know the retrieved value, not the correction)
+    tilt_retrieve = -corrxn_tt[0] # x (ditto)
+
+    opd_inject = header["OPD_UM"]
+    tip_inject = header["TIPY_MAS"]
+    tilt_inject = header["TILTXMAS"]
+
+    string_opd_retrieve = str(opd_retrieve)
+    string_tip_retrieve = str(tip_retrieve)
+    string_tilt_retrieve = str(tilt_retrieve)
+
+    string_opd_inject = str(opd_inject)
+    string_tip_inject = str(tip_inject)
+    string_tilt_inject = str(tilt_inject)
+
+    print("opd retrieved: " + str(opd_retrieve) + "; injected: " +str(opd_inject))
+    print("tip retrieved: " + str(tip_retrieve) + "; injected: " +str(tip_inject))
+    print("tilt retrieved: " + str(tilt_retrieve) + "; injected: " +str(tilt_inject))
+
+    '''
+    # High-freq fringe visibility (median)
+    print("--------------------------")
+    print("Median of ampl of high freq lobe:")
+    print(fftInfo_amp["med_highFreqPerfect_R"])
+    # TO CORRECT: MOVE THE SPC_TRANS TO FIND CENTER OF COHERENCE ENVELOPE
+
+    # High-freq phase gradient
+    print("--------------------------")
+    print("Median of phase (science PSF):")
+    print(fftInfo_arg["med_highFreqPerfect_R"]*(180./np.pi))
+    print("Pathlength correction needed (um):")
+    print(fftInfo_arg["med_highFreqPerfect_R"]*((180./np.pi)/360.)*sci_wavel*1e6)
+    print("Phase gradient in x of high freq in PTF:")
+    print(fftInfo_arg["normVec_highFreqPerfect_R_x"])
+    print("Phase gradient in y of high freq in PTF:")
+    print(fftInfo_arg["normVec_highFreqPerfect_R_y"])
+    print("--------------------------")
+    '''
 
     # save images to check
     '''
@@ -82,8 +142,8 @@ def worker(file_name, q):
 
     with open(fn, 'rb') as f:
         size = len(f.read())
-    list1 = string_basename, string_size_y, string_size_x
-    res = ', '.join(list1) # strip extra parentheses etc.
+    list1 = string_basename, string_opd_inject, string_tip_inject, string_tilt_inject, string_opd_retrieve, string_tip_retrieve, string_tilt_retrieve
+    res = ','.join(list1) # strip extra parentheses etc.
     q.put(res)
 
     return res
@@ -95,7 +155,6 @@ def listener(q):
         while 1:
             m = q.get()
             if m == 'kill':
-                f.write('killed')
                 break
             f.write(str(m) + '\n')
             f.flush()
@@ -105,7 +164,13 @@ def main():
     Grab frames from a directory and retrieve the aberrations in the PSF
     '''
 
-    path_stem = "./synthetic_fizeau/trial1_opd_tip_tilt/"
+    # choose the directory
+    #path_stem = "./synthetic_fizeau/trial1_opd_tip_tilt/"
+    #path_stem = "./synthetic_fizeau/trial2_opd/"
+    path_stem = "./synthetic_fizeau/trial3_tip/"
+    #path_stem = "./synthetic_fizeau/trial4_tilt/"
+    #path_stem = "./synthetic_fizeau/trial5_yx/"
+    #path_stem = "./synthetic_fizeau/trial6_opd_tip_tilt_yx/"
 
     # get list of file names together
     files_list = glob.glob(path_stem + "*.fits")
@@ -135,6 +200,12 @@ def main():
     q.put('kill')
     pool.close()
     pool.join()
+
+    # read the data in, sort it, and plot it
+    df = pd.read_csv(fn, names=["file_name","opd_inject","tip_inject","tilt_inject","opd_retrieve","tip_retrieve","tilt_retrieve"])
+    df_sort = df.sort_values(by="file_name").reset_index()
+
+    print(df_sort)
 
 if __name__ == "__main__":
    main()
