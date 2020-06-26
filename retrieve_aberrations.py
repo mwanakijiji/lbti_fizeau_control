@@ -122,12 +122,13 @@ def worker(file_name, q):
     hdulist = pyfits.HDUList([hdu])
     hdu.writeto("junk_seen_prepradding_" + string_basename, clobber=True)
     '''
+    write_mtf_stem = "/vol_c/synthetic_fizeau/"
     hdu = pyfits.PrimaryHDU(amp.data)
     hdulist = pyfits.HDUList([hdu])
-    hdu.writeto(path_stem + "otf_amp_" + string_basename, clobber=True)
+    hdu.writeto(write_mtf_stem + "otf_amp_" + string_basename, clobber=True)
     hdu = pyfits.PrimaryHDU(arg.data)
     hdulist = pyfits.HDUList([hdu])
-    hdu.writeto(path_stem + "otf_arg_" + string_basename, clobber=True)
+    hdu.writeto(write_mtf_stem + "otf_arg_" + string_basename, clobber=True)
     '''
     # save fyi FITS files to see the masks, etc.
     hdu = pyfits.PrimaryHDU(fftInfo_amp["sciImg1"])
