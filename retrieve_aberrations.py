@@ -27,9 +27,10 @@ def worker(file_name, q):
     size_y = np.shape(img_before_padding_before_FT)[0]
     size_x = np.shape(img_before_padding_before_FT)[1]
 
-    # locate PSF
+    # locate PSF (note this is only to precision of a pixel)
     psf_loc = find_grism_psf(img_before_padding_before_FT, sig=5, length_y=5)
-    print(psf_loc)
+    x_shift_retrieve = np.subtract(psf_loc[1],0.5*np.shape(img_before_padding_before_FT)[1])
+    y_shift_retrieve = np.subtract(psf_loc[0],0.5*np.shape(img_before_padding_before_FT)[0])
 
     # take FFT
     amp, arg = fft_img(img_before_padding_before_FT).fft(padding=200, mask_thresh=0)
@@ -71,13 +72,25 @@ def worker(file_name, q):
     tip_inject = header["TIPY_MAS"]
     tilt_inject = header["TILTXMAS"]
 
+    # x,y position of PSF may or may not be in the header
+    if ("X_SHIFT" in header.keys()):
+        x_shift_inject = header["X_SHIFT"]
+        y_shift_inject = header["Y_SHIFT"]
+    else:
+        x_shift_inject = -999
+        y_shift_inject = -999
+
     string_opd_retrieve = str(opd_retrieve)
     string_tip_retrieve = str(tip_retrieve)
     string_tilt_retrieve = str(tilt_retrieve)
+    string_x_shift_retrieve = str(x_shift_retrieve)
+    string_y_shift_retrieve = str(y_shift_retrieve)
 
     string_opd_inject = str(opd_inject)
     string_tip_inject = str(tip_inject)
     string_tilt_inject = str(tilt_inject)
+    string_x_shift_inject = str(x_shift_inject)
+    string_y_shift_inject = str(y_shift_inject)
 
     print("opd retrieved: " + str(opd_retrieve) + "; injected: " +str(opd_inject))
     print("tip retrieved: " + str(tip_retrieve) + "; injected: " +str(tip_inject))
@@ -143,7 +156,8 @@ def worker(file_name, q):
 
     with open(fn, 'rb') as f:
         size = len(f.read())
-    list1 = string_basename, string_opd_inject, string_tip_inject, string_tilt_inject, string_opd_retrieve, string_tip_retrieve, string_tilt_retrieve
+    list1 = string_basename, string_opd_inject, string_tip_inject, string_tilt_inject, string_x_shift_inject, string_y_shift_inject, \
+            string_opd_retrieve, string_tip_retrieve, string_tilt_retrieve, string_x_shift_retrieve, string_y_shift_retrieve
     res = ','.join(list1) # strip extra parentheses etc.
     q.put(res)
 
@@ -204,5 +218,5 @@ def main():
 
 
 if __name__ == "__main__":
-    #main() # analysis of frames
-    plot_injected_retrieved.plot_analysis(csv_file = fn) # plotting of analysis
+    main() # analysis of frames
+    #plot_injected_retrieved.plot_analysis(csv_file = fn) # plotting of analysis
