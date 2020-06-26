@@ -207,7 +207,7 @@ def plot_analysis(csv_file):
     #ax4.set_title("Tilt, wrapped (x)", fontsize = 18.0)
     ax4.set_xlim([0,10000])
     ax4.set_ylim([-14,14])
-    ax4.set_ylabel("Position (x),\n(pix)", fontsize = 15.0)
+    ax4.set_ylabel("Translation ($\Delta$x),\n(pix)", fontsize = 15.0)
     ax4.axes.get_xaxis().set_visible(False)
     ax4.tick_params(labelsize=14)
 
@@ -226,8 +226,8 @@ def plot_analysis(csv_file):
     #ax5.set_title("Tilt, wrapped (x)", fontsize = 18.0)
     ax5.set_xlim([0,10000])
     ax5.set_ylim([-14,14])
-    ax5.set_ylabel("Position (x),\n(pix)", fontsize = 15.0)
-    ax5.set_xlabel("Elapsed time / frame num (unitless)", fontsize = 15.0)
+    ax5.set_ylabel("Translation ($\Delta$y),\n(pix)", fontsize = 15.0)
+    ax5.set_xlabel("Consecutive frame num (unitless)", fontsize = 15.0)
     ax5.tick_params(labelsize=14)
 
     plt.suptitle(csv_file)
