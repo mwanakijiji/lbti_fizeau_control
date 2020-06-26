@@ -2,6 +2,7 @@
 # writing the results without collisions to a single file
 
 from modules import *
+from modules import plot_injected_retrieved
 import multiprocessing as mp
 import numpy as np
 import pandas as pd
@@ -201,11 +202,7 @@ def main():
     pool.close()
     pool.join()
 
-    # read the data in, sort it, and plot it
-    df = pd.read_csv(fn, names=["file_name","opd_inject","tip_inject","tilt_inject","opd_retrieve","tip_retrieve","tilt_retrieve"])
-    df_sort = df.sort_values(by="file_name").reset_index()
-
-    print(df_sort)
 
 if __name__ == "__main__":
-   main()
+    #main() # analysis of frames
+    plot_injected_retrieved.plot_analysis(csv_file = fn) # plotting of analysis
