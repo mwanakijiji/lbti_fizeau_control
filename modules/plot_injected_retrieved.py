@@ -17,9 +17,12 @@ def plot_analysis(csv_file):
     # read in all the data (without choosing which to plot quite yet)
     # OPD variations alone
     df = pd.read_csv(csv_file,
-                    names=["file_name","opd_inject","tip_inject",
-                            "tilt_inject","opd_retrieve","tip_retrieve",
-                            "tilt_retrieve"])
+                    names=["file_name","opd_inject",
+                        "tip_inject","tilt_inject",
+                        "x_shift_inject","y_shift_inject",
+                        "opd_retrieve","tip_retrieve",
+                        "tilt_retrieve","x_shift_retrieve",
+                        "y_shift_retrieve"])
     df_sort = df.sort_values(by="file_name").reset_index()
 
     # get quantities onto common convention
@@ -77,8 +80,6 @@ def plot_analysis(csv_file):
     fig = plt.figure(figsize=(12,10), constrained_layout=True)
     gs = gridspec.GridSpec(6, 1, figure=fig)
 
-    ### PLOT NAME
-    plot_name = "junk.pdf" # make sure to change the choice of dataframe too!
 
     ### CHOOSE FIRST PANEL FOR THE UNWRAPPED QUANTITY OF INTEREST
     # injected OPD, unwrapped
@@ -228,6 +229,8 @@ def plot_analysis(csv_file):
     ax5.set_ylabel("Position (x),\n(pix)", fontsize = 15.0)
     ax5.set_xlabel("Elapsed time (sec)", fontsize = 15.0)
     ax5.tick_params(labelsize=14)
+
+    plt.suptitle(csv_file)
 
     #plt.rcParams.update({'font.size': 12})
 
