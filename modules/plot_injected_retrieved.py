@@ -75,7 +75,7 @@ def plot_analysis(csv_file):
 
 
     fig = plt.figure(figsize=(12,10), constrained_layout=True)
-    gs = gridspec.GridSpec(4, 1, figure=fig)
+    gs = gridspec.GridSpec(6, 1, figure=fig)
 
     ### PLOT NAME
     plot_name = "junk.pdf" # make sure to change the choice of dataframe too!
@@ -211,7 +211,7 @@ def plot_analysis(csv_file):
     ax4.tick_params(labelsize=14)
 
     # y
-    ax5 = fig.add_subplot(gs[4, :])
+    ax5 = fig.add_subplot(gs[5, :])
     ax5.axvline(x=400, linestyle=":", color="gray")
     ax5.axvline(x=1200, linestyle=":", color="gray")
     #ax5.plot(elapsed_time_inj, tilt_inj_simple_mod, color = "b", linewidth=10, alpha=0.15)
