@@ -11,7 +11,8 @@ import glob
 import os
 import time
 
-fn = './results_trial4_tilt.txt'
+#fn = './retrieval_results_text_files/results_trial1_opd_tip_tilt_test01.txt'
+fn = 'results_trial5_yx_test01.txt'
 
 def worker(file_name, q):
     # reads in a single FITS file, calculates some quantities, and returns them
@@ -77,8 +78,8 @@ def worker(file_name, q):
         x_shift_inject = header["X_SHIFT"]
         y_shift_inject = header["Y_SHIFT"]
     else:
-        x_shift_inject = -999
-        y_shift_inject = -999
+        x_shift_inject = 0
+        y_shift_inject = 0
 
     string_opd_retrieve = str(opd_retrieve)
     string_tip_retrieve = str(tip_retrieve)
@@ -183,17 +184,17 @@ def main():
     '''
 
     # choose the directory
-    #path_stem = "./synthetic_fizeau/trial1_opd_tip_tilt/"
-    #path_stem = "./synthetic_fizeau/trial2_opd/"
-    #path_stem = "./synthetic_fizeau/trial3_tip/"
-    #path_stem = "./synthetic_fizeau/trial4_tilt/"
+    #path_stem = "./synthetic_fizeau/trial1_opd_tip_tilt/" #
+    #path_stem = "./synthetic_fizeau/trial2_opd/" #
+    #path_stem = "./synthetic_fizeau/trial3_tip/" #
+    #path_stem = "./synthetic_fizeau/trial4_tilt/" ip
     #path_stem = "./synthetic_fizeau/trial5_yx/"
     #path_stem = "./synthetic_fizeau/trial6_opd_tip_tilt_yx/"
     #path_stem = "/vol_c/synthetic_fizeau/trial1_opd_tip_tilt/"
     #path_stem = "/vol_c/synthetic_fizeau/trial2_opd/"
     #path_stem = "/vol_c/synthetic_fizeau/trial3_tip/"
-    path_stem = "/vol_c/synthetic_fizeau/trial4_tilt/"
-    #path_stem = "/vol_c/synthetic_fizeau/trial5_yx/"
+    #path_stem = "/vol_c/synthetic_fizeau/trial4_tilt/"
+    path_stem = "/vol_c/synthetic_fizeau/trial5_yx/"
     #path_stem = "/vol_c/synthetic_fizeau/trial6_opd_tip_tilt_yx/"
 
     # get list of file names together
