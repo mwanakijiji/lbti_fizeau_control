@@ -121,12 +121,14 @@ def worker(file_name, q):
     hdu = pyfits.PrimaryHDU(img_before_padding_before_FT)
     hdulist = pyfits.HDUList([hdu])
     hdu.writeto("junk_seen_prepradding_" + string_basename, clobber=True)
+    '''
     hdu = pyfits.PrimaryHDU(amp.data)
     hdulist = pyfits.HDUList([hdu])
-    hdu.writeto("junk_ampPE_" + string_basename + ".fits", clobber=True)
+    hdu.writeto(path_stem + "otf_amp_" + string_basename, clobber=True)
     hdu = pyfits.PrimaryHDU(arg.data)
     hdulist = pyfits.HDUList([hdu])
-    hdu.writeto("junk_argPE_" + string_basename + ".fits", clobber=True)
+    hdu.writeto(path_stem + "otf_arg_" + string_basename, clobber=True)
+    '''
     # save fyi FITS files to see the masks, etc.
     hdu = pyfits.PrimaryHDU(fftInfo_amp["sciImg1"])
     hdulist = pyfits.HDUList([hdu])
