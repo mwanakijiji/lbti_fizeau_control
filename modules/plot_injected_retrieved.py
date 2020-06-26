@@ -233,5 +233,5 @@ def plot_analysis(csv_file):
 
     #plt.tight_layout()
 
-    plt.savefig(test.pdf)
+    plt.savefig("test.pdf")
     #plt.show()
