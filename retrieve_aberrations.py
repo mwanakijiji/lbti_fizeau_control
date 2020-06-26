@@ -11,7 +11,7 @@ import glob
 import os
 import time
 
-fn = './results_trial3_tip.txt'
+fn = './results_trial4_tilt.txt'
 
 def worker(file_name, q):
     # reads in a single FITS file, calculates some quantities, and returns them
@@ -191,8 +191,8 @@ def main():
     #path_stem = "./synthetic_fizeau/trial6_opd_tip_tilt_yx/"
     #path_stem = "/vol_c/synthetic_fizeau/trial1_opd_tip_tilt/"
     #path_stem = "/vol_c/synthetic_fizeau/trial2_opd/"
-    path_stem = "/vol_c/synthetic_fizeau/trial3_tip/"
-    #path_stem = "/vol_c/synthetic_fizeau/trial4_tilt/"
+    #path_stem = "/vol_c/synthetic_fizeau/trial3_tip/"
+    path_stem = "/vol_c/synthetic_fizeau/trial4_tilt/"
     #path_stem = "/vol_c/synthetic_fizeau/trial5_yx/"
     #path_stem = "/vol_c/synthetic_fizeau/trial6_opd_tip_tilt_yx/"
 
