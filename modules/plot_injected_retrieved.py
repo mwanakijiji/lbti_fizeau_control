@@ -224,10 +224,10 @@ def plot_analysis(csv_file):
     ax5.annotate("$+PS$", xy=(0, 0), xytext=(40, 11.5), textcoords="data", fontsize = 15.0)
     ax5.annotate("$-PS$", xy=(0, 0), xytext=(40, -13), textcoords="data", fontsize = 15.0)
     #ax5.set_title("Tilt, wrapped (x)", fontsize = 18.0)
-    ax5.set_xlim([0,1640])
+    ax5.set_xlim([0,11000])
     ax5.set_ylim([-14,14])
     ax5.set_ylabel("Position (x),\n(pix)", fontsize = 15.0)
-    ax5.set_xlabel("Elapsed time (sec)", fontsize = 15.0)
+    ax5.set_xlabel("Elapsed time / frame num (unitless)", fontsize = 15.0)
     ax5.tick_params(labelsize=14)
 
     plt.suptitle(csv_file)
