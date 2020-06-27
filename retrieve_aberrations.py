@@ -11,7 +11,10 @@ import glob
 import os
 import time
 
-fn = './results_trial4_tilt.txt'
+#fn_write = './results_trial4_tilt.txt'
+#fn_retrieve = './retrieval_results_text_files/results_trial4_tilt_test01.txt'
+#fn_retrieve = './retrieval_results_text_files/results_trial5_yx_test01.txt'
+fn_retrieve = './retrieval_results_text_files/results_trial6_opd_tip_tilt_yx_test01.txt'
 
 def worker(file_name, q):
     # reads in a single FITS file, calculates some quantities, and returns them
@@ -157,7 +160,7 @@ def worker(file_name, q):
     hdu.writeto("log_images/fft_arg_masked_region_4_" + string_basename + ".fits", clobber=True)
     '''
 
-    with open(fn, 'rb') as f:
+    with open(fn_write, 'rb') as f:
         size = len(f.read())
     list1 = string_basename, string_opd_inject, string_tip_inject, string_tilt_inject, string_x_shift_inject, string_y_shift_inject, \
             string_opd_retrieve, string_tip_retrieve, string_tilt_retrieve, string_x_shift_retrieve, string_y_shift_retrieve
@@ -169,7 +172,7 @@ def worker(file_name, q):
 def listener(q):
     '''listens for messages on the q, writes to file. '''
 
-    with open(fn, 'w') as f:
+    with open(fn_write, 'w') as f:
         while 1:
             m = q.get()
             if m == 'kill':
@@ -227,5 +230,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main() # analysis of frames
-    #plot_injected_retrieved.plot_analysis(csv_file = fn) # plotting of analysis
+    #main() # analysis of frames
+    plot_injected_retrieved.plot_analysis(csv_file = fn_retrieve) # plotting of analysis
