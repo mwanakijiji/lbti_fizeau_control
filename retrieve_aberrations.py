@@ -26,18 +26,18 @@ import time
 #path_stem = "/vol_c/synthetic_fizeau/trial4_tilt/"
 #path_stem = "/vol_c/synthetic_fizeau/trial5_yx/"
 #path_stem = "/vol_c/synthetic_fizeau/trial6_opd_tip_tilt_yx/"
-fn_write = "./test_subset_results_trial1_opd_tip_tilt.txt"
+#fn_write = "./test_subset_results_trial1_opd_tip_tilt.txt"
 #fn_write = "./test_subset_results_trial2_opd.txt"
 #fn_write = "./test_subset_results_trial3_tip.txt"
-#fn_write = "./test_subset_results_trial4_tilt.txt"
+fn_write = "./test_subset_results_trial4_tilt_01.txt"
 #fn_write = "./test_subset_results_trial5_yx.txt"
 #fn_write = "./test_subset_results_trial6_opd_tip_tilt_yx.txt"
 
 # subsets for testing
-path_stem = "/vol_c/synthetic_fizeau/subset_trial1_opd_tip_tilt/"
+#path_stem = "/vol_c/synthetic_fizeau/subset_trial1_opd_tip_tilt/"
 #path_stem = "/vol_c/synthetic_fizeau/subset_trial2_opd/"
 #path_stem = "/vol_c/synthetic_fizeau/subset_trial3_tip/"
-#path_stem = "/vol_c/synthetic_fizeau/subset_trial4_tilt/"
+path_stem = "/vol_c/synthetic_fizeau/subset_trial4_tilt/"
 #path_stem = "/vol_c/synthetic_fizeau/subset_trial5_yx/"
 #path_stem = "/vol_c/synthetic_fizeau/subset_trial6_opd_tip_tilt_yx/"
 
@@ -49,10 +49,10 @@ path_stem = "/vol_c/synthetic_fizeau/subset_trial1_opd_tip_tilt/"
 #fn_retrieve = './retrieval_results_text_files/results_trial4_tilt_test01.txt'
 #fn_retrieve = './retrieval_results_text_files/results_trial5_yx_test01.txt'
 #fn_retrieve = "./retrieval_results_text_files/results_trial6_opd_tip_tilt_yx_test01.txt"
-fn_retrieve = './retrieval_results_text_files/test_subset_results_trial1_opd_tip_tilt_test01.txt'
+#fn_retrieve = './retrieval_results_text_files/test_subset_results_trial1_opd_tip_tilt.txt'
 #fn_retrieve = './retrieval_results_text_files/test_subset_results_trial2_opd_test01.txt'
 #fn_retrieve = "./retrieval_results_text_files/test_subset_results_trial3_tip.txt"
-#fn_retrieve = "./retrieval_results_text_files/test_subset_results_trial4_tilt.txt"
+fn_retrieve = "./retrieval_results_text_files/test_subset_results_trial4_tilt_01.txt"
 #fn_retrieve = './retrieval_results_text_files/test_subset_results_trial5_yx_test01.txt'
 #fn_retrieve = "./retrieval_results_text_files/test_subset_results_trial6_opd_tip_tilt_yx_test01.txt"
 
