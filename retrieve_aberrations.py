@@ -43,7 +43,8 @@ path_stem = "/vol_c/synthetic_fizeau/subset_trial4_tilt/"
 #fn_retrieve = './retrieval_results_text_files/results_trial3_tip_test01.txt'
 #fn_retrieve = './retrieval_results_text_files/results_trial4_tilt_test01.txt'
 #fn_retrieve = './retrieval_results_text_files/results_trial5_yx_test01.txt'
-fn_retrieve = "./retrieval_results_text_files/results_trial6_opd_tip_tilt_yx_test01.txt"
+#fn_retrieve = "./retrieval_results_text_files/results_trial6_opd_tip_tilt_yx_test01.txt"
+fn_retrieve = "./retrieval_results_text_files/test_subset_results_trial3_tip.txt"
 
 def worker(file_name, q):
     # reads in a single FITS file, calculates some quantities, and returns them
@@ -94,18 +95,22 @@ def worker(file_name, q):
 
     # extract the global slope across the lobes (which indicates translation of
     # the PSF) and subtract it from local slopes in the lobes to get a residual
-    # slope in which lobe which indicates tip-tilt
+    # slope in which lobe which indicates tilt
     x_grad_perf_rect = fftInfo_arg["normVec_rect_x"]
     y_grad_perf_rect = fftInfo_arg["normVec_rect_y"]
     x_grad_resid_high_R = np.subtract(x_grad_perf_high_R,x_grad_perf_rect)
     x_grad_resid_lowfreq = np.subtract(x_grad_perf_lowfreq,x_grad_perf_rect)
-    y_grad_resid_high_R = np.subtract(y_grad_perf_high_R,y_grad_perf_rect)
-    y_grad_resid_lowfreq = np.subtract(y_grad_perf_lowfreq,y_grad_perf_rect)
 
-    # residual gradient of high freq lobe of PTF in x and y: [a,b]
-    alpha_high_freq = [x_grad_resid_high_R, y_grad_resid_high_R]
+    # THIS HERE IS PROBLEMATIC, BECAUSE THERE IS NO OBVIOUS, SIMPLE WAY OF
+    # DISENTANGLING LOCAL AND GLOBAL TIP-Y GRADIENT
+    #y_grad_resid_high_R = np.subtract(y_grad_perf_high_R,y_grad_perf_rect)
+    #y_grad_resid_lowfreq = np.subtract(y_grad_perf_lowfreq,y_grad_perf_rect)
+
+    # residual gradient of high freq lobe of PTF in x, and
+    # original measured gradient in y: [a,b]
+    alpha_high_freq = [x_grad_resid_high_R, y_grad_perf_high_R]
     # same, in low freq lobe
-    alpha_low_freq = [x_grad_resid_lowfreq, y_grad_resid_lowfreq]
+    alpha_low_freq = [x_grad_resid_lowfreq, y_grad_perf_lowfreq]
     # tip-tilt corrections should be based on LOCAL gradients which are common to lobes (see Spalding+ SPIE 2018, Table 3)
     alpha_mean = np.mean([alpha_high_freq,alpha_low_freq],axis=0)
     corrxn_tt = needed_tt_setpt_corrxn(alpha=alpha_mean,PS=plateScale_LMIR,Nx=Nx,Ny=Ny) # (x,y)
@@ -123,8 +128,8 @@ def worker(file_name, q):
         x_shift_inject = header["X_SHIFT"]
         y_shift_inject = header["Y_SHIFT"]
     else:
-        x_shift_inject = -999
-        y_shift_inject = -999
+        x_shift_inject = 0
+        y_shift_inject = 0
 
     string_opd_retrieve = str(opd_retrieve)
     string_tip_retrieve = str(tip_retrieve)
