@@ -11,10 +11,39 @@ import glob
 import os
 import time
 
-#fn_write = './results_trial4_tilt.txt'
+###############################################################################
+## FOR ABERRATION RETRIEVALS, SET THE SOURCE DIRECTORY OF FITS FILES AND THE
+## FILE TO WHICH RESULTS WILL BE WRITTEN
+#path_stem = "./synthetic_fizeau/trial1_opd_tip_tilt/"
+#path_stem = "./synthetic_fizeau/trial2_opd/"
+#path_stem = "./synthetic_fizeau/trial3_tip/"
+#path_stem = "./synthetic_fizeau/trial4_tilt/"
+#path_stem = "./synthetic_fizeau/trial5_yx/"
+#path_stem = "./synthetic_fizeau/trial6_opd_tip_tilt_yx/"
+#path_stem = "/vol_c/synthetic_fizeau/trial1_opd_tip_tilt/"
+#path_stem = "/vol_c/synthetic_fizeau/trial2_opd/"
+#path_stem = "/vol_c/synthetic_fizeau/trial3_tip/"
+#path_stem = "/vol_c/synthetic_fizeau/trial4_tilt/"
+#path_stem = "/vol_c/synthetic_fizeau/trial5_yx/"
+#path_stem = "/vol_c/synthetic_fizeau/trial6_opd_tip_tilt_yx/"
+fn_write = "./test_subset_results_trial4_tilt.txt"
+
+# subsets for testing
+#path_stem = "/vol_c/synthetic_fizeau/subset_trial1_opd_tip_tilt/"
+#path_stem = "/vol_c/synthetic_fizeau/subset_trial2_opd/"
+#path_stem = "/vol_c/synthetic_fizeau/subset_trial3_tip/"
+path_stem = "/vol_c/synthetic_fizeau/subset_trial4_tilt/"
+#path_stem = "/vol_c/synthetic_fizeau/subset_trial5_yx/"
+#path_stem = "/vol_c/synthetic_fizeau/subset_trial6_opd_tip_tilt_yx/"
+
+###############################################################################
+## FOR PLOTTING, SET THE TEXT FILE TO READ THE RESULTS FROM
+#fn_retrieve = './retrieval_results_text_files/results_trial1_opd_tip_tilt_test01.txt'
+#fn_retrieve = './retrieval_results_text_files/results_trial2_opd_test01.txt'
+#fn_retrieve = './retrieval_results_text_files/results_trial3_tip_test01.txt'
 #fn_retrieve = './retrieval_results_text_files/results_trial4_tilt_test01.txt'
 #fn_retrieve = './retrieval_results_text_files/results_trial5_yx_test01.txt'
-fn_retrieve = './retrieval_results_text_files/results_trial6_opd_tip_tilt_yx_test01.txt'
+fn_retrieve = "./retrieval_results_text_files/results_trial6_opd_tip_tilt_yx_test01.txt"
 
 def worker(file_name, q):
     # reads in a single FITS file, calculates some quantities, and returns them
@@ -62,9 +91,23 @@ def worker(file_name, q):
     y_grad_perf_high_R = np.median(fftInfo_arg["normVec_highFreqPerfect_R_y"])
     x_grad_perf_lowfreq = np.median(fftInfo_arg["normVec_lowFreqPerfect_x"])
     y_grad_perf_lowfreq = np.median(fftInfo_arg["normVec_lowFreqPerfect_y"])
-    alpha_high_freq = [x_grad_perf_high_R, y_grad_perf_high_R] # gradient high freq lobe of PTF in x and y: [a,b]
-    alpha_low_freq = [x_grad_perf_lowfreq, y_grad_perf_lowfreq] # same, in low freq lobe
-    alpha_mean = np.mean([alpha_high_freq,alpha_low_freq],axis=0) # tip-tilt corrections should be based on gradients common to lobes (see Spalding+ SPIE 2018, Table 3)
+
+    # extract the global slope across the lobes (which indicates translation of
+    # the PSF) and subtract it from local slopes in the lobes to get a residual
+    # slope in which lobe which indicates tip-tilt
+    x_grad_perf_rect = fftInfo_arg["normVec_rect_x"]
+    y_grad_perf_rect = fftInfo_arg["normVec_rect_y"]
+    x_grad_resid_high_R = np.subtract(x_grad_perf_high_R,x_grad_perf_rect)
+    x_grad_resid_lowfreq = np.subtract(x_grad_perf_lowfreq,x_grad_perf_rect)
+    y_grad_resid_high_R = np.subtract(y_grad_perf_high_R,y_grad_perf_rect)
+    y_grad_resid_lowfreq = np.subtract(y_grad_perf_lowfreq,y_grad_perf_rect)
+
+    # residual gradient of high freq lobe of PTF in x and y: [a,b]
+    alpha_high_freq = [x_grad_resid_high_R, y_grad_resid_high_R]
+    # same, in low freq lobe
+    alpha_low_freq = [x_grad_resid_lowfreq, y_grad_resid_lowfreq]
+    # tip-tilt corrections should be based on LOCAL gradients which are common to lobes (see Spalding+ SPIE 2018, Table 3)
+    alpha_mean = np.mean([alpha_high_freq,alpha_low_freq],axis=0)
     corrxn_tt = needed_tt_setpt_corrxn(alpha=alpha_mean,PS=plateScale_LMIR,Nx=Nx,Ny=Ny) # (x,y)
 
     opd_retrieve = fftInfo_arg["med_highFreqPerfect_R"]*((180./np.pi)/360.)*sci_wavel*1e6
@@ -185,20 +228,6 @@ def main():
     Grab frames from a directory and retrieve the aberrations in the PSF
     '''
 
-    # choose the directory
-    #path_stem = "./synthetic_fizeau/trial1_opd_tip_tilt/"
-    #path_stem = "./synthetic_fizeau/trial2_opd/"
-    #path_stem = "./synthetic_fizeau/trial3_tip/"
-    #path_stem = "./synthetic_fizeau/trial4_tilt/"
-    #path_stem = "./synthetic_fizeau/trial5_yx/"
-    #path_stem = "./synthetic_fizeau/trial6_opd_tip_tilt_yx/"
-    #path_stem = "/vol_c/synthetic_fizeau/trial1_opd_tip_tilt/"
-    #path_stem = "/vol_c/synthetic_fizeau/trial2_opd/"
-    #path_stem = "/vol_c/synthetic_fizeau/trial3_tip/"
-    path_stem = "/vol_c/synthetic_fizeau/trial4_tilt/"
-    #path_stem = "/vol_c/synthetic_fizeau/trial5_yx/"
-    #path_stem = "/vol_c/synthetic_fizeau/trial6_opd_tip_tilt_yx/"
-
     # get list of file names together
     files_list = glob.glob(path_stem + "*.fits")
     print("Files to analyze: ")
@@ -230,5 +259,5 @@ def main():
 
 
 if __name__ == "__main__":
-    #main() # analysis of frames
-    plot_injected_retrieved.plot_analysis(csv_file = fn_retrieve) # plotting of analysis
+    main() # analysis of frames
+    #plot_injected_retrieved.plot_analysis(csv_file = fn_retrieve) # plotting of analysis
