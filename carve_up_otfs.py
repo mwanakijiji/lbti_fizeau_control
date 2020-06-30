@@ -19,8 +19,8 @@ import time
 #path_stem = "/vol_c/synthetic_fizeau/otfs_trial2_opd/"
 #path_stem = "/vol_c/synthetic_fizeau/otfs_trial3_tip/"
 #path_stem = "/vol_c/synthetic_fizeau/otfs_trial4_tilt/"
-path_stem = "/vol_c/synthetic_fizeau/otfs_trial5_yx/"
-#path_stem = "/vol_c/synthetic_fizeau/otfs_trial6_opd_tip_tilt_yx/"
+#path_stem = "/vol_c/synthetic_fizeau/otfs_trial5_yx/"
+path_stem = "/vol_c/synthetic_fizeau/otfs_trial6_opd_tip_tilt_yx/"
 path_for_plots = path_stem + "plots/"
 
 
