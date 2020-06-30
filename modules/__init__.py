@@ -269,6 +269,7 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
     sciImg2 = np.copy(sciImg)
     sciImg3 = np.copy(sciImg)
     sciImg4 = np.copy(sciImg)
+    sciImg5 = np.copy(sciImg)
 
     # region 1: high-freq lobe, left
     sciImg1.fill(np.nan) # initialize arrays of nans
@@ -297,18 +298,29 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
     sciImg4[mask_rect.bbox.slices] = mask_rect.data  # place the mask cutout (consisting only of 1s) onto the array of nans
     sciImg4 = np.multiply(sciImg4,sciImg) # 'transmit' the original science image through the mask
     sciImg4 = sciImg4.filled(fill_value=np.nan) # turn all masked '--' elements to nans
+    import ipdb; ipdb.set_trace()
+
+    # region 5: all three circular lobes
+    sciImg5.fill(np.nan) # initialize arrays of nans
+    sciImg5[mask_circLowFreq.bbox.slices] = mask_circLowFreq.data # low-freq lobe
+    sciImg5[mask_circHighFreq_L.bbox.slices] = mask_circHighFreq_L.data # left high-freq lobe
+    sciImg5[mask_circHighFreq_R.bbox.slices] = mask_circHighFreq_R.data # right high-freq lobe
+    sciImg5 = np.multiply(sciImg5,sciImg) # 'transmit' the original science image through the mask
+    sciImg5 = sciImg5.filled(fill_value=np.nan) # turn all masked '--' elements to nans
 
     # return medians of regions under masks
     med_highFreqPerfect_L = np.nanmedian(sciImg1)
     med_highFreqPerfect_R = np.nanmedian(sciImg2)
     med_lowFreqPerfect = np.nanmedian(sciImg3)
     med_rect = np.nanmedian(sciImg4)
+    med_3_lobe = np.nanmedian(sciImg5)
 
     # return normal vectors corresponding to [x,y,z] to surfaces (x- and y- components are of interest)
     normVec_highFreqPerfect_L = normalVector(sciImg1)
     normVec_highFreqPerfect_R = normalVector(sciImg2)
     normVec_lowFreqPerfect = normalVector(sciImg3)
     normVec_rect = normalVector(sciImg4)
+    normVec_3_lobe = normalVector(med_3_lobe)
     normVec_highFreqPerfect_L_x = normVec_highFreqPerfect_L[0]
     normVec_highFreqPerfect_L_y = normVec_highFreqPerfect_L[1]
     normVec_highFreqPerfect_L_z = normVec_highFreqPerfect_L[2]
@@ -321,12 +333,16 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
     normVec_rect_x = normVec_rect[0]
     normVec_rect_y = normVec_rect[1]
     normVec_rect_z = normVec_rect[2]
+    normVec_3_lobe_x = normVec_3_lobe[0]
+    normVec_3_lobe_y = normVec_3_lobe[1]
+    normVec_3_lobe_z = normVec_3_lobe[2]
 
     # return stdev in each region
     std_highFreqPerfect_L = np.nanstd(sciImg1)
     std_highFreqPerfect_R = np.nanstd(sciImg2)
     std_lowFreqPerfect = np.nanstd(sciImg3)
     std_rect = np.nanstd(sciImg4)
+    std_3_lobe = np.nanstd(sciImg5)
 
     # generate images showing footprints of regions of interest
     # (comment this bit in/out as desired)
@@ -350,6 +366,9 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
     # median of rectangle that is drawn to contain both high- and low-freq lobes
     dictFFTstuff["med_rect"] = med_rect
 
+    # median of 3-lobe region containing both high- and low-freq lobes
+    dictFFTstuff["med_three_lobe"] = med_3_lobe
+
     # stdev of the same regions
     dictFFTstuff["std_highFreqPerfect_L"] = std_highFreqPerfect_L
 
@@ -361,6 +380,9 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
 
     # stdev of rectangle that is drawn to contain both high- and low-freq lobes
     dictFFTstuff["std_rect"] = std_rect
+
+    # stdev of rectangle that is drawn to contain both high- and low-freq lobes
+    dictFFTstuff["std_three_lobe"] = std_3_lobe
 
     # normal vectors to the high- and low- frequency
     # note vectors are [a,b,c] corresponding to the eqn Z = a*X + b*Y + c
@@ -377,12 +399,16 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
     dictFFTstuff["normVec_rect_x"] = normVec_rect_x
     dictFFTstuff["normVec_rect_y"] = normVec_rect_y
     dictFFTstuff["normVec_rect_z"] = normVec_rect_z
+    dictFFTstuff["normVec_3_lobe_x"] = normVec_3_lobe_x
+    dictFFTstuff["normVec_3_lobe_y"] = normVec_3_lobe_y
+    dictFFTstuff["normVec_3_lobe_z"] = normVec_3_lobe_z
 
     # return the regions with mask overlays, too
     dictFFTstuff["sciImg1"] = sciImg1
     dictFFTstuff["sciImg2"] = sciImg2
     dictFFTstuff["sciImg3"] = sciImg3
     dictFFTstuff["sciImg4"] = sciImg4
+    dictFFTstuff["sciImg5"] = sciImg5
 
     return dictFFTstuff
 

@@ -26,7 +26,7 @@ import time
 #path_stem = "/vol_c/synthetic_fizeau/trial4_tilt/"
 #path_stem = "/vol_c/synthetic_fizeau/trial5_yx/"
 #path_stem = "/vol_c/synthetic_fizeau/trial6_opd_tip_tilt_yx/"
-fn_write = "./test_subset_results_trial1_opd_tip_tilt_02.txt"
+fn_write = "./test_subset_results_trial1_opd_tip_tilt_03.txt"
 #fn_write = "./test_subset_results_trial2_opd.txt"
 #fn_write = "./test_subset_results_trial3_tip.txt"
 #fn_write = "./test_subset_results_trial4_tilt_01.txt"
@@ -49,7 +49,7 @@ path_stem = "/vol_c/synthetic_fizeau/subset_trial1_opd_tip_tilt/"
 #fn_retrieve = './retrieval_results_text_files/results_trial4_tilt_test01.txt'
 #fn_retrieve = './retrieval_results_text_files/results_trial5_yx_test01.txt'
 #fn_retrieve = "./retrieval_results_text_files/results_trial6_opd_tip_tilt_yx_test01.txt"
-fn_retrieve = './retrieval_results_text_files/test_subset_results_trial1_opd_tip_tilt_02.txt'
+fn_retrieve = './retrieval_results_text_files/test_subset_results_trial1_opd_tip_tilt_03.txt'
 #fn_retrieve = './retrieval_results_text_files/test_subset_results_trial2_opd_test01.txt'
 #fn_retrieve = "./retrieval_results_text_files/test_subset_results_trial3_tip.txt"
 #fn_retrieve = "./retrieval_results_text_files/test_subset_results_trial4_tilt_02.txt"
@@ -106,10 +106,10 @@ def worker(file_name, q):
     # extract the global slope across the lobes (which indicates translation of
     # the PSF) and subtract it from local slopes in the lobes to get a residual
     # slope in which lobe which indicates tilt
-    x_grad_perf_rect = fftInfo_arg["normVec_rect_x"]
-    y_grad_perf_rect = fftInfo_arg["normVec_rect_y"]
-    x_grad_resid_high_R = np.subtract(x_grad_perf_high_R,x_grad_perf_rect)
-    x_grad_resid_lowfreq = np.subtract(x_grad_perf_lowfreq,x_grad_perf_rect)
+    x_grad_perf_3_lobe = fftInfo_arg["normVec_3_lobe_x"]
+    y_grad_perf_3_lobe = fftInfo_arg["normVec_3_lobe_y"]
+    x_grad_resid_high_R = np.subtract(x_grad_perf_high_R,x_grad_perf_3_lobe)
+    x_grad_resid_lowfreq = np.subtract(x_grad_perf_lowfreq,x_grad_perf_3_lobe)
 
     # THIS HERE IS PROBLEMATIC, BECAUSE THERE IS NO OBVIOUS, SIMPLE WAY OF
     # DISENTANGLING LOCAL AND GLOBAL TIP-Y GRADIENT
@@ -274,5 +274,5 @@ def main():
 
 
 if __name__ == "__main__":
-    #main() # analysis of frames
-    plot_injected_retrieved.plot_analysis(csv_file = fn_retrieve) # plotting of analysis
+    main() # analysis of frames
+    #plot_injected_retrieved.plot_analysis(csv_file = fn_retrieve) # plotting of analysis
