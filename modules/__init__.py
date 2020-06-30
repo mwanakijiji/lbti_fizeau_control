@@ -298,7 +298,6 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
     sciImg4[mask_rect.bbox.slices] = mask_rect.data  # place the mask cutout (consisting only of 1s) onto the array of nans
     sciImg4 = np.multiply(sciImg4,sciImg) # 'transmit' the original science image through the mask
     sciImg4 = sciImg4.filled(fill_value=np.nan) # turn all masked '--' elements to nans
-    import ipdb; ipdb.set_trace()
 
     # region 5: all three circular lobes
     sciImg5.fill(np.nan) # initialize arrays of nans
