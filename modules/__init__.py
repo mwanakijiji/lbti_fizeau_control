@@ -307,6 +307,13 @@ def fftMask(sciImg,wavel_lambda,plateScale,fyi_string=''):
     sciImg5[mask_circHighFreq_R.bbox.slices] = mask_circHighFreq_R.data # right high-freq lobe
     sciImg5 = np.multiply(sciImg5,sciImg) # 'transmit' the original science image through the mask
     sciImg5 = sciImg5.filled(fill_value=np.nan) # turn all masked '--' elements to nans
+    import matplotlib.pyplot as plt
+    plt.imshow(sciImg5,origin="lower")
+    plt.savefig("junk_sciImg5.png")
+    plt.close()
+    plt.imshow(sciImg4,origin="lower")
+    plt.savefig("junk_sciImg4.png")
+    plt.close()
 
     # return medians of regions under masks
     med_highFreqPerfect_L = np.nanmedian(sciImg1)
