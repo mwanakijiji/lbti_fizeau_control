@@ -274,5 +274,5 @@ def main():
 
 
 if __name__ == "__main__":
-    #main() # analysis of frames
-    plot_injected_retrieved.plot_analysis(csv_file = fn_retrieve) # plotting of analysis
+    main() # analysis of frames
+    #plot_injected_retrieved.plot_analysis(csv_file = fn_retrieve) # plotting of analysis
