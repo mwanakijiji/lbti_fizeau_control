@@ -4,6 +4,7 @@
 
 from modules import *
 from modules import plot_injected_retrieved
+import matplotlib.pyplot as plt
 import multiprocessing as mp
 import numpy as np
 import pandas as pd
