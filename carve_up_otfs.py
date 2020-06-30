@@ -23,6 +23,8 @@ def worker(file_name, q):
     string_basename = os.path.basename(file_name)
     plot_write_name = path_for_plots + "png_xsecs_" + string_basename.split(".")[1]
 
+    print("Making plot for " + string_basename)
+
     f = pyfits.open(file_name)
     img = f[0].data
     header = f[0].header # contains injected values
