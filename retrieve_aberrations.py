@@ -26,20 +26,20 @@ import time
 #path_stem = "/vol_c/synthetic_fizeau/trial4_tilt/"
 #path_stem = "/vol_c/synthetic_fizeau/trial5_yx/"
 #path_stem = "/vol_c/synthetic_fizeau/trial6_opd_tip_tilt_yx/"
-fn_write = "./test_subset_results_trial1_opd_tip_tilt_03.txt"
+#fn_write = "./test_subset_results_trial1_opd_tip_tilt_03.txt"
 #fn_write = "./test_subset_results_trial2_opd.txt"
 #fn_write = "./test_subset_results_trial3_tip.txt"
 #fn_write = "./test_subset_results_trial4_tilt_01.txt"
 #fn_write = "./test_subset_results_trial5_yx.txt"
-#fn_write = "./test_subset_results_trial6_opd_tip_tilt_yx.txt"
+fn_write = "./test_subset_results_trial6_opd_tip_tilt_yx.txt"
 
 # subsets for testing
-path_stem = "/vol_c/synthetic_fizeau/subset_trial1_opd_tip_tilt/"
+#path_stem = "/vol_c/synthetic_fizeau/subset_trial1_opd_tip_tilt/"
 #path_stem = "/vol_c/synthetic_fizeau/subset_trial2_opd/"
 #path_stem = "/vol_c/synthetic_fizeau/subset_trial3_tip/"
 #path_stem = "/vol_c/synthetic_fizeau/subset_trial4_tilt/"
 #path_stem = "/vol_c/synthetic_fizeau/subset_trial5_yx/"
-#path_stem = "/vol_c/synthetic_fizeau/subset_trial6_opd_tip_tilt_yx/"
+path_stem = "/vol_c/synthetic_fizeau/subset_trial6_opd_tip_tilt_yx/"
 
 ###############################################################################
 ## FOR PLOTTING, SET THE TEXT FILE TO READ THE RESULTS FROM

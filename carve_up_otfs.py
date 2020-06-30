@@ -37,6 +37,7 @@ def worker(file_name, q):
     img = f[0].data
     header = f[0].header # contains injected values
 
+    '''
     opd_inj_unwrapped = header["OPD_UM"]
     inj_tip = header["TIPY_MAS"]
     inj_tilt = header["TILTXMAS"]
@@ -46,6 +47,7 @@ def worker(file_name, q):
     else:
         inj_delx = 0.
         inj_dely = 0.
+    '''
 
     # take x-sec in x
     x_sec = img[250,:]
@@ -89,12 +91,15 @@ def worker(file_name, q):
     ax2.set_title("x-sec in y, left")
     ax3.set_title("x-sec in y, middle")
     ax4.set_title("x-sec in y, right")
+    plt.suptitle(os.path.basename(file_name))
+    '''
     plt.suptitle(os.path.basename(file_name) + \
         "\ninjected tip: " + str(inj_tip) + \
         "\ninjected tilt: " + str(inj_tilt) + \
         "\ninjected opd: " + str(opd_inj_unwrapped) + \
         "\ninjected del_x: " + str(inj_delx) + \
         "\ninjected del_y: " + str(inj_dely))
+    '''
 
     plt.tight_layout()
 
