@@ -56,7 +56,7 @@ def worker(file_name, q):
     ax2.set_title("x-sec in y, left")
     ax3.set_title("x-sec in y, middle")
     ax4.set_title("x-sec in y, right")
-    fig.title(os.path.basename(file_name))
+    plt.suptitle(os.path.basename(file_name))
 
     fig.savefig(plot_write_name)
 
