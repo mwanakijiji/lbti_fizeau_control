@@ -75,7 +75,7 @@ def worker(file_name, q):
     '''
 
     # plot it: x-sec in x across the top, and 3 x-sec in y along the bottom
-    fig=plt.figure()
+    fig=plt.figure(figsize=(10,20))
     gs=GridSpec(2,3) # 2 rows, 3 columns
     ax1=fig.add_subplot(gs[0,:]) # Second row, span all columns
     ax2=fig.add_subplot(gs[1,0]) # First row, first column
@@ -88,9 +88,15 @@ def worker(file_name, q):
     ax4.plot(y_sec_right)
 
     ax1.set_title("x-sec in x")
+    ax1.set_xlabel("pix$_{DFT}$ (y)")
+    ax1.set_ylabel("MTF or PTF")
     ax2.set_title("x-sec in y, left")
+    ax2.set_xlabel("pix$_{DFT}$ (x)")
+    ax2.set_ylabel("MTF or PTF")
     ax3.set_title("x-sec in y, middle")
+    ax3.set_xlabel("pix$_{DFT}$ (x)")
     ax4.set_title("x-sec in y, right")
+    ax4.set_xlabel("pix$_{DFT}$ (x)")
     plt.suptitle(os.path.basename(file_name))
     '''
     plt.suptitle(os.path.basename(file_name) + \

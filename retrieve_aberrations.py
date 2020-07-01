@@ -49,7 +49,7 @@ path_stem = "/vol_c/synthetic_fizeau/subset_trial6_opd_tip_tilt_yx/"
 #fn_retrieve = './retrieval_results_text_files/results_trial4_tilt_test01.txt'
 #fn_retrieve = './retrieval_results_text_files/results_trial5_yx_test01.txt'
 #fn_retrieve = "./retrieval_results_text_files/results_trial6_opd_tip_tilt_yx_test01.txt"
-fn_retrieve = './retrieval_results_text_files/test_subset_results_trial1_opd_tip_tilt_03.txt'
+fn_retrieve = './retrieval_results_text_files/results_trial6_opd_tip_tilt_yx_test01.txt'
 #fn_retrieve = './retrieval_results_text_files/test_subset_results_trial2_opd_test01.txt'
 #fn_retrieve = "./retrieval_results_text_files/test_subset_results_trial3_tip.txt"
 #fn_retrieve = "./retrieval_results_text_files/test_subset_results_trial4_tilt_02.txt"
@@ -274,5 +274,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main() # analysis of frames
-    #plot_injected_retrieved.plot_analysis(csv_file = fn_retrieve) # plotting of analysis
+    #main() # analysis of frames
+    plot_injected_retrieved.plot_analysis(csv_file = fn_retrieve) # plotting of analysis
