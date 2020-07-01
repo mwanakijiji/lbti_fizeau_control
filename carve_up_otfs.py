@@ -75,7 +75,7 @@ def worker(file_name, q):
     '''
 
     # plot it: x-sec in x across the top, and 3 x-sec in y along the bottom
-    fig=plt.figure(figsize=(5,8))
+    fig=plt.figure(figsize=(9,8))
     gs=GridSpec(2,3) # 2 rows, 3 columns
     ax1=fig.add_subplot(gs[0,:]) # Second row, span all columns
     ax2=fig.add_subplot(gs[1,0]) # First row, first column
