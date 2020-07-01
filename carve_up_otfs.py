@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # This reads in a bunch of MTFs and PTFs and plots stuff to try to diagnose
 # degeneracies between different aberrations
 # (note this assumes 500x500 cutouts for now; 2020 June 29, E.S.)
