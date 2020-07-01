@@ -31,7 +31,7 @@ def worker(file_name, q):
     string_basename = os.path.basename(file_name)
     plot_write_name = path_for_plots + "png_xsecs_" + string_basename.split(".")[0] + ".pdf"
 
-    print("Making plot for " + string_basename)
+    #print("Making plot for " + string_basename)
 
     f = pyfits.open(file_name)
     img = f[0].data
@@ -131,8 +131,8 @@ def main():
 
     # get list of file names together
     files_list = glob.glob(path_stem + "*.fits")
-    print("Files to analyze: ")
-    print(files_list)
+    #print("Files to analyze: ")
+    #print(files_list)
 
     #must use Manager queue here, or will not work
     manager = mp.Manager()
