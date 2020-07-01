@@ -29,7 +29,7 @@ def worker(file_name, q):
     # reads in a single FITS file, calculates some quantities, and returns them
 
     string_basename = os.path.basename(file_name)
-    plot_write_name = path_for_plots + "png_xsecs_" + string_basename.split(".")[0] + ".png"
+    plot_write_name = path_for_plots + "png_xsecs_" + string_basename.split(".")[0] + ".pdf"
 
     print("Making plot for " + string_basename)
 
