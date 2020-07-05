@@ -99,7 +99,7 @@ def main():
     '''
 
     # get list of file names together
-    files_list = glob.glob(path_stem + "otf_amp_psf_trial1*.fits")
+    files_list = glob.glob(path_stem + "otf_amp_psf_trial6*.fits")
     print("Files to analyze: ")
     print(files_list)
 
