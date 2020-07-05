@@ -25,7 +25,7 @@ path_stem = "/vol_c/synthetic_fizeau/otfs_all_subsets/"
 path_for_plots = path_stem + "plots/"
 
 
-def worker(file_list, q):
+def worker(file_list):
     # reads in FITS files and overplots stuff
 
     plot_write_name = path_for_plots + "overplots.pdf"
