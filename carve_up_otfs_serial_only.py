@@ -37,7 +37,7 @@ def worker(file_list, q):
     ax3=fig.add_subplot(gs[1,1]) # First row, second column
     ax4=fig.add_subplot(gs[1,2]) # First row, third column
 
-    for (file_name in file_list):
+    for file_name in file_list:
 
         string_basename = os.path.basename(file_name)
 
