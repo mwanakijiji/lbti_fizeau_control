@@ -68,10 +68,10 @@ def worker(file_list):
         y_sec_right = img[:,348]
 
         # overplot
-        ax1.plot(x_sec)
-        ax2.plot(y_sec_left)
-        ax3.plot(y_sec_middle)
-        ax4.plot(y_sec_right)
+        ax1.plot(x_sec, color="b", alpha=0.2)
+        ax2.plot(y_sec_left, color="b", alpha=0.2)
+        ax3.plot(y_sec_middle, color="b", alpha=0.2)
+        ax4.plot(y_sec_right, color="b", alpha=0.2)
 
     ax1.set_title("x-sec in x")
     ax1.set_xlabel("pix$_{DFT}$ (y)")
